@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-PantryApplication<pantry>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.innogent.pantry_mind.PantryApplication",
+            "projectName": "pantry",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

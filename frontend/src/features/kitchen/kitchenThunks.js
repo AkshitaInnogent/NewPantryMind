@@ -1,0 +1,76 @@
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import axiosClient from "../../services/api";
+import { updateUserRole, updateUserKitchen } from "../auth/authSlice";
+import { refreshUser } from "../auth/authThunks";
+
+// Create kitchen and become ADMIN
+export const createKitchenWithAdmin = createAsyncThunk(
+  "kitchen/createWithAdmin",
+  async (data, { rejectWithValue, getState, dispatch }) => {
+    try {
+      const { user } = getState().auth;
+      
+      if (!user?.id) {
+        console.error("User ID not found in state:", user);
+        return rejectWithValue("User ID not found. Please login again.");
+      }
+
+      console.log("Creating kitchen with userId:", user.id);
+      const res = await axiosClient.post(`/kitchens/create-with-admin?userId=${user.id}`, {
+        name: data.name
+      });
+      
+      //  ADD: Update user role to ADMIN
+      dispatch(updateUserRole("ADMIN"));
+      dispatch(updateUserKitchen(res.data.id));
+      
+      return res.data;
+    } catch (err) {
+      console.error("Kitchen creation error:", err.response?.data || err.message);
+      return rejectWithValue(err.response?.data || "Kitchen creation failed");
+    }
+  }
+);
+
+// Join existing kitchen and become MEMBER
+export const joinKitchen = createAsyncThunk(
+  "kitchen/join",
+  async (data, { rejectWithValue, getState, dispatch }) => {
+    try {
+      const { user } = getState().auth;
+      
+      if (!user?.id) {
+        console.error("User ID not found in state:", user);
+        return rejectWithValue("User ID not found. Please login again.");
+      }
+
+      console.log("Joining kitchen with invitation code:", data.invitationCode);
+      const res = await axiosClient.post(`/kitchens/join-by-code`, {
+        invitationCode: data.invitationCode,
+        userId: user.id
+      });
+      
+      //  ADD: Update user role to MEMBER
+      dispatch(updateUserRole("MEMBER"));
+      dispatch(updateUserKitchen(res.data.id));
+      
+      return res.data;
+    } catch (err) {
+      console.error("Kitchen join error:", err.response?.data || err.message);
+      return rejectWithValue(err.response?.data || "Failed to join kitchen");
+    }
+  }
+);
+
+// Get user's kitchens
+export const getUserKitchens = createAsyncThunk(
+  "kitchen/getUserKitchens",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.get("/kitchens");
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Failed to fetch kitchens");
+    }
+  }
+);
