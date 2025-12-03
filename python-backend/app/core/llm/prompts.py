@@ -1,17 +1,32 @@
 # app/core/llm/prompts.py
 from typing import Dict, Any
-
+import base64
+from PIL import Image
+import io
 class PromptTemplates:
     
     @staticmethod
     def bill_extraction_prompt(ocr_text: str, locale: str = "en-IN") -> str:
-        return f"""Extract grocery items from receipt text. Return ONLY JSON:
+      return f"""Extract ALL grocery/food items from this receipt. Return ONLY JSON with ALL items found:
 
-{ocr_text}
+  {ocr_text}
 
-{{"items":[{{"raw_name":"Milk","canonical_name":"Milk","category":"dairy","quantity":1.0,"unit":"l","price":2.50,"is_food":true,"confidence":0.9}}]}}
+  {{"items":[{{"raw_name":"Milk","canonical_name":"Milk","category":"dairy","quantity":null,"unit":"l","price":2.50,"is_food":true,"confidence":0.9}},{{"raw_name":"Bread","canonical_name":"Bread","category":"bakery","quantity":null,"unit":"piece","price":1.20,"is_food":true,"confidence":0.8}}]}}
 
-Rules: Extract actual items, skip totals/taxes, use real prices, food items only"""
+  CRITICAL: Extract EVERY food item visible, ignore totals/taxes/store info. Use null for quantity in bills."""
+
+
+
+
+    # Add to app/core/llm/prompts.py
+    # Add to app/core/llm/prompts.py
+    @staticmethod
+    def label_vision_prompt() -> str:
+        return """Extract product information from this label image. Return ONLY JSON:
+
+    {"product_name":"Maggi Instant Noodles","canonical_name":"Instant Noodles","brand":"Maggi","category":"packaged food","quantity":70,"unit":"g","expiry_date":"2025-07-15","storage_type":"pantry","is_food":true,"confidence":0.9}
+
+    Extract: product name, brand, quantity, unit, expiry date if visible. Predict storage type and category."""
 
     staticmethod
     def label_extraction_prompt(ocr_text: str) -> str:
@@ -28,76 +43,61 @@ CRITICAL: Extract visible information and predict missing details:
 - Extract expiry date if visible, otherwise leave null
 - Predict realistic confidence based on text clarity"""
 
+    # @staticmethod
     @staticmethod
     def product_detection_prompt(mode: str = "auto") -> str:
-        single_prompt = """
-Identify the food/grocery product in this image. Return ONLY JSON:
+        return """What food items do you see in this image? Return JSON format:
 
-{
-  "products": [
-    {
-      "product_name": "Maggi Instant Noodles",
-      "canonical_name": "Instant Noodles",
-      "category": "packaged food",
-      "brand": "Maggi",
-      "quantity": 70,
-      "unit": "g",
-      "expiry_date": "2025-07-15",
-      "storage_type": "pantry",
-      "is_food": true,
-      "confidence": 0.92
-    }
-  ]
-}
+    {"products":[{"product_name":"Apple","canonical_name":"Apple","category":"fruit","brand":"Unknown","quantity":1,"unit":"piece","expiry_date":null,"storage_type":"fridge","is_food":true,"confidence":0.8}]}
 
-CRITICAL RULES:
-- Predict realistic quantity using visual estimation.
-- unit MUST be one: gm, kg, ml, l, piece.
-- Expiry only if printed text visible.
-- Liquids: ml or l | Solids: g or kg | Countable items: piece.
-- No extra keys or text outside JSON.
-- No fictional brands or guesses with low confidence.
-"""
+    Look for ANY food items - fruits, vegetables, bottles, cans, packages, containers. Always return at least one item if you see any food."""
 
-        multi_prompt = """
-Identify ALL visible food/grocery products in this shelf image. Return ONLY JSON:
+    @staticmethod
+    def product_detection_prompt(mode: str = "auto") -> str:
+        if mode == "single":
+            return """Analyze this image and identify the main food/grocery product. Return ONLY valid JSON:
 
-{
-  "products": [
-    {
-      "product_name": "Coca Cola",
-      "canonical_name": "Cola",
-      "category": "beverages",
-      "brand": "Coca Cola",
-      "quantity": 330,
-      "unit": "ml",
-      "expiry_date": null,
-      "storage_type": "pantry",
-      "is_food": true,
-      "confidence": 0.88
-    },
-    {
-      "product_name": "Kellogg's Corn Flakes",
-      "canonical_name": "Corn Flakes",
-      "category": "breakfast cereal",
-      "brand": "Kellogg's",
-      "quantity": 500,
-      "unit": "gm",
-      "expiry_date": "2025-01-10",
-      "storage_type": "pantry",
-      "is_food": true,
-      "confidence": 0.91
-    }
-  ]
-}
+    {"products":[{"product_name":"Coca Cola 330ml","canonical_name":"Cola","category":"beverages","brand":"Coca Cola","quantity":330,"unit":"ml","expiry_date":null,"storage_type":"pantry","is_food":true,"confidence":0.9}]}
 
-CRITICAL RULES:
-- Only identify food or grocery products.
-- unit MUST be one: gm, kg, ml, l, piece.
-- Use visual estimation for quantity prediction.
-- No assumptions for expiry, only if visible.
-- Always output array, even if 1 item.
-- No extra keys or comments outside JSON.
-"""
+    CRITICAL: Look carefully for ANY food/drink items. Include brand names, sizes, and specific details you can see."""
+        
+        else:
+            return """Analyze this fridge/shelf image and identify ALL visible food items. Return ONLY valid JSON:
 
-        return single_prompt if mode == "single" else multi_prompt
+    {"products":[{"product_name":"Milk 1L","canonical_name":"Milk","category":"dairy","brand":"Amul","quantity":1,"unit":"l","expiry_date":null,"storage_type":"fridge","is_food":true,"confidence":0.8},{"product_name":"Bread Loaf","canonical_name":"Bread","category":"bakery","brand":"Unknown","quantity":1,"unit":"piece","expiry_date":null,"storage_type":"pantry","is_food":true,"confidence":0.7}]}
+
+    CRITICAL: Scan the entire image systematically. Look for bottles, containers, packages, fresh produce, anything edible. Be thorough."""
+
+
+    # Copy
+
+# Insert at cursor
+# 2. Add Fallback Detection
+# Add to client.py
+    async def vision_completion(self, text_prompt: str, image_base64: str, model: str = None) -> str:
+        """Send vision completion with fallback prompts"""
+        
+        
+        
+        image_data = base64.b64decode(image_base64)
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Try main prompt first
+        try:
+            response = await self._generate_vision_content(text_prompt, image, 1000, 0.1)
+            if response and len(response.strip()) > 10:
+                return response
+        except Exception as e:
+            logger.warning(f"Main prompt failed: {e}")
+        
+        # Fallback to simpler prompt
+        fallback_prompt = "Describe what food items you see in this image. List each item."
+        try:
+            response = await self._generate_vision_content(fallback_prompt, image, 500, 0.3)
+            # Convert description to JSON format
+            return f'{{"products":[{{"product_name":"Detected Food Item","canonical_name":"Food Item","category":"unknown","brand":"Unknown","quantity":1,"unit":"piece","expiry_date":null,"storage_type":"unknown","is_food":true,"confidence":0.5}}]}}'
+        except Exception as e:
+            logger.error(f"Fallback also failed: {e}")
+            raise
+
+

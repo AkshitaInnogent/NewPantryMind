@@ -9,13 +9,8 @@ class Settings(BaseSettings):
     port: int = 8001
     debug: bool = False
     
-    # OpenRouter Configuration
-    openrouter_api_key: str
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    
-    # Model Selection
-    ocr_model: str = "qwen/qwen3-4b:free"
-    vision_model: str = "x-ai/grok-4.1-fast:free"
+    # Gemini Configuration
+    gemini_api_key: str
     
     # OCR Configuration
     max_image_size_mb: int = 10
@@ -33,5 +28,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields from .env
 
 settings = Settings()
