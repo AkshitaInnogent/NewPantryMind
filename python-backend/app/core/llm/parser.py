@@ -13,6 +13,41 @@ class LLMResponseParser:
     
     VALID_UNITS = {'g', 'kg', 'l', 'ml', 'piece'}
     
+    # def parse_bill_response(self, llm_response: str) -> List[ExtractedItem]:
+    #     """Parse LLM response for bill extraction"""
+    #     try:
+    #         logger.info(f"Parsing bill response: {llm_response[:200]}...")
+    #         json_data = self._extract_json(llm_response)
+    #         logger.info(f"Extracted JSON data: {json_data}")
+            
+    #         items = []
+    #         for item_data in json_data.get('items', []):
+    #             expiry_date = self._predict_expiry_date(item_data.get('raw_name', ''))
+    #             quantity = None
+    #             unit = self._normalize_unit(item_data.get('unit'))
+                
+    #             item = ExtractedItem(
+    #                 raw_name=item_data.get('raw_name', ''),
+    #                 canonical_name=item_data.get('canonical_name'),
+    #                 category=item_data.get('category'),
+    #                 quantity=quantity,
+    #                 unit=unit,
+    #                 price=self._safe_float(item_data.get('price')),
+    #                 expiry_date=expiry_date,
+    #                 expiry_source="estimated" if expiry_date else None,
+    #                 is_food=item_data.get('is_food', True),
+    #                 confidence=self._safe_float(item_data.get('confidence', 0.0))
+    #             )
+    #             items.append(item)
+            
+    #         logger.info(f"Parsed {len(items)} items from bill")
+    #         return items
+            
+    #     except Exception as e:
+    #         logger.error(f"Failed to parse bill response: {str(e)}")
+    #         logger.error(f"Raw response was: {llm_response}")
+    #         raise LLMError("PARSE_ERROR", f"Failed to parse LLM response: {str(e)}")
+
     def parse_bill_response(self, llm_response: str) -> List[ExtractedItem]:
         """Parse LLM response for bill extraction"""
         try:
@@ -22,13 +57,8 @@ class LLMResponseParser:
             
             items = []
             for item_data in json_data.get('items', []):
-                # Predict expiry date for bill items
                 expiry_date = self._predict_expiry_date(item_data.get('raw_name', ''))
-                
-                # For bills, set quantity to null
-                quantity = None
-                
-                # Validate and normalize unit
+                quantity = self._extract_quantity_from_name(item_data.get('raw_name', ''))
                 unit = self._normalize_unit(item_data.get('unit'))
                 
                 item = ExtractedItem(
@@ -53,6 +83,29 @@ class LLMResponseParser:
             logger.error(f"Raw response was: {llm_response}")
             raise LLMError("PARSE_ERROR", f"Failed to parse LLM response: {str(e)}")
 
+    def _extract_quantity_from_name(self, raw_name: str) -> Optional[float]:
+        """Extract quantity from product name"""
+        if not raw_name:
+            return None
+        
+        # Look for patterns like "1kg", "5kg", "4-pack", "2L", etc.
+        quantity_patterns = [
+            r'(\d+(?:\.\d+)?)\s*(?:kg|g|l|ml|pack|pcs?|pieces?)',
+            r'(\d+(?:\.\d+)?)\s*(?:liter|litre|gram|kilogram)',
+            r'(\d+(?:\.\d+)?)-pack'
+        ]
+        
+        for pattern in quantity_patterns:
+            match = re.search(pattern, raw_name.lower())
+            if match:
+                try:
+                    return float(match.group(1))
+                except ValueError:
+                    continue
+        
+        return None
+
+
     def parse_label_response(self, llm_response: str) -> ExtractedItem:
         """Parse LLM response for label extraction"""
         try:
@@ -60,7 +113,6 @@ class LLMResponseParser:
             json_data = self._extract_json(llm_response)
             logger.info(f"Extracted label JSON: {json_data}")
             
-            # Handle case where no product info is detected
             if not json_data or not json_data.get('product_name'):
                 logger.warning("No product information detected in label")
                 return ExtractedItem(
@@ -84,7 +136,6 @@ class LLMResponseParser:
                 expiry_date = self._parse_date(json_data['expiry_date'])
                 expiry_source = "explicit"
             else:
-                # Predict expiry if not found on label
                 expiry_date = self._predict_expiry_date(json_data.get('product_name', ''))
                 expiry_source = "estimated" if expiry_date else None
             
@@ -95,7 +146,6 @@ class LLMResponseParser:
                 except ValueError:
                     storage_type = StorageType.UNKNOWN
             
-            # Validate and normalize unit
             unit = self._normalize_unit(json_data.get('unit'))
             
             item = ExtractedItem(
@@ -120,21 +170,20 @@ class LLMResponseParser:
             logger.error(f"Raw response was: {llm_response}")
             raise LLMError("PARSE_ERROR", f"Failed to parse LLM response: {str(e)}")
 
-
     def parse_product_response(self, llm_response: str) -> List[ExtractedItem]:
         """Parse LLM response for product detection"""
         try:
+            logger.info(f"Parsing product response: {llm_response[:200]}...")
             json_data = self._extract_json(llm_response)
+            logger.info(f"Extracted product JSON: {json_data}")
             
             items = []
-            for product_data in json_data.get('products', []):
-                # Get quantity and unit directly from LLM
+            products_data = json_data.get('products', []) or json_data.get('items', [])
+            
+            for product_data in products_data:
                 quantity = self._safe_float(product_data.get('quantity'))
                 unit = self._normalize_unit(product_data.get('unit'))
-                
-                product_name = product_data.get('product_name', '')
-                
-                # Predict expiry date
+                product_name = product_data.get('product_name', '') or product_data.get('raw_name', '')
                 expiry_date = self._predict_expiry_date(product_name)
                 
                 item = ExtractedItem(
@@ -151,10 +200,12 @@ class LLMResponseParser:
                 )
                 items.append(item)
             
+            logger.info(f"Parsed {len(items)} items from product response")
             return items
             
         except Exception as e:
             logger.error(f"Failed to parse product response: {str(e)}")
+            logger.error(f"Raw response was: {llm_response}")
             raise LLMError("PARSE_ERROR", f"Failed to parse LLM response: {str(e)}")
 
     def _normalize_unit(self, unit: str) -> Optional[str]:
@@ -164,36 +215,20 @@ class LLMResponseParser:
         
         unit = unit.lower().strip()
         
-        # Map common variations to valid units
         unit_mapping = {
-            'pcs': 'piece',
-            'pc': 'piece',
-            'pieces': 'piece',
-            'count': 'piece',
-            'gm': 'g',
-            'gram': 'g',
-            'grams': 'g',
-            'kilogram': 'kg',
-            'kilograms': 'kg',
-            'liter': 'l',
-            'liters': 'l',
-            'litre': 'l',
-            'litres': 'l',
-            'milliliter': 'ml',
-            'milliliters': 'ml',
-            'millilitre': 'ml',
-            'millilitres': 'ml'
+            'pcs': 'piece', 'pc': 'piece', 'pieces': 'piece', 'count': 'piece',
+            'gm': 'g', 'gram': 'g', 'grams': 'g',
+            'kilogram': 'kg', 'kilograms': 'kg',
+            'liter': 'l', 'liters': 'l', 'litre': 'l', 'litres': 'l',
+            'milliliter': 'ml', 'milliliters': 'ml', 'millilitre': 'ml', 'millilitres': 'ml'
         }
         
-        # Check if unit is already valid
         if unit in self.VALID_UNITS:
             return unit
         
-        # Check mapping
         if unit in unit_mapping:
             return unit_mapping[unit]
         
-        # Default fallback
         logger.warning(f"Unknown unit '{unit}', defaulting to 'piece'")
         return 'piece'
 
@@ -205,146 +240,129 @@ class LLMResponseParser:
         product_name = product_name.lower()
         today = date.today()
         
-        # Fresh produce (1-7 days)
         if any(word in product_name for word in ['lettuce', 'spinach', 'herbs', 'berries']):
             return today + timedelta(days=3)
         elif any(word in product_name for word in ['banana', 'avocado', 'tomato']):
             return today + timedelta(days=5)
         elif any(word in product_name for word in ['apple', 'orange', 'carrot', 'potato']):
             return today + timedelta(days=14)
-        
-        # Dairy products (3-14 days)
         elif any(word in product_name for word in ['milk', 'cream']):
             return today + timedelta(days=7)
         elif any(word in product_name for word in ['yogurt', 'cottage cheese']):
             return today + timedelta(days=14)
         elif 'cheese' in product_name:
             return today + timedelta(days=30)
-        
-        # Meat & Fish (1-5 days)
         elif any(word in product_name for word in ['fish', 'seafood', 'chicken', 'beef', 'pork']):
             return today + timedelta(days=3)
         elif any(word in product_name for word in ['sausage', 'ham', 'bacon']):
             return today + timedelta(days=7)
-        
-        # Bread & Bakery (3-7 days)
         elif any(word in product_name for word in ['bread', 'bagel', 'muffin']):
             return today + timedelta(days=5)
-        
-        # Pantry items (months to years)
         elif any(word in product_name for word in ['cereal', 'pasta', 'rice', 'flour']):
             return today + timedelta(days=365)
         elif any(word in product_name for word in ['canned', 'can', 'jar']):
-            return today + timedelta(days=730)  # 2 years
-        
-        # Beverages
+            return today + timedelta(days=730)
         elif any(word in product_name for word in ['juice', 'soda', 'water']):
-            return today + timedelta(days=180)  # 6 months
-        
-        # Default for unknown items
+            return today + timedelta(days=180)
         else:
-            return today + timedelta(days=30)  # 1 month default
+            return today + timedelta(days=30)
 
     def _extract_json(self, response: str) -> Dict[str, Any]:
-        """Extract and fix JSON from LLM response"""
+        """Extract and fix JSON from LLM response, handling truncated responses"""
         try:
             logger.debug(f"Raw LLM response: '{response}'")
             
-            # Handle empty response
             if not response or not response.strip():
-                logger.warning("Empty LLM response, returning empty items")
-                return {"items": []}
+                logger.warning("Empty LLM response, returning empty products")
+                return {"products": []}
             
-            # Clean response - remove markdown and extra text
             cleaned = response.strip()
-            if '```json' in cleaned:
-                cleaned = re.search(r'```json\s*([\s\S]*?)\s*```', cleaned)
-                if cleaned:
-                    cleaned = cleaned.group(1)
-                else:
-                    cleaned = response
-            elif '```' in cleaned:
-                cleaned = re.search(r'```\s*([\s\S]*?)\s*```', cleaned)
-                if cleaned:
-                    cleaned = cleaned.group(1)
-                else:
-                    cleaned = response
             
-            # Try direct JSON parse first
+            # Extract content from code blocks
+            if '```json' in cleaned:
+                match = re.search(r'```json\s*([\s\S]*?)(?:\s*```|$)', cleaned)
+                if match:
+                    cleaned = match.group(1)
+            elif '```' in cleaned:
+                match = re.search(r'```\s*([\s\S]*?)(?:\s*```|$)', cleaned)
+                if match:
+                    cleaned = match.group(1)
+            
+            # Try direct JSON parsing first
             try:
                 parsed = json.loads(cleaned)
-                # If it's an array, wrap it
                 if isinstance(parsed, list):
                     return {"products": parsed}
                 return parsed
             except json.JSONDecodeError as e:
                 logger.warning(f"Direct JSON parse failed: {e}")
             
-            # Try to find JSON pattern
-            json_match = re.search(r'[\[\{][\s\S]*[\]\}]', cleaned)
-            if not json_match:
-                logger.warning("No JSON pattern found")
-                return {"items": []}
+            # Try to parse truncated JSON by extracting valid products
+            return self._parse_truncated_json(cleaned)
             
-            json_str = json_match.group().strip()
-            
-            # Try parsing the extracted JSON
-            try:
-                parsed = json.loads(json_str)
-                if isinstance(parsed, list):
-                    return {"products": parsed}
-                return parsed
-            except json.JSONDecodeError:
-                # Try fixing common issues
-                fixed_json = self._fix_json_issues(json_str)
-                parsed = json.loads(fixed_json)
-                if isinstance(parsed, list):
-                    return {"products": parsed}
-                return parsed
-                
         except Exception as e:
             logger.error(f"Failed to extract JSON: {str(e)}")
             logger.error(f"Response was: {response}")
-            logger.warning("Returning empty items due to parse failure")
-            return {"items": []}
+            return self._parse_truncated_json(response)
+
+    def _parse_truncated_json(self, json_str: str) -> Dict[str, Any]:
+        """Parse truncated JSON by extracting valid product objects"""
+        try:
+            products = []
+            
+            # Look for complete product objects using regex
+            product_pattern = r'\{\s*"product_name"\s*:\s*"[^"]*"[^{}]*?\}'
+            matches = re.findall(product_pattern, json_str, re.DOTALL)
+            
+            for match in matches:
+                try:
+                    clean_match = self._fix_json_issues(match)
+                    product = json.loads(clean_match)
+                    products.append(product)
+                    logger.debug(f"Successfully parsed product: {product.get('product_name', 'Unknown')}")
+                except json.JSONDecodeError:
+                    logger.warning(f"Could not parse product object: {match[:100]}...")
+                    continue
+            
+            if products:
+                logger.info(f"Extracted {len(products)} products from truncated JSON")
+                return {"products": products}
+            
+            # Alternative: extract product names and create minimal objects
+            name_pattern = r'"product_name"\s*:\s*"([^"]*)"'
+            names = re.findall(name_pattern, json_str)
+            
+            if names:
+                logger.info(f"Found {len(names)} product names, creating minimal objects")
+                for name in names:
+                    products.append({
+                        "product_name": name,
+                        "canonical_name": name,
+                        "category": "unknown",
+                        "brand": "Unknown",
+                        "quantity": 1,
+                        "unit": "piece",
+                        "is_food": True,
+                        "confidence": 0.5
+                    })
+                return {"products": products}
+            
+            logger.warning("Could not extract any valid products from truncated JSON")
+            return {"products": []}
+            
+        except Exception as e:
+            logger.error(f"Error in truncated JSON parsing: {str(e)}")
+            return {"products": []}
     
     def _fix_json_issues(self, json_str: str) -> str:
         """Fix common JSON issues"""
         # Remove trailing commas
         json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
-        
-        # Fix null values
-        json_str = json_str.replace('null', 'null')
-        
-        # Ensure proper quotes
+        # Fix unquoted keys
         json_str = re.sub(r'(\w+):', r'"\1":', json_str)
-        
-        return json_str
-    
-    def _fix_truncated_json(self, json_str: str) -> str:
-        """Fix truncated and malformed JSON"""
-        # Remove trailing commas
-        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
-        
-        # Fix incomplete last item (common with truncation)
-        json_str = re.sub(r',\s*"[^"]*":\s*[^,}\]]*$', '', json_str)
-        
-        # Ensure proper closing brackets
-        open_braces = json_str.count('{')
-        close_braces = json_str.count('}')
-        open_brackets = json_str.count('[')
-        close_brackets = json_str.count(']')
-        
-        # Add missing closing brackets
-        json_str += '}' * (open_braces - close_braces)
-        json_str += ']' * (open_brackets - close_brackets)
-        
-        # Fix missing quotes around keys
-        json_str = re.sub(r'(\w+):', r'"\1":', json_str)
-        
-        # Fix single quotes to double quotes
-        json_str = json_str.replace("'", '"')
-        
+        # Ensure proper closing
+        if json_str.strip().startswith('{') and not json_str.strip().endswith('}'):
+            json_str = json_str.rstrip() + '}'
         return json_str
     
     def _safe_float(self, value: Any) -> Optional[float]:

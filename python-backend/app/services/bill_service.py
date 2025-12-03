@@ -10,6 +10,7 @@ from app.core.llm.parser import llm_parser
 from app.models.common import ExtractedItem, DocumentType
 from app.models.response import OCRResponse
 from app.utils.exceptions import OCRServiceError
+from app.utils.timing import PerformanceTimer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,31 +27,44 @@ class BillService:
         """Process bill image and extract items"""
         
         request_id = str(uuid.uuid4())
-        start_time = time.time()
+        timer = PerformanceTimer(request_id)
         
         try:
             logger.info(f"Processing bill {request_id}")
             
             # Step 1: Validate and preprocess image
-            processed_image, _ = await image_preprocessor.validate_and_process(image_data, filename)
+            with timer.time_step("image_preprocessing"):
+                processed_image, _ = await image_preprocessor.validate_and_process(image_data, filename)
             
             # Step 2: Extract text using OCR
-            raw_text = await ocr_engine.extract_text(processed_image)
+            with timer.time_step("ocr_text_extraction"):
+                raw_text = await ocr_engine.extract_text(processed_image)
             
             if not raw_text.strip():
                 raise OCRServiceError("NO_TEXT_FOUND", "No text could be extracted from the image")
             
             # Step 3: Use LLM to parse structured data
-            prompt = PromptTemplates.bill_extraction_prompt(raw_text, locale)
-            llm_response = await llm_client.text_completion(prompt)
+            # with timer.time_step("llm_prompt_generation"):
+            #     prompt = PromptTemplates.bill_extraction_prompt(raw_text, locale)
             
+            # with timer.time_step("llm_api_call"):
+            #     llm_response = await llm_client.text_completion(prompt)
+            
+            with timer.time_step("llm_prompt_generation"):
+                prompt = PromptTemplates.bill_extraction_prompt(raw_text, locale)
+
+            with timer.time_step("llm_api_call"):
+                llm_response = await llm_client.text_completion(prompt, max_tokens=3500)
             # Step 4: Parse LLM response into structured items
-            items = llm_parser.parse_bill_response(llm_response)
+            with timer.time_step("llm_response_parsing"):
+                items = llm_parser.parse_bill_response(llm_response)
             
             # Step 5: Calculate confidence summary
-            confidence_summary = self._calculate_confidence_summary(items)
+            with timer.time_step("confidence_calculation"):
+                confidence_summary = self._calculate_confidence_summary(items)
             
-            processing_time = int((time.time() - start_time) * 1000)
+            processing_time = int(timer.get_total_time())
+            timer.log_summary()
             
             logger.info(f"Bill {request_id} processed successfully: {len(items)} items in {processing_time}ms")
             
@@ -65,8 +79,10 @@ class BillService:
             )
             
         except OCRServiceError:
+            timer.log_summary()
             raise
         except Exception as e:
+            timer.log_summary()
             logger.error(f"Bill processing failed for {request_id}: {str(e)}")
             raise OCRServiceError("PROCESSING_FAILED", f"Failed to process bill: {str(e)}")
     
@@ -81,7 +97,6 @@ class BillService:
     def _generate_user_message(self, items: List[ExtractedItem], raw_text: str, confidence: float) -> str:
         """Generate helpful message for user based on results"""
         if not items:
-            # Check if OCR text is too short or unclear
             if len(raw_text.strip()) < 20:
                 return "Image quality appears poor. Please upload a clearer picture of your receipt."
             elif "total" in raw_text.lower() or "receipt" in raw_text.lower():
