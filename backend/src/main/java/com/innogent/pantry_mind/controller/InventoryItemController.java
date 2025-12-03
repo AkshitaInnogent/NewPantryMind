@@ -1,8 +1,9 @@
 package com.innogent.pantry_mind.controller;
 
 import com.innogent.pantry_mind.dto.request.CreateInventoryItemRequestDTO;
-import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
+import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
+import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
 import com.innogent.pantry_mind.service.impl.InventoryServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,43 +17,48 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/inventory")
 @RequiredArgsConstructor
-@Tag(name = "Inventory Items", description = "Inventory item management APIs")
+@Tag(name = "Inventory", description = "Inventory management APIs")
 public class InventoryItemController {
 
-    private final InventoryServiceImpl inventoryItemService;
+    private final InventoryServiceImpl inventoryService;
 
     @PostMapping
-    @Operation(summary = "Create a new inventory item")
-    public ResponseEntity<InventoryItemResponseDTO> createItem(@Valid @RequestBody CreateInventoryItemRequestDTO dto) {
-        return ResponseEntity.ok(inventoryItemService.addInventoryItem(dto));
+    @Operation(summary = "Add a new inventory item")
+    public ResponseEntity<InventoryItemResponseDTO> addItem(@Valid @RequestBody CreateInventoryItemRequestDTO dto) {
+        return ResponseEntity.ok(inventoryService.addInventoryItem(dto));
     }
 
     @GetMapping
-    @Operation(summary = "Get all inventory items")
-    public ResponseEntity<List<InventoryItemResponseDTO>> getAllItems(@RequestParam(required = false) Long kitchenId) {
+    @Operation(summary = "Get all grouped inventory products")
+    public ResponseEntity<List<InventoryResponseDTO>> getAllInventory(@RequestParam(required = false) Long kitchenId) {
         if (kitchenId != null) {
-            return ResponseEntity.ok(inventoryItemService.getInventoryItemsByKitchen(kitchenId));
+            return ResponseEntity.ok(inventoryService.getInventoryItemsByKitchen(kitchenId));
         }
-        return ResponseEntity.ok(inventoryItemService.getAllInventoryItems());
+        return ResponseEntity.ok(inventoryService.getAllInventoryItems());
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get inventory item by ID")
-    public ResponseEntity<InventoryItemResponseDTO> getItemById(@PathVariable Long id) {
-        InventoryItemResponseDTO item = inventoryItemService.getInventoryItemById(id);
-        return item != null ? ResponseEntity.ok(item) : ResponseEntity.notFound().build();
+    @Operation(summary = "Get inventory details with all individual items")
+    public ResponseEntity<InventoryResponseDTO> getInventoryById(@PathVariable Long id) {
+        return ResponseEntity.ok(inventoryService.getInventoryItemById(id));
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Update inventory item")
+    @PutMapping("/items/{id}")
+    @Operation(summary = "Update individual inventory item")
     public ResponseEntity<InventoryItemResponseDTO> updateItem(@PathVariable Long id, @Valid @RequestBody UpdateInventoryItemRequestDTO dto) {
-        return ResponseEntity.ok(inventoryItemService.updateInventoryItem(dto, id));
+        return ResponseEntity.ok(inventoryService.updateInventoryItem(id, dto));
     }
 
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete inventory item")
+    @DeleteMapping("/items/{id}")
+    @Operation(summary = "Delete individual inventory item")
     public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
-        inventoryItemService.deleteInventoryItem(id);
+        inventoryService.deleteInventoryItem(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/items/{id}")
+    @Operation(summary = "Get individual inventory item by ID")
+    public ResponseEntity<InventoryItemResponseDTO> getItemById(@PathVariable Long id) {
+        return ResponseEntity.ok(inventoryService.getInventoryItemByItemId(id));
     }
 }

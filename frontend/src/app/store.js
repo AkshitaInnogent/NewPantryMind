@@ -5,6 +5,7 @@ import inventoryReducer from "../features/inventory/inventorySlice";
 import memberReducer from "../features/members/memberSlice";
 import categoryReducer from "../features/categories/categorySlice";
 import unitReducer from "../features/units/unitSlice";
+import locationReducer from "../features/locations/locationSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,5 +15,6 @@ export const store = configureStore({
     members: memberReducer,
     categories: categoryReducer,
     units: unitReducer,
+    locations: locationReducer,
   },
 });

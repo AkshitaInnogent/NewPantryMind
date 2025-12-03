@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { createInventoryItem } from "../../features/inventory/inventoryThunks";
 import { fetchCategories } from "../../features/categories/categoryThunks";
 import { fetchUnits } from "../../features/units/unitThunks";
+import { fetchLocations } from "../../features/locations/locationThunks";
 
 export default function AddInventoryItem() {
   const dispatch = useDispatch();
@@ -11,6 +12,7 @@ export default function AddInventoryItem() {
   const { user } = useSelector((state) => state.auth || {});
   const { categories } = useSelector((state) => state.categories || { categories: [] });
   const { units } = useSelector((state) => state.units || { units: [] });
+  const { locations } = useSelector((state) => state.locations || { locations: [] });
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -18,14 +20,21 @@ export default function AddInventoryItem() {
     categoryId: "",
     unitId: "",
     quantity: "",
-    location: "",
+    locationId: "",
     expiryDate: "",
+    price: "",
   });
 
   useEffect(() => {
     console.log("Current user data:", user);
+    console.log("Locations state:", locations);
     dispatch(fetchCategories());
     dispatch(fetchUnits());
+    dispatch(fetchLocations()).then((result) => {
+      console.log("fetchLocations result:", result);
+    }).catch((error) => {
+      console.error("fetchLocations error:", error);
+    });
   }, [dispatch, user]);
 
   const handleSubmit = async (e) => {
@@ -42,8 +51,9 @@ export default function AddInventoryItem() {
         quantity: parseInt(form.quantity),
         categoryId: form.categoryId || null,
         unitId: form.unitId || null,
-        location: form.location || null,
+        locationId: form.locationId || null,
         expiryDate: form.expiryDate || null,
+        price: form.price ? parseFloat(form.price) : null,
       };
       console.log("Submitting item:", itemData);
 
@@ -170,13 +180,35 @@ export default function AddInventoryItem() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Location
                 </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={form.location}
+                <select
+                  name="locationId"
+                  value={form.locationId}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="e.g., Refrigerator, Pantry"
+                >
+                  <option value="">Select Location</option>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  value={form.price}
+                  onChange={handleChange}
+                  step="0.01"
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="0.00"
                 />
               </div>
             </div>

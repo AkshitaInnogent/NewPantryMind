@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchInventoryItems, deleteInventoryItem } from "../../features/inventory/inventoryThunks";
 import { SearchInput } from "../../components/ui";
+import RightSidebar from "../../components/layout/RightSidebar";
 
 export default function InventoryList() {
   const dispatch = useDispatch();
@@ -15,7 +16,49 @@ export default function InventoryList() {
 
   useEffect(() => {
     dispatch(fetchInventoryItems());
+    
+    // Listen for inventory updates
+    const handleInventoryUpdate = () => {
+      dispatch(fetchInventoryItems());
+    };
+    
+    window.addEventListener('inventoryUpdated', handleInventoryUpdate);
+    
+    return () => {
+      window.removeEventListener('inventoryUpdated', handleInventoryUpdate);
+    };
   }, [dispatch]);
+
+  const getCardStyle = (itemCount) => {
+    const stackOffset = Math.min(itemCount, 3); // max 3 layers
+    return {
+      className: "bg-white rounded-lg relative transition-all duration-300",
+      style: {
+        boxShadow: `0 ${stackOffset * 2}px ${stackOffset * 4}px rgba(0,0,0,0.1), 0 ${stackOffset}px ${stackOffset * 2}px rgba(0,0,0,0.05)`,
+        transform: `translateY(-${stackOffset}px)`,
+        zIndex: stackOffset
+      }
+    };
+  };
+
+
+  const getBadgeStyle = (itemCount) => {
+    if (itemCount <= 1) return "px-2 py-1 text-xs";
+    if (itemCount <= 4) return "px-3 py-1 text-sm";
+    return "px-4 py-2 text-base font-bold";
+  };
+
+  const formatExpiryDate = (expiryDate) => {
+    if (!expiryDate) return "No upcoming expiry";
+    const date = new Date(expiryDate);
+    const today = new Date();
+    const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 3) {
+      return `⚠️ ${diffDays === 0 ? 'Today' : `${diffDays} day${diffDays > 1 ? 's' : ''}`}`;
+    }
+    return date.toLocaleDateString();
+  };
 
   useEffect(() => {
     filterItems();
@@ -190,52 +233,9 @@ export default function InventoryList() {
     }
   };
 
-  const menuItems = [
-    {
-      title: "Dashboard",
-      description: "Back to dashboard",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
-        </svg>
-      ),
-      color: "blue",
-      onClick: () => navigate(user?.role === "ADMIN" ? "/admin" : "/member")
-    },
-    {
-      title: "Add Inventory",
-      description: "Add new inventory items",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-      ),
-      color: "green",
-      onClick: () => navigate("/inventory/add-ocr")
-    },
-    {
-      title: "Reports",
-      description: "View inventory reports",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
-      color: "purple",
-      onClick: () => {}
-    }
-  ];
 
-  const getColorClasses = (color) => {
-    const colors = {
-      green: "bg-green-50 hover:bg-green-100 text-green-800 border-green-200",
-      blue: "bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200",
-      purple: "bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-200",
-      gray: "bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-200"
-    };
-    return colors[color] || colors.gray;
-  };
+
+
 
   if (loading) {
     return (
@@ -243,24 +243,7 @@ export default function InventoryList() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-lg">Loading inventory...</div>
         </div>
-        <div className="w-80 p-6">
-          <div className="bg-white rounded-lg shadow p-6 h-full">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Menu</h2>
-            <div className="space-y-4">
-              {menuItems.map((item, index) => (
-                <div key={index} className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${getColorClasses(item.color)}`}>
-                  <div className="flex items-start gap-3">
-                    <span className="text-current">{item.icon}</span>
-                    <div>
-                      <h3 className="font-semibold">{item.title}</h3>
-                      <p className="text-sm opacity-75 mt-1">{item.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <RightSidebar />
       </div>
     );
   }
@@ -330,14 +313,31 @@ export default function InventoryList() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredItems.map((item) => {
-              const expiryStatus = getExpiryStatus(item.expiryDate);
-              return (
-                <div key={item.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-6">
+              const itemCount = item.itemCount || 0;
+              const layers = Math.min(itemCount, 4);
+              
+              if (itemCount > 1) {
+                return (
+                  <div key={item.id} className="relative">
+                    {Array.from({ length: layers - 1 }, (_, i) => (
+                      <div 
+                        key={i} 
+                        className="absolute w-full h-full bg-white rounded-lg" 
+                        style={{ 
+                          top: `${(layers - 1 - i) * 4}px`, 
+                          left: `${(layers - 1 - i) * 4}px`,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                        }}
+                      ></div>
+                    ))}
+                    <div className="relative w-full bg-white rounded-lg shadow-lg p-6">
                   {/* Item Header */}
                   <div className="flex items-start gap-4 mb-4">
                     {getCategoryIcon(item.categoryName)}
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.name}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {item.name ? item.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Unknown Item'}
+                      </h3>
                       {item.description && (
                         <p className="text-sm text-gray-600">{item.description}</p>
                       )}
@@ -352,73 +352,86 @@ export default function InventoryList() {
                     </div>
 
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Quantity</span>
-                      <span className="text-sm font-medium text-gray-900">{item.quantity} {item.unitName || ""}</span>
+                      <span className="text-sm text-gray-500">Total Quantity</span>
+                      <span className="text-sm font-medium text-gray-900">{item.totalQuantity} {item.unitName || ""}</span>
                     </div>
 
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Location</span>
-                      <span className="text-sm font-medium text-gray-900">{item.location || "N/A"}</span>
-                    </div>
+
 
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Expiry</span>
-                      {item.expiryDate ? (
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getExpiryColor(expiryStatus)}`}>
-                          {new Date(item.expiryDate).toLocaleDateString()}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-gray-500">No expiry</span>
-                      )}
+                      <span className="text-sm text-gray-500">Early Expiry</span>
+                      <span className="text-xs font-medium text-gray-700">
+                        {formatExpiryDate(item.earliestExpiry)}
+                      </span>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
                     <button
-                      onClick={() => navigate(`/inventory/edit/${item.id}`)}
+                      onClick={() => navigate(`/inventory/details/${item.id}`)}
                       className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Delete
+                      View Details
                     </button>
                   </div>
-                </div>
-              );
+                    </div>
+                  </div>
+                );
+              } else {
+                return (
+                  <div key={item.id} className="bg-white rounded-lg shadow p-6">
+                    {/* Item Header */}
+                    <div className="flex items-start gap-4 mb-4">
+                      {getCategoryIcon(item.categoryName)}
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          {item.name ? item.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Unknown Item'}
+                        </h3>
+                        {item.description && (
+                          <p className="text-sm text-gray-600">{item.description}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Item Details */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Category</span>
+                        <span className="text-sm font-medium text-gray-900">{item.categoryName || "N/A"}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Total Quantity</span>
+                        <span className="text-sm font-medium text-gray-900">{item.totalQuantity} {item.unitName || ""}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Early Expiry</span>
+                        <span className="text-xs font-medium text-gray-700">
+                          {formatExpiryDate(item.earliestExpiry)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => navigate(`/inventory/details/${item.id}`)}
+                        className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
             })}
           </div>
         )}
       </div>
 
-      {/* Right Sidebar Menu */}
-      <div className="w-80 p-6">
-        <div className="bg-white rounded-lg shadow p-6 h-full">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Menu</h2>
-          
-          <div className="space-y-4">
-            {menuItems.map((item, index) => (
-              <div
-                key={index}
-                onClick={item.onClick}
-                className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${getColorClasses(item.color)}`}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-current">{item.icon}</span>
-                  <div>
-                    <h3 className="font-semibold">{item.title}</h3>
-                    <p className="text-sm opacity-75 mt-1">{item.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <RightSidebar />
     </div>
   );
 }
