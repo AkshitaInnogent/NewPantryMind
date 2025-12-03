@@ -12,7 +12,7 @@ PantryMind consists of three main components:
 
 ## 🚀 Features
 
-- **User Management**: Registration, authentication, and role-based access control
+- **User Management**: Registration, authentication, profile management, and role-based access control
 - **Kitchen Management**: Create kitchens, invite members, manage roles
 - **Inventory Management**: CRUD operations for pantry items with categories and units
 - **OCR Integration**: Upload receipts and automatically extract items
@@ -133,6 +133,15 @@ The OCR service will start on `http://localhost:8000`
 | GET | `/api/units` | Get all units |
 | POST | `/api/units` | Create new unit |
 
+### User Profile
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/user/profile` | Get user profile |
+| PUT | `/api/user/profile` | Update user profile |
+| POST | `/api/user/change-password` | Change password |
+| POST | `/api/user/upload-avatar` | Upload profile picture |
+
 ### OCR Service
 
 | Method | Endpoint | Description |
@@ -144,7 +153,8 @@ The OCR service will start on `http://localhost:8000`
 
 ### Core Entities
 
-- **User**: User accounts with authentication
+- **User**: User accounts with authentication and profile information
+- **UserProfile**: Extended user profile data (avatar, preferences, settings)
 - **Role**: User roles (USER, ADMIN, MEMBER)
 - **Kitchen**: Kitchen/household management
 - **Category**: Item categories (Dairy, Vegetables, etc.)

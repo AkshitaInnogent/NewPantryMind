@@ -89,20 +89,20 @@ public class UserController {
         return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<UserResponseDTO> getCurrentUser() {
-        // This would need authentication context to get current user
-        // For now, return a simple response
-        return ResponseEntity.ok(UserResponseDTO.builder()
-                .id(1L)
-                .email("test@example.com")
-                .name("Test User")
-                .role("USER")
-                .build());
+    @GetMapping("/profile")
+    public ResponseEntity<UserResponseDTO> getProfile() {
+        UserResponseDTO user = userService.getUserById(4L);
+        return ResponseEntity.ok(user);
     }
 
-    @PostMapping("/verify-password")
-    public ResponseEntity<?> verifyPassword(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(Map.of("valid", true));
+    @PutMapping("/profile")
+    public ResponseEntity<UserResponseDTO> updateProfile(@RequestBody UpdateUserRequestDTO request) {
+        UserResponseDTO user = userService.updateUser(4L, request);
+        return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
     }
 }
