@@ -6,10 +6,8 @@ const initialState = {
   user: (() => {
     try {
       const userData = JSON.parse(localStorage.getItem("user")) || null;
-      console.log("🔄 Loading user from localStorage:", userData);
       return userData;
     } catch {
-      console.log("❌ Failed to load user from localStorage");
       return null;
     }
   })(),
@@ -56,7 +54,6 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
-        console.log("✅ Registration response:", action.payload);
         
         // Handle response with both user and token
         if (action.payload.user && action.payload.token) {
@@ -65,10 +62,6 @@ const authSlice = createSlice({
           state.isAuthenticated = true;
           setToken(action.payload.token);
           localStorage.setItem("user", JSON.stringify(action.payload.user));
-          console.log("✅ User registered with ID:", action.payload.user.id);
-          console.log("✅ User data:", action.payload.user);
-        } else {
-          console.error("❌ No user/token data in registration response:", action.payload);
         }
       })
       .addCase(registerUser.rejected, (state, action) => {
@@ -91,10 +84,6 @@ const authSlice = createSlice({
         if (action.payload.user) {
           state.user = action.payload.user;
           localStorage.setItem("user", JSON.stringify(action.payload.user));
-          console.log("✅ User logged in with ID:", action.payload.user.id);
-          console.log("✅ User data:", action.payload.user);
-        } else {
-          console.error("❌ No user data in login response:", action.payload);
         }
       })
       .addCase(loginUser.rejected, (state, action) => {

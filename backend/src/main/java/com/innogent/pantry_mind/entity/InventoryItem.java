@@ -1,5 +1,6 @@
 package com.innogent.pantry_mind.entity;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -20,27 +21,30 @@ public class InventoryItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String name;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inventory_id")
+    private Inventory inventory;
+    
     private String description;
-    
-    @Column(name = "kitchen_id")
-    private Long kitchenId; 
-    
-    @Column(name = "created_by") 
-    private Long createdBy; 
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unit_id")
-    private Unit unit;
-    
     private Long quantity;
-    private String location;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
+    
+    @Column(name = "expiry_date")
     private Date expiryDate;
+    
+    private BigDecimal price;
+    
+    @Column(name = "created_by")
+    private Long createdBy;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", insertable = false, updatable = false)
+    private User createdByUser;
 
     @CreationTimestamp
-    private Date createdAt; 
+    @Column(name = "created_at")
+    private Date createdAt;
 }

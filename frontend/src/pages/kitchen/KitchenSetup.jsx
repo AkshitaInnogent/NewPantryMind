@@ -56,25 +56,12 @@ export default function KitchenSetup() {
           Choose Your Kitchen
         </h2>
 
-        {/* Debug Info */}
-        <div className="bg-gray-100 p-3 rounded-lg mb-4 text-xs">
-          <strong>Debug:</strong> User ID: {user?.id || 'Not found'} | Role: {user?.role || 'None'}
-        </div>
-
         {/* Error Display */}
         {error && (
           <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm">
             {error.message || error}
           </div>
         )}
-
-        {/* Role Information */}
-        <div className="bg-blue-50 p-3 rounded-lg mb-6 text-sm">
-          <p className="text-blue-800">
-            <strong>Create Kitchen:</strong> You'll become <span className="font-semibold">ADMIN</span><br/>
-            <strong>Join Kitchen:</strong> You'll become <span className="font-semibold">MEMBER</span>
-          </p>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
@@ -185,8 +172,8 @@ export default function KitchenSetup() {
             {loading 
               ? "Setting up..." 
               : selectedOption === "create" 
-                ? "Create Kitchen (Become Admin)" 
-                : "Join Kitchen (Become Member)"
+                ? "Create Kitchen" 
+                : "Join Kitchen"
             }
           </button>
         </form>

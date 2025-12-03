@@ -2,18 +2,17 @@ package com.innogent.pantry_mind.dto.request;
 
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Data
 public class UpdateInventoryItemRequestDTO {
-    private String name;
     private String description;
-    private Long categoryId;
-    private Long unitId;
 
     @Positive(message = "Quantity must be positive")
     private Long quantity;
     
-    private String location;
+    private Long locationId;
     private Date expiryDate;
+    private BigDecimal price;
 }

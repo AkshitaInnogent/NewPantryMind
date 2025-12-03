@@ -17,9 +17,11 @@ public class PantryService {
     
     private final OcrUploadRepository ocrUploadRepository;
     private final AiExtractedItemsRepository aiExtractedItemsRepository;
+    private final InventoryRepository inventoryRepository;
     private final InventoryItemRepository inventoryItemRepository;
     private final CategoryRepository categoryRepository;
     private final UnitRepository unitRepository;
+    private final LocationRepository locationRepository;
     
     @Transactional
     public List<InventoryItem> confirmAndSaveItems(ConfirmItemsRequestDto request) {
@@ -35,25 +37,28 @@ public class PantryService {
         aiItems.forEach(item -> item.setIsConfirmed(true));
         aiExtractedItemsRepository.saveAll(aiItems);
         
-        // Create inventory items
+        // Create inventory items using new structure
         List<InventoryItem> inventoryItems = request.getItems().stream()
             .map(itemDto -> {
-                InventoryItem item = new InventoryItem();
-                item.setName(itemDto.getRawName());
-                item.setDescription(itemDto.getCanonicalName());
-                item.setKitchenId(ocrUpload.getKitchenId());  // Changed from setKitchen_id
-                item.setCreatedBy(ocrUpload.getUploadedBy()); // Changed from setCreated_by
-                
-                // Find or create category
+                // Find or create inventory group
                 Category category = findOrCreateCategory(itemDto.getCategoryName());
-                item.setCategory(category);
-                
-                // Find or create unit
                 Unit unit = findOrCreateUnit(itemDto.getUnitName());
-                item.setUnit(unit);
                 
+                Inventory inventory = findOrCreateInventory(
+                    itemDto.getRawName(), 
+                    category.getId(), 
+                    unit.getId(), 
+                    ocrUpload.getKitchenId()
+                );
+                
+                // Create inventory item
+                InventoryItem item = new InventoryItem();
+                item.setInventory(inventory);
+                item.setDescription(itemDto.getCanonicalName());
+                item.setCreatedBy(ocrUpload.getUploadedBy());
                 item.setQuantity(itemDto.getQuantity() != null ? itemDto.getQuantity().longValue() : 1L);
-                item.setLocation(itemDto.getStorageType());
+                Location location = findOrCreateLocation(itemDto.getStorageType());
+                item.setLocation(location);
                 
                 if (itemDto.getExpiryDate() != null) {
                     try {
@@ -92,6 +97,33 @@ public class PantryService {
                 unit.setName(finalUnitName);
                 unit.setType("weight"); // Default type
                 return unitRepository.save(unit);
+            });
+    }
+    
+    private Inventory findOrCreateInventory(String name, Long categoryId, Long unitId, Long kitchenId) {
+        String normalizedName = com.innogent.pantry_mind.util.NameNormalizationUtil.normalizeName(name);
+        
+        return inventoryRepository.findByNormalizedNameAndCategoryIdAndUnitIdAndKitchenId(normalizedName, categoryId, unitId, kitchenId)
+            .orElseGet(() -> {
+                Inventory inventory = new Inventory();
+                inventory.setName(name);
+                inventory.setNormalizedName(normalizedName);
+                inventory.setKitchenId(kitchenId);
+                inventory.setCategory(categoryRepository.findById(categoryId).orElse(null));
+                inventory.setUnit(unitRepository.findById(unitId).orElse(null));
+                inventory.setTotalQuantity(0L);
+                return inventoryRepository.save(inventory);
+            });
+    }
+    
+    private Location findOrCreateLocation(String locationName) {
+        final String finalLocationName = (locationName == null || locationName.isEmpty()) ? "Pantry" : locationName;
+        
+        return locationRepository.findByName(finalLocationName)
+            .orElseGet(() -> {
+                Location location = new Location();
+                location.setName(finalLocationName);
+                return locationRepository.save(location);
             });
     }
 }

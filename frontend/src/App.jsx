@@ -8,17 +8,21 @@ import { AdminDashboard, MemberDashboard } from './pages/dashboard'
 import { ProtectedRoute, RoleBasedRoute } from './guards'
 import Header from './components/layout/Header'
 import InventoryList from './pages/inventory/InventoryList'
+import InventoryDetails from './pages/inventory/InventoryDetails'
 import AddInventoryItem from './pages/inventory/AddInventoryItem'
 import AddInventoryOCR from './pages/inventory/AddInventoryOCR'
 import EditInventoryItem from './pages/inventory/EditInventoryItem'
 import MemberList from './pages/members/MemberList'
+import Reports from './pages/reports/Reports'
+import Settings from './pages/settings/Settings'
+import Profile from './pages/profile/Profile'
+import SmartRecipes from './pages/recipes/SmartRecipes'
+import ShoppingList from './pages/shopping/ShoppingList'
 import AuthDebug from './components/AuthDebug'
 
 // Component to redirect based on role
 function DashboardRedirect() {
   const { user } = useSelector((state) => state.auth || {});
-  
-  console.log(" DashboardRedirect - User role:", user?.role);
   
   if (user?.role === "ADMIN") {
     return <Navigate to="/admin" replace />;
@@ -35,7 +39,7 @@ function App() {
   return (
     <BrowserRouter>
       <Header />
-      <AuthDebug />
+      {/* <AuthDebug /> */}
       <Routes>
         <Route path="/" element={isAuthenticated ? <DashboardRedirect /> : <LandingPage />} />
         <Route path="/register" element={isAuthenticated ? <DashboardRedirect /> : <Register />} />
@@ -80,6 +84,11 @@ function App() {
             <AddInventoryOCR />
           </RoleBasedRoute>
         } />
+        <Route path="/inventory/details/:id" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <InventoryDetails />
+          </RoleBasedRoute>
+        } />
         <Route path="/inventory/edit/:id" element={
           <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
             <EditInventoryItem />
@@ -90,6 +99,41 @@ function App() {
         <Route path="/members" element={
           <RoleBasedRoute allowedRoles={["ADMIN"]}>
             <MemberList />
+          </RoleBasedRoute>
+        } />
+        
+        {/* Reports Route */}
+        <Route path="/reports" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <Reports />
+          </RoleBasedRoute>
+        } />
+        
+        {/* Settings Route */}
+        <Route path="/settings" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <Settings />
+          </RoleBasedRoute>
+        } />
+        
+        {/* Profile Route */}
+        <Route path="/profile" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <Profile />
+          </RoleBasedRoute>
+        } />
+        
+        {/* Smart Recipes Route */}
+        <Route path="/recipes" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <SmartRecipes />
+          </RoleBasedRoute>
+        } />
+        
+        {/* Shopping List Route */}
+        <Route path="/shopping" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <ShoppingList />
           </RoleBasedRoute>
         } />
         

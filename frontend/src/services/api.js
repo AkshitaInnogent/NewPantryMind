@@ -26,13 +26,11 @@ axiosClient.interceptors.request.use(
 
 axiosClient.interceptors.response.use(
   (response) => {
-    console.log("Backend Response:", response);
     return response;
   },
   (error) => {
-    console.log("Backend Error:", error.response);
-    console.log("Backend Error:", error.response);
     if (error.response?.status === 401) {
+      console.error("Authentication failed - redirecting to login");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";

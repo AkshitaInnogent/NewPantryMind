@@ -1,49 +1,65 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
-import { updateInventoryItem, fetchInventoryItemById } from "../../features/inventory/inventoryThunks";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { updateInventoryItem, fetchInventoryItemById, fetchInventoryDetails } from "../../features/inventory/inventoryThunks";
 import { fetchCategories } from "../../features/categories/categoryThunks";
 import { fetchUnits } from "../../features/units/unitThunks";
+import { fetchLocations } from "../../features/locations/locationThunks";
 
 export default function EditInventoryItem() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const { categories } = useSelector((state) => state.categories || { categories: [] });
   const { units } = useSelector((state) => state.units || { units: [] });
+  const { locations } = useSelector((state) => state.locations || { locations: [] });
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
-    categoryId: "",
-    unitId: "",
+    categoryName: "",
+    unitName: "",
     quantity: "",
-    location: "",
+    locationId: "",
     expiryDate: "",
+    price: "",
   });
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const item = await dispatch(fetchInventoryItemById(id)).unwrap();
+        const stateItem = location.state?.item;
+        
+        let item;
+        if (stateItem) {
+          item = stateItem;
+        } else {
+          item = await dispatch(fetchInventoryItemById(id)).unwrap();
+        }
+        
+        const inventory = await dispatch(fetchInventoryDetails(item.inventoryId));
+        
         setForm({
-          name: item.name || "",
+          name: inventory.name || "",
           description: item.description || "",
-          categoryId: item.categoryId || "",
-          unitId: item.unitId || "",
+          categoryName: inventory.categoryName || "",
+          unitName: inventory.unitName || "",
           quantity: item.quantity || "",
-          location: item.location || "",
+          locationId: item.locationId || "",
           expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : "",
+          price: item.price || "",
         });
       } catch (error) {
-        console.error("Failed to fetch item:", error);
+        console.error("Failed to load item data:", error);
       }
     };
     
     loadData();
     dispatch(fetchCategories());
     dispatch(fetchUnits());
-  }, [dispatch, id]);
+    dispatch(fetchLocations());
+  }, [dispatch, id, location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,17 +67,17 @@ export default function EditInventoryItem() {
     
     try {
       const itemData = {
-        name: form.name,
         description: form.description || null,
-        categoryId: form.categoryId || null,
-        unitId: form.unitId || null,
         quantity: parseInt(form.quantity),
-        location: form.location || null,
+        locationId: form.locationId || null,
         expiryDate: form.expiryDate || null,
+        price: parseFloat(form.price) || null,
       };
       
-      await dispatch(updateInventoryItem(id, itemData)).unwrap();
-      navigate("/inventory");
+      await dispatch(updateInventoryItem(id, itemData));
+      const stateItem = location.state?.item;
+      const inventoryId = stateItem?.inventoryId;
+      navigate(`/inventory/details/${inventoryId}`);
     } catch (error) {
       console.error("Failed to update item:", error);
     } finally {
@@ -88,106 +104,110 @@ export default function EditInventoryItem() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Item Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Item Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
+            {/* Item Name (Read-only) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Item Name
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+              />
+            </div>
 
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  name="categoryId"
-                  value={form.categoryId}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Category (Read-only) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <input
+                type="text"
+                value={form.categoryName}
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+              />
+            </div>
 
-              {/* Quantity */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quantity *
-                </label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={form.quantity}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
+            {/* Stock Details (Qty) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Stock Details (Qty) *
+              </label>
+              <input
+                type="number"
+                name="quantity"
+                value={form.quantity}
+                onChange={handleChange}
+                required
+                min="1"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
 
-              {/* Unit */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Unit
-                </label>
-                <select
-                  name="unitId"
-                  value={form.unitId}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  <option value="">Select Unit</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Unit (Read-only) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Unit
+              </label>
+              <input
+                type="text"
+                value={form.unitName}
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+              />
+            </div>
 
-              {/* Expiry Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Expiry Date
-                </label>
-                <input
-                  type="date"
-                  name="expiryDate"
-                  value={form.expiryDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
+            {/* Expiry Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Expiry Date
+              </label>
+              <input
+                type="date"
+                name="expiryDate"
+                value={form.expiryDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
 
-              {/* Location */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={form.location}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="e.g., Refrigerator, Pantry"
-                />
-              </div>
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location
+              </label>
+              <select
+                name="locationId"
+                value={form.locationId}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="">Select Location</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Price */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Price
+              </label>
+              <input
+                type="number"
+                name="price"
+                value={form.price}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder="₹0.00"
+              />
             </div>
 
             {/* Description */}

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { createInventoryItem } from "../../features/inventory/inventoryThunks";
 import { fetchCategories } from "../../features/categories/categoryThunks";
 import { fetchUnits } from "../../features/units/unitThunks";
+import { fetchLocations } from "../../features/locations/locationThunks";
 
 export default function AddInventoryOCR() {
   const dispatch = useDispatch();
@@ -11,6 +12,7 @@ export default function AddInventoryOCR() {
   const { user } = useSelector((state) => state.auth || {});
   const { categories } = useSelector((state) => state.categories || { categories: [] });
   const { units } = useSelector((state) => state.units || { units: [] });
+  const { locations } = useSelector((state) => state.locations || { locations: [] });
   
   const [showOptions, setShowOptions] = useState(false);
   const [activeMode, setActiveMode] = useState(null);
@@ -31,13 +33,15 @@ export default function AddInventoryOCR() {
     categoryId: "",
     unitId: "",
     quantity: "",
-    location: "",
+    locationId: "",
     expiryDate: "",
+    price: "",
   }]);
 
   useEffect(() => {
     dispatch(fetchCategories());
     dispatch(fetchUnits());
+    dispatch(fetchLocations());
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -156,7 +160,7 @@ export default function AddInventoryOCR() {
           categoryId: getCategoryIdByName(item.categoryName || item.category),
           unitId: getUnitIdByName(item.unitName || item.unit),
           quantity: item.quantity || 1,
-          location: item.storageType !== 'unknown' ? item.storageType : '',
+          locationId: getLocationIdByName(item.storageType !== 'unknown' ? item.storageType : ''),
           expiryDate: item.expiryDate || item.expiry_date || '',
           price: item.price || ''
         }));
@@ -195,6 +199,14 @@ export default function AddInventoryOCR() {
     return unit?.id || '';
   };
 
+  const getLocationIdByName = (locationName) => {
+    if (!locationName) return '';
+    const location = locations.find(loc => 
+      loc.name.toLowerCase().includes(locationName.toLowerCase())
+    );
+    return location?.id || '';
+  };
+
   const updateEditingItem = (index, field, value) => {
     const updated = [...editingItems];
     updated[index][field] = value;
@@ -226,8 +238,9 @@ export default function AddInventoryOCR() {
           quantity: parseInt(item.quantity) || 1,
           categoryId: item.categoryId || null,
           unitId: item.unitId || null,
-          location: item.location || null,
+          locationId: item.locationId || null,
           expiryDate: item.expiryDate || null,
+          price: item.price ? parseFloat(item.price) : null,
         };
         await dispatch(createInventoryItem(itemData));
       }
@@ -251,8 +264,9 @@ export default function AddInventoryOCR() {
       categoryId: "",
       unitId: "",
       quantity: "",
-      location: "",
+      locationId: "",
       expiryDate: "",
+      price: "",
     }]);
   };
 
@@ -299,8 +313,9 @@ export default function AddInventoryOCR() {
             quantity: parseInt(item.quantity) || 1,
             categoryId: item.categoryId || null,
             unitId: item.unitId || null,
-            location: item.location || null,
+            locationId: item.locationId || null,
             expiryDate: item.expiryDate || null,
+            price: item.price ? parseFloat(item.price) : null,
           };
           await dispatch(createInventoryItem(itemData));
         }
@@ -436,11 +451,24 @@ export default function AddInventoryOCR() {
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   />
 
+                  <select
+                    value={item.locationId}
+                    onChange={(e) => updateManualItem(item.id, 'locationId', e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">Select Location</option>
+                    {locations.map(location => (
+                      <option key={location.id} value={location.id}>{location.name}</option>
+                    ))}
+                  </select>
+
                   <input
-                    type="text"
-                    placeholder="Location"
-                    value={item.location}
-                    onChange={(e) => updateManualItem(item.id, 'location', e.target.value)}
+                    type="number"
+                    placeholder="Price"
+                    value={item.price}
+                    onChange={(e) => updateManualItem(item.id, 'price', e.target.value)}
+                    step="0.01"
+                    min="0"
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   />
                 </div>
@@ -548,11 +576,24 @@ export default function AddInventoryOCR() {
                     className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   />
 
+                  <select
+                    value={item.locationId}
+                    onChange={(e) => updateEditingItem(index, 'locationId', e.target.value)}
+                    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">Select Location</option>
+                    {locations.map(location => (
+                      <option key={location.id} value={location.id}>{location.name}</option>
+                    ))}
+                  </select>
+
                   <input
-                    type="text"
-                    placeholder="Location"
-                    value={item.location}
-                    onChange={(e) => updateEditingItem(index, 'location', e.target.value)}
+                    type="number"
+                    placeholder="Price"
+                    value={item.price}
+                    onChange={(e) => updateEditingItem(index, 'price', e.target.value)}
+                    step="0.01"
+                    min="0"
                     className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   />
                 </div>
