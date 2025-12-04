@@ -8,6 +8,10 @@ from app.utils.exceptions import OCRServiceError
 from app.utils.logger import setup_logging
 import logging
 
+
+# for recipes  ----
+from app.api.routes import recipes
+
 # Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -33,6 +37,9 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 app.include_router(ocr.router)
+
+# for recipes 
+app.include_router(recipes.router)
 
 # Global exception handler
 @app.exception_handler(OCRServiceError)
