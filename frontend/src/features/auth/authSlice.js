@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { loginUser, registerUser, refreshUser } from "./authThunks";
+import { loginUser, registerUser, refreshUser, updateProfile } from "./authThunks";
 import { getToken, removeToken, setToken } from "../../utils/auth";
 
 const initialState = {
@@ -94,6 +94,21 @@ const authSlice = createSlice({
       .addCase(refreshUser.fulfilled, (state, action) => {
         state.user = action.payload;
         localStorage.setItem("user", JSON.stringify(action.payload));
+      })
+      
+      // UPDATE PROFILE
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        localStorage.setItem("user", JSON.stringify(action.payload));
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });

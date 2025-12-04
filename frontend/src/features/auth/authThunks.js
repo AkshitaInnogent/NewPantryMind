@@ -48,3 +48,27 @@ export const logoutUser = createAsyncThunk(
     }
   }
 );
+
+export const updateProfile = createAsyncThunk(
+  "user/updateProfile",
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.put("/user/profile", data);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Profile update failed");
+    }
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  "user/changePassword",
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.post("/user/change-password", data);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error || "Password change failed");
+    }
+  }
+);

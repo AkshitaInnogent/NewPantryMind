@@ -3,11 +3,14 @@ package com.innogent.pantry_mind.controller;
 import com.innogent.pantry_mind.config.JwtUtil;
 import com.innogent.pantry_mind.dto.request.*;
 import com.innogent.pantry_mind.dto.response.UserResponseDTO;
+import com.innogent.pantry_mind.exception.InvalidPasswordException;
 import com.innogent.pantry_mind.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,9 +46,13 @@ public class UserController {
 
     @GetMapping("/refresh")
     public ResponseEntity<UserResponseDTO> refreshUser() {
-        // Get current user from token - for now return user by ID 4
-        UserResponseDTO user = userService.getUserById(4L);
-        return ResponseEntity.ok(user);
+        try {
+            String email = getCurrentUserEmail();
+            UserResponseDTO user = userService.getUserByEmail(email);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).build();
+        }
     }
 
     @GetMapping
@@ -77,32 +84,52 @@ public class UserController {
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequestDTO request) {
-        userService.forgotPassword(request.getEmail());
-        return ResponseEntity.ok(Map.of("message", "Password reset email sent"));
-    }
-
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequestDTO request) {
-        userService.resetPassword(request.getToken(), request.getNewPassword());
-        return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
-    }
-
     @GetMapping("/profile")
     public ResponseEntity<UserResponseDTO> getProfile() {
-        UserResponseDTO user = userService.getUserById(4L);
+        String email = getCurrentUserEmail();
+        UserResponseDTO user = userService.getUserByEmail(email);
         return ResponseEntity.ok(user);
     }
 
     @PutMapping("/profile")
     public ResponseEntity<UserResponseDTO> updateProfile(@RequestBody UpdateUserRequestDTO request) {
-        UserResponseDTO user = userService.updateUser(4L, request);
+        String email = getCurrentUserEmail();
+        UserResponseDTO currentUser = userService.getUserByEmail(email);
+        UserResponseDTO user = userService.updateUser(currentUser.getId(), request);
         return ResponseEntity.ok(user);
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequestDTO request) {
+        try {
+            String email = getCurrentUserEmail();
+            UserResponseDTO currentUser = userService.getUserByEmail(email);
+            userService.changePassword(currentUser.getId(), request);
+            return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+        } catch (InvalidPasswordException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
+
+    @PostMapping("/verify-password")
+    public ResponseEntity<?> verifyPassword(@RequestBody VerifyPasswordRequestDTO request) {
+        String email = getCurrentUserEmail();
+        boolean isValid = userService.verifyPassword(email, request.getPassword());
+        
+        if (isValid) {
+            return ResponseEntity.ok(Map.of("valid", true));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("valid", false, "error", "Incorrect password"));
+        }
+    }
+    
+    private String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            return authentication.getName();
+        }
+        throw new RuntimeException("User not authenticated");
+    }
+
+
 }

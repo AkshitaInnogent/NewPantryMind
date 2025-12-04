@@ -7,18 +7,13 @@ export const fetchKitchenMembers = createAsyncThunk(
     try {
       const { user } = getState().auth;
       const kitchenId = user?.kitchenId;
-      console.log("🔍 Fetching members for kitchenId:", kitchenId);
       if (!kitchenId) {
-        console.log("❌ No kitchenId found, returning empty array");
         return [];
       }
       const url = `/kitchens/members?kitchenId=${kitchenId}`;
-      console.log("📡 Calling API:", url);
       const response = await api.get(url);
-      console.log("✅ API Response:", response.data);
       return response.data;
     } catch (error) {
-      console.log("❌ API Error:", error);
       return rejectWithValue(error.response?.data?.message || "Failed to fetch members");
     }
   }

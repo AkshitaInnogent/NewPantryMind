@@ -33,8 +33,22 @@ export default function InventoryDetails() {
     if (!window.confirm("Are you sure you want to delete this item?")) return;
     try {
       await dispatch(deleteInventoryItem(itemId));
+      
+      // Check if this was the last item
+      if (inventory.items && inventory.items.length === 1) {
+        // If it was the last item, redirect to inventory list
+        navigate("/inventory");
+        return;
+      }
+      
+      // Otherwise, reload the details
       await loadInventoryDetails();
     } catch (err) {
+      // If we get a 404, it means the inventory no longer exists, redirect to list
+      if (err?.message?.includes("404") || err?.response?.status === 404) {
+        navigate("/inventory");
+        return;
+      }
       setError(err?.message || "Failed to delete item");
     }
   };

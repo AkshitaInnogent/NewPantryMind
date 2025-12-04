@@ -1,5 +1,6 @@
 package com.innogent.pantry_mind.service;
 
+import com.innogent.pantry_mind.dto.request.ChangePasswordRequestDTO;
 import com.innogent.pantry_mind.dto.request.LoginRequestDTO;
 import com.innogent.pantry_mind.dto.request.RegisterRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateUserRequestDTO;
@@ -17,6 +18,8 @@ public interface UserService {
     void deleteUser(Long id);
     void forgotPassword(String email);
     void resetPassword(String token, String newPassword);
+    void changePassword(Long userId, ChangePasswordRequestDTO request);
+    boolean verifyPassword(String email, String password);
 }
 
 

@@ -27,7 +27,8 @@ public class KitchenController {
 
     @GetMapping("/{id}")
     public ResponseEntity<KitchenResponseDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(kitchenService.getById(id));
+        KitchenResponseDTO kitchen = kitchenService.getById(id);
+        return ResponseEntity.ok(kitchen);
     }
 
     @GetMapping

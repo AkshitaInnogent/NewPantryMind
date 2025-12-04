@@ -73,7 +73,8 @@ export default function MemberList() {
         setPasswordError("");
         setPassword("");
       } else {
-        setPasswordError("Invalid password");
+        const errorData = await response.json();
+        setPasswordError(errorData.error || "Incorrect password");
       }
     } catch (error) {
       setPasswordError("Failed to verify password");
@@ -174,8 +175,10 @@ export default function MemberList() {
             {filteredMembers.map((member) => (
               <div key={member.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 text-xl">👤</span>
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg font-bold">
+                      {member.username?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(member.role)}`}>
                     {member.role}
