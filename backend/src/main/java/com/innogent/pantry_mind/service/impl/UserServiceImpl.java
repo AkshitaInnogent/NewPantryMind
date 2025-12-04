@@ -1,8 +1,9 @@
 package com.innogent.pantry_mind.service.impl;
-//abhi completed nhi h
+import com.innogent.pantry_mind.dto.request.ChangePasswordRequestDTO;
 import com.innogent.pantry_mind.dto.request.LoginRequestDTO;
 import com.innogent.pantry_mind.dto.request.RegisterRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateUserRequestDTO;
+import com.innogent.pantry_mind.exception.InvalidPasswordException;
 
 import java.util.List;
 import com.innogent.pantry_mind.dto.response.UserResponseDTO;
@@ -53,8 +54,6 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO login(LoginRequestDTO req) {
         User user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        // modify by badal after applying jwt ----
 
         if (user.getPasswordHash() == null || !passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid credentials");
@@ -117,5 +116,26 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return userMapper.toResponse(user);
+    }
+
+    @Override
+    public void changePassword(Long userId, ChangePasswordRequestDTO request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new InvalidPasswordException("Current password is incorrect");
+        }
+        
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    @Override
+    public boolean verifyPassword(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        return passwordEncoder.matches(password, user.getPasswordHash());
     }
 }

@@ -74,3 +74,16 @@ export const getUserKitchens = createAsyncThunk(
     }
   }
 );
+
+// Update kitchen name
+export const updateKitchen = createAsyncThunk(
+  "kitchen/update",
+  async ({ kitchenId, name }, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.put(`/kitchens/${kitchenId}`, { name });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Kitchen update failed");
+    }
+  }
+);
