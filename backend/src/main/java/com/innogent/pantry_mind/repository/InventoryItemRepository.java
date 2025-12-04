@@ -22,4 +22,7 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     
     @Query("SELECT COUNT(i) FROM InventoryItem i WHERE i.inventory.id = :inventoryId")
     Long countByInventoryId(@Param("inventoryId") Long inventoryId);
+    
+    @Query("SELECT i FROM InventoryItem i WHERE i.inventory.kitchenId = :kitchenId AND i.quantity <= :threshold")
+    List<InventoryItem> findLowStockItems(@Param("kitchenId") Long kitchenId, @Param("threshold") Integer threshold);
 }

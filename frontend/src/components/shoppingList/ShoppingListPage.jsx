@@ -8,6 +8,8 @@ const ShoppingList = () => {
   const kitchenId = currentKitchen?.id || user?.kitchenId;
   
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -19,55 +21,88 @@ const ShoppingList = () => {
     priority: 'MEDIUM'
   });
 
+  // Debug logging
+  console.log('ShoppingList Debug:', { user, currentKitchen, kitchenId });
+
+  const fetchCategories = async () => {
+    try {
+      console.log('Fetching categories...');
+      const response = await fetch('http://localhost:8080/api/categories', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      console.log('Categories response:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Categories data:', data);
+        setCategories(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    }
+  };
+
+  const fetchUnits = async () => {
+    try {
+      console.log('Fetching units...');
+      const response = await fetch('http://localhost:8080/api/units', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      console.log('Units response:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Units data:', data);
+        setUnits(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch units:', err);
+    }
+  };
+
   const fetchItems = async () => {
-    if (!kitchenId) return;
+    if (!kitchenId) {
+      console.log('No kitchenId available');
+      return;
+    }
     setLoading(true);
     try {
+      console.log('Fetching shopping list items for kitchen:', kitchenId);
       const response = await fetch(`http://localhost:8080/api/shopping-list?kitchenId=${kitchenId}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      const data = await response.json();
-      setItems(data);
-      setError(null);
+      console.log('Shopping list response:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Shopping list data:', data);
+        setItems(data);
+        setError(null);
+      } else {
+        const errorText = await response.text();
+        console.error('Shopping list error:', errorText);
+        setError(`Failed to fetch items: ${response.status}`);
+      }
     } catch (err) {
-      setError('Failed to fetch items');
       console.error('Fetch error:', err);
+      setError('Failed to fetch items');
     }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchItems();
+    fetchCategories();
+    fetchUnits();
   }, [kitchenId]);
-
-  const handleGenerateFromLowStock = async () => {
-    if (!kitchenId) return;
-    try {
-      const response = await fetch('http://localhost:8080/api/shopping-list/generate-from-low-stock', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ kitchenId, threshold: 3 })
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        alert(`Generated ${result.itemsGenerated} items from low stock!`);
-        fetchItems();
-      }
-    } catch (err) {
-      console.error('Generate error:', err);
-      alert('Failed to generate items');
-    }
-  };
 
   const handleAddItem = async (e) => {
     e.preventDefault();
-    if (!kitchenId || !newItem.itemName.trim()) return;
+    if (!kitchenId || !newItem.itemName.trim()) {
+      console.log('Missing kitchenId or itemName');
+      return;
+    }
     
     try {
+      console.log('Adding item:', { ...newItem, kitchenId });
       const response = await fetch('http://localhost:8080/api/shopping-list', {
         method: 'POST',
         headers: {
@@ -77,14 +112,53 @@ const ShoppingList = () => {
         body: JSON.stringify({ ...newItem, kitchenId })
       });
       
+      console.log('Add item response:', response.status);
+      
       if (response.ok) {
+        const result = await response.json();
+        console.log('Item added:', result);
         setNewItem({ itemName: '', quantity: 1, unit: '', category: '', priority: 'MEDIUM' });
         setShowAddForm(false);
         fetchItems();
+      } else {
+        const errorText = await response.text();
+        console.error('Add item error:', errorText);
+        alert(`Failed to add item: ${response.status}`);
       }
     } catch (err) {
       console.error('Add error:', err);
       alert('Failed to add item');
+    }
+  };
+
+  const handleGenerateFromLowStock = async () => {
+    if (!kitchenId) return;
+    try {
+      console.log('Generating from low stock...');
+      const response = await fetch('http://localhost:8080/api/shopping-list/generate-from-low-stock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ kitchenId, threshold: 3 })
+      });
+      
+      console.log('Generate response:', response.status);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Generated items:', result);
+        alert(`Generated ${result.itemsGenerated} items from low stock!`);
+        fetchItems();
+      } else {
+        const errorText = await response.text();
+        console.error('Generate error:', errorText);
+        alert(`Failed to generate items: ${response.status}`);
+      }
+    } catch (err) {
+      console.error('Generate error:', err);
+      alert('Failed to generate items');
     }
   };
 
@@ -153,6 +227,14 @@ const ShoppingList = () => {
     <div className="min-h-screen bg-gray-50 flex">
       <div className="flex-1 p-6">
         <div className="bg-white rounded-lg shadow p-6">
+          {/* Debug Info */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+            <strong>Debug:</strong> KitchenId: {kitchenId || 'None'} | 
+            Items: {items.length} | 
+            Categories: {categories.length} | 
+            Units: {units.length}
+          </div>
+
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h1 className="text-3xl font-bold text-gray-800">🛒 Shopping List</h1>
@@ -207,20 +289,26 @@ const ShoppingList = () => {
                   onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value) || 1})}
                   className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <input
-                  type="text"
-                  placeholder="Unit (e.g., kg, pieces)"
+                <select
                   value={newItem.unit}
                   onChange={(e) => setNewItem({...newItem, unit: e.target.value})}
                   className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder="Category (e.g., Dairy, Vegetables)"
+                >
+                  <option value="">Select Unit</option>
+                  {units.map(unit => (
+                    <option key={unit.id} value={unit.name}>{unit.name}</option>
+                  ))}
+                </select>
+                <select
                   value={newItem.category}
                   onChange={(e) => setNewItem({...newItem, category: e.target.value})}
                   className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.name}>{category.name}</option>
+                  ))}
+                </select>
                 <select
                   value={newItem.priority}
                   onChange={(e) => setNewItem({...newItem, priority: e.target.value})}
@@ -250,7 +338,7 @@ const ShoppingList = () => {
             </div>
           )}
 
-          {/* Shopping List Content */}
+          {/* Rest of the component remains the same... */}
           <div className="space-y-6">
             {/* High Priority */}
             {groupedItems.HIGH.length > 0 && (
@@ -271,14 +359,12 @@ const ShoppingList = () => {
                         <button 
                           onClick={() => handleTogglePurchased(item.id)}
                           className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                          title="Mark as purchased"
                         >
                           ✓ Done
                         </button>
                         <button 
                           onClick={() => handleDeleteItem(item.id)}
                           className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                          title="Delete item"
                         >
                           ✕ Delete
                         </button>
