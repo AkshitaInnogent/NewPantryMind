@@ -39,10 +39,10 @@ export default function Header() {
                   <span className="text-gray-600">Welcome, </span>
                   <span className="font-medium text-gray-900">{user?.name || user?.email}</span>
                   {user?.role && (
-                    <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                    <span className={`ml-2 px-3 py-1 text-xs font-bold rounded-full ${
                       user.role === "ADMIN" 
                         ? "bg-green-100 text-green-700" 
-                        : "bg-blue-100 text-blue-700"
+                        : "bg-green-50 text-green-600"
                     }`}>
                       {user.role}
                     </span>
@@ -51,7 +51,7 @@ export default function Header() {
                 
                 <button
                   onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
                 >
                   Logout
                 </button>
@@ -60,13 +60,13 @@ export default function Header() {
               <>
                 <button
                   onClick={() => navigate("/login")}
-                  className="text-gray-600 hover:text-gray-900 px-4 py-2 text-sm font-medium transition-colors"
+                  className="text-green-600 hover:text-green-700 px-4 py-2 text-sm font-semibold transition-all duration-300"
                 >
                   Login
                 </button>
                 <button
                   onClick={() => navigate("/register")}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
                 >
                   Register
                 </button>

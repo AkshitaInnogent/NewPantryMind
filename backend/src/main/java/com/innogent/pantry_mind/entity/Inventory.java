@@ -46,6 +46,7 @@ public class Inventory {
         if (this.name != null) {
             this.normalizedName = NameNormalizationUtil.normalizeName(this.name);
         }
+        setDefaultMinStock();
     }
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -64,6 +65,27 @@ public class Inventory {
     
     @Column(name = "item_count", nullable = false)
     private Integer itemCount = 0;
+    
+    @Column(name = "min_expiry_days_alert")
+    private Integer minExpiryDaysAlert = 3;
+    
+    @Column(name = "min_stock")
+    private Long minStock;
+    
+    public void setDefaultMinStock() {
+        if (this.minStock == null && this.unit != null) {
+            String unitName = this.unit.getName().toLowerCase();
+            if (unitName.contains("gm") || unitName.contains("gram")) {
+                this.minStock = 250L;
+            } else if (unitName.contains("ml") || unitName.contains("liter")) {
+                this.minStock = 250L;
+            } else if (unitName.contains("piece") || unitName.contains("pcs")) {
+                this.minStock = 5L;
+            } else {
+                this.minStock = 250L; // default
+            }
+        }
+    }
     
     @OneToMany(mappedBy = "inventory", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<InventoryItem> items;
