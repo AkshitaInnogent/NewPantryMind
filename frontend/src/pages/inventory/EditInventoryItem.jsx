@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { updateInventoryItem, fetchInventoryItemById, fetchInventoryDetails } from "../../features/inventory/inventoryThunks";
 import { fetchCategories } from "../../features/categories/categoryThunks";
-import { fetchUnits } from "../../features/units/unitThunks";
 import { fetchLocations } from "../../features/locations/locationThunks";
 
 export default function EditInventoryItem() {
@@ -11,8 +10,8 @@ export default function EditInventoryItem() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
-  const { categories } = useSelector((state) => state.categories || { categories: [] });
-  const { units } = useSelector((state) => state.units || { units: [] });
+
+
   const { locations } = useSelector((state) => state.locations || { locations: [] });
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -57,7 +56,6 @@ export default function EditInventoryItem() {
     
     loadData();
     dispatch(fetchCategories());
-    dispatch(fetchUnits());
     dispatch(fetchLocations());
   }, [dispatch, id, location.state]);
 

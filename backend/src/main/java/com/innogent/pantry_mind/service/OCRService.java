@@ -28,7 +28,6 @@ import java.util.List;
 public class OCRService {
     
     private final RestTemplate restTemplate;
-    private final CloudinaryService cloudinaryService;
     private final OcrUploadRepository ocrUploadRepository;
     private final AiExtractedItemsRepository aiExtractedItemsRepository;
     private final ObjectMapper objectMapper;
@@ -55,27 +54,21 @@ public class OCRService {
     private OCRProcessingResult processDocument(MultipartFile file, Long kitchenId, Long userId, 
                                              OcrUpload.DocumentType docType, String endpoint) {
         try {
-            // 1. Upload to Cloudinary
-            CloudinaryService.CloudinaryUploadResult cloudinaryResult = 
-                cloudinaryService.uploadImage(file, "pantry-mind/" + docType.name().toLowerCase());
-            
-            // 2. Save OCR upload record
+            // 1. Save OCR upload record
             OcrUpload ocrUpload = OcrUpload.builder()
                 .kitchenId(kitchenId)
                 .uploadedBy(userId)
                 .originalFilename(file.getOriginalFilename())
-                .cloudinaryUrl(cloudinaryResult.getUrl())
-                .cloudinaryPublicId(cloudinaryResult.getPublicId())
                 .documentType(docType)
                 .status(OcrUpload.ProcessingStatus.PROCESSING)
                 .build();
             
             ocrUpload = ocrUploadRepository.save(ocrUpload);
             
-            // 3. Call Python OCR API
+            // 2. Call Python OCR API
             OCRResponseDto ocrResponse = callPythonOCR(endpoint, file);
             
-            // 4. Update OCR upload with results
+            // 3. Update OCR upload with results
             ocrUpload.setRawOcrText(ocrResponse.getRawOcrText());
             ocrUpload.setPythonRequestId(ocrResponse.getRequestId());
             ocrUpload.setConfidenceSummary(ocrResponse.getConfidenceSummary());
@@ -83,7 +76,7 @@ public class OCRService {
             ocrUpload.setStatus(OcrUpload.ProcessingStatus.COMPLETED);
             ocrUploadRepository.save(ocrUpload);
             
-            // 5. Save extracted items
+            // 4. Save extracted items
             List<AiExtractedItems> extractedItems = saveExtractedItems(ocrResponse, ocrUpload.getId());
             
             return OCRProcessingResult.builder()

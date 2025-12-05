@@ -1,26 +1,20 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axiosClient from "../../services/api";
 
-export const fetchUnits = createAsyncThunk(
-  "units/fetchAll",
-  async (_, { rejectWithValue }) => {
+const createEntityThunk = (name, method, endpoint, errorMsg) => 
+  createAsyncThunk(name, async (data, { rejectWithValue }) => {
     try {
-      const response = await axiosClient.get("/units");
+      const response = await axiosClient[method](endpoint, data);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch units");
+      return rejectWithValue(error.response?.data?.message || errorMsg);
     }
-  }
+  });
+
+export const fetchUnits = createEntityThunk(
+  "units/fetchAll", "get", "/units", "Failed to fetch units"
 );
 
-export const createUnit = createAsyncThunk(
-  "units/create",
-  async (unitData, { rejectWithValue }) => {
-    try {
-      const response = await axiosClient.post("/units", unitData);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to create unit");
-    }
-  }
+export const createUnit = createEntityThunk(
+  "units/create", "post", "/units", "Failed to create unit"
 );

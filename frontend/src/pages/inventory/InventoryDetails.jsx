@@ -66,7 +66,6 @@ export default function InventoryDetails() {
   };
 
 
-
   const getCategoryIcon = (categoryName) => {
     const category = categoryName?.toLowerCase() || "";
     
@@ -169,7 +168,7 @@ export default function InventoryDetails() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Total Quantity</div>
-              <div className="font-semibold text-gray-900">{inventory.totalQuantityDisplay || totalQtyLabel}</div>
+              <div className="font-semibold text-gray-900">{totalQtyLabel}</div>
             </div>
           </div>
         </div>
@@ -204,7 +203,7 @@ export default function InventoryDetails() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {inventory.items.map((item) => {
+                {inventory.items.map((item, idx) => {
                   const status = getExpiryStatus(item.expiryDate);
                   return (
                     <tr key={item.id} className="hover:bg-gray-50/60">
