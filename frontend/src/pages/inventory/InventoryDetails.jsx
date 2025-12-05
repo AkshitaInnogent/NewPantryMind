@@ -65,11 +65,7 @@ export default function InventoryDetails() {
     return { key: "fresh", label: `Good until ${expiry.toLocaleDateString()}`, cls: "bg-green-100 text-green-800" };
   };
 
-  const formatQty = (qty, unitName) => {
-    if (!qty && qty !== 0) return "—";
-    if (!unitName) return String(qty);
-    return `${qty} ${unitName}`;
-  };
+
 
   const getCategoryIcon = (categoryName) => {
     const category = categoryName?.toLowerCase() || "";
@@ -173,7 +169,7 @@ export default function InventoryDetails() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Total Quantity</div>
-              <div className="font-semibold text-gray-900">{totalQtyLabel}</div>
+              <div className="font-semibold text-gray-900">{inventory.totalQuantityDisplay || totalQtyLabel}</div>
             </div>
           </div>
         </div>
@@ -208,7 +204,7 @@ export default function InventoryDetails() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {inventory.items.map((item, idx) => {
+                {inventory.items.map((item) => {
                   const status = getExpiryStatus(item.expiryDate);
                   return (
                     <tr key={item.id} className="hover:bg-gray-50/60">

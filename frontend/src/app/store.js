@@ -6,6 +6,7 @@ import memberReducer from "../features/members/memberSlice";
 import categoryReducer from "../features/categories/categorySlice";
 import unitReducer from "../features/units/unitSlice";
 import locationReducer from "../features/locations/locationSlice";
+import recipeReducer from "../features/recipes/recipeSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,5 +17,6 @@ export const store = configureStore({
     categories: categoryReducer,
     units: unitReducer,
     locations: locationReducer,
+    recipes: recipeReducer,
   },
 });

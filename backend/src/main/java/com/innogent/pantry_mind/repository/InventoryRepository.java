@@ -1,13 +1,14 @@
 package com.innogent.pantry_mind.repository;
 
-import com.innogent.pantry_mind.entity.Inventory;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.innogent.pantry_mind.entity.Inventory;
 
 @Repository
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
@@ -21,4 +22,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         @Param("kitchenId") Long kitchenId, 
         @Param("categoryId") Long categoryId, 
         @Param("unitId") Long unitId);
+
+    // for recipe ------ 
+    List<Inventory> findByKitchenIdAndTotalQuantityGreaterThan(Long kitchenId, Long quantity);
+
 }
