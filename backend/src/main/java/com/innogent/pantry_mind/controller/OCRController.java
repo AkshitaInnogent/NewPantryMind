@@ -19,7 +19,7 @@ public class OCRController {
     private final OCRService ocrService;
     
     @PostMapping(value = "/bill", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Process bill image - Upload to Cloudinary and extract items using AI")
+    @Operation(summary = "Process bill image and extract items using AI")
     public ResponseEntity<?> processBill(
             @Parameter(description = "Bill image file", required = true)
             @RequestPart("image") MultipartFile file,
@@ -39,7 +39,7 @@ public class OCRController {
     }
     
     @PostMapping(value = "/label", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Process product label - Upload to Cloudinary and extract product info using AI")
+    @Operation(summary = "Process product label and extract product info using AI")
     public ResponseEntity<?> processLabel(
             @Parameter(description = "Product label image file", required = true)
             @RequestPart("image") MultipartFile file,
@@ -59,7 +59,7 @@ public class OCRController {
     }
     
     @PostMapping(value = "/product", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Process product/shelf image - Upload to Cloudinary and detect products using AI")
+    @Operation(summary = "Process product/shelf image and detect products using AI")
     public ResponseEntity<?> processProduct(
             @Parameter(description = "Product or shelf image file", required = true)
             @RequestPart("image") MultipartFile file,

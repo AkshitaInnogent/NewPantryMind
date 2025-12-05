@@ -52,9 +52,6 @@ cp .env.example .env
 # DATABASE_USERNAME=your_username
 # DATABASE_PASSWORD=your_password
 # JWT_SECRET=your_jwt_secret
-# CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-# CLOUDINARY_API_KEY=your_api_key
-# CLOUDINARY_API_SECRET=your_api_secret
 
 # Run the application
 ./mvnw spring-boot:run
@@ -204,7 +201,7 @@ PantryMind/
 - **Security**: Spring Security with JWT
 - **Documentation**: OpenAPI/Swagger
 - **Mapping**: MapStruct
-- **Cloud Storage**: Cloudinary
+
 
 ### Frontend
 - **Framework**: React 18 with Vite
