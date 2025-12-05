@@ -123,11 +123,11 @@ export default function InventoryDetails() {
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate("/inventory")} className="text-gray-600 hover:text-gray-800 inline-flex items-center justify-center">
+        <button onClick={() => navigate("/inventory")} className="text-green-600 hover:text-green-700 inline-flex items-center justify-center transition-all duration-300">
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center ring-1 ring-red-100">
+          <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center ring-1 ring-green-100">
             <span className="text-2xl">{getCategoryIcon(inventory.categoryName)}</span>
           </div>
           <div>
@@ -141,8 +141,8 @@ export default function InventoryDetails() {
       <div className="bg-white rounded-2xl shadow p-4 md:p-6 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="rounded-xl border border-gray-100 p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-              <Package2 className="h-5 w-5 text-gray-600" />
+            <div className="h-10 w-10 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center">
+              <Package2 className="h-5 w-5 text-green-600" />
             </div>
             <div>
               <div className="text-sm text-gray-500">Category</div>
@@ -152,8 +152,8 @@ export default function InventoryDetails() {
         </div>
         <div className="rounded-xl border border-gray-100 p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-              <Scale className="h-5 w-5 text-gray-600" />
+            <div className="h-10 w-10 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center">
+              <Scale className="h-5 w-5 text-green-600" />
             </div>
             <div>
               <div className="text-sm text-gray-500">Unit</div>
@@ -163,8 +163,8 @@ export default function InventoryDetails() {
         </div>
         <div className="rounded-xl border border-gray-100 p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-              <Layers3 className="h-5 w-5 text-gray-600" />
+            <div className="h-10 w-10 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center">
+              <Layers3 className="h-5 w-5 text-green-600" />
             </div>
             <div>
               <div className="text-sm text-gray-500">Total Quantity</div>
@@ -174,8 +174,8 @@ export default function InventoryDetails() {
         </div>
         <div className="rounded-xl border border-gray-100 p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-              <Boxes className="h-5 w-5 text-gray-600" />
+            <div className="h-10 w-10 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center">
+              <Boxes className="h-5 w-5 text-green-600" />
             </div>
             <div>
               <div className="text-sm text-gray-500">Individual Items</div>
@@ -221,14 +221,14 @@ export default function InventoryDetails() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => navigate(`/inventory/edit-item/${item.id}`, { state: { item } })}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-md"
                             aria-label="Edit"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteItem(item.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border border-red-200 bg-red-50 hover:bg-red-100 text-red-700"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-md"
                             aria-label="Delete"
                           >
                             <Trash2 className="h-4 w-4" />

@@ -1,0 +1,149 @@
+/* PantryMind Green Theme Variables */
+:root {
+  /* Primary Green Colors */
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-200: #bbf7d0;
+  --green-300: #86efac;
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --green-800: #166534;
+  --green-900: #14532d;
+
+  /* Theme Colors */
+  --primary: var(--green-600);
+  --primary-hover: var(--green-700);
+  --primary-light: var(--green-50);
+  --primary-border: var(--green-200);
+  
+  /* Status Colors */
+  --success: var(--green-600);
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: var(--green-500);
+}
+
+/* Global Green Theme Utilities */
+.btn-primary {
+  @apply bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl;
+}
+
+.btn-secondary {
+  @apply border border-green-600 text-green-700 font-semibold px-6 py-3 rounded-lg hover:bg-green-50 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl;
+}
+
+.btn-ghost {
+  @apply text-green-600 hover:text-green-700 hover:bg-green-50 font-semibold px-4 py-2 rounded-lg transition-all duration-300;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-sm p-6 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl;
+}
+
+.badge-primary {
+  @apply bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full;
+}
+
+
+
+.text-primary {
+  @apply text-green-600;
+}
+
+.bg-primary {
+  @apply bg-green-600;
+}
+
+.border-primary {
+  @apply border-green-600;
+}
+
+/* Icon containers */
+.icon-container {
+  @apply w-12 h-12 flex items-center justify-center bg-green-50 text-green-600 rounded-lg;
+}
+
+/* Page headers */
+.page-header {
+  @apply flex items-center gap-4 mb-8;
+}
+
+.page-title {
+  @apply text-3xl md:text-4xl font-extrabold text-gray-900;
+}
+
+.page-subtitle {
+  @apply text-gray-600 mt-1;
+}
+
+/* Recipe Component Heading Sizes */
+.recipe-title {
+  @apply text-4xl font-bold text-gray-900;
+}
+
+.recipe-section-title {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+.recipe-info-title {
+  @apply text-xl font-semibold text-gray-800;
+}
+
+.recipe-nutrition-title {
+  @apply text-lg font-semibold text-gray-800;
+}
+
+/* Animation utilities */
+.hover-lift {
+  @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl;
+}
+
+/* Status indicators */
+.status-success {
+  @apply bg-green-50 text-green-700 border-green-200;
+}
+
+.status-warning {
+  @apply bg-orange-50 text-orange-700 border-orange-200;
+}
+
+.status-error {
+  @apply bg-red-50 text-red-700 border-red-200;
+}
+
+/* Loading states */
+.loading-spinner {
+  @apply w-16 h-16 mx-auto mb-6 border-4 border-green-600 border-t-transparent rounded-full animate-spin;
+}
+
+/* Form elements */
+.form-group {
+  @apply space-y-2;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-input {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all;
+}
+
+.form-error {
+  @apply text-red-600 text-sm mt-1;
+}
+
+/* Navigation */
+.nav-item {
+  @apply p-4 rounded-lg border cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl;
+}
+
+.nav-item-active {
+  @apply bg-green-600 text-white border-green-600 shadow-xl transform scale-[1.02];
+}
+
+.nav-item-inactive {
+  @apply bg-green-50 hover:bg-green-100 text-green-800 border-green-200 hover:border-green-300;
+}
