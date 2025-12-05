@@ -123,31 +123,20 @@ export default function RightSidebar() {
 
   const getColorClasses = (color, path) => {
     const active = isActive(path);
+    // Use green as primary theme with subtle variations for different sections
+    if (active) {
+      return "bg-green-600 text-white border-green-600 shadow-xl transform scale-[1.02]";
+    }
+    
     const colors = {
-      sky: active
-        ? "bg-sky-200 text-sky-900 border-sky-300 shadow-md"
-        : "bg-sky-50 hover:bg-sky-100 text-sky-800 border-sky-200",
-      emerald: active
-        ? "bg-emerald-200 text-emerald-900 border-emerald-300 shadow-md"
-        : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200",
-      rose: active
-        ? "bg-rose-200 text-rose-900 border-rose-300 shadow-md"
-        : "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200",
-      violet: active
-        ? "bg-violet-200 text-violet-900 border-violet-300 shadow-md"
-        : "bg-violet-50 hover:bg-violet-100 text-violet-800 border-violet-200",
-      amber: active
-        ? "bg-amber-200 text-amber-900 border-amber-300 shadow-md"
-        : "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200",
-      cyan: active
-        ? "bg-cyan-200 text-cyan-900 border-cyan-300 shadow-md"
-        : "bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-200",
-      lime: active
-        ? "bg-lime-200 text-lime-900 border-lime-300 shadow-md"
-        : "bg-lime-50 hover:bg-lime-100 text-lime-800 border-lime-200",
-      slate: active
-        ? "bg-slate-200 text-slate-900 border-slate-300 shadow-md"
-        : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+      sky: "bg-green-50 hover:bg-green-100 text-green-800 border-green-200 hover:border-green-300",
+      emerald: "bg-green-50 hover:bg-green-100 text-green-800 border-green-200 hover:border-green-300", 
+      rose: "bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300",
+      violet: "bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300",
+      amber: "bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300",
+      cyan: "bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300",
+      lime: "bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300",
+      slate: "bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300"
     };
     return colors[color] || colors.slate;
   };
@@ -162,7 +151,7 @@ export default function RightSidebar() {
             <div
               key={index}
               onClick={item.onClick}
-              className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${getColorClasses(item.color, item.path)}`}
+              className={`p-4 rounded-lg border cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl ${getColorClasses(item.color, item.path)}`}
             >
               <div className="flex items-start gap-3">
                 <span className="text-current">{item.icon}</span>
