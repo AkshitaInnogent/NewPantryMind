@@ -2,14 +2,14 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchInventoryItems } from "../../features/inventory/inventoryThunks";
-import { SearchInput } from "../../components/ui";
-import RightSidebar from "../../components/layout/RightSidebar";
+import { SearchInput, Button, Card, LoadingSpinner, Alert, EmptyState } from "../../components/ui";
+import PageLayout from "../../components/layout/PageLayout";
+import { Package } from "lucide-react";
 
 export default function InventoryList() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items, loading, error } = useSelector((state) => state.inventory);
-
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,11 +28,6 @@ export default function InventoryList() {
       window.removeEventListener('inventoryUpdated', handleInventoryUpdate);
     };
   }, [dispatch]);
-
-
-
-
-
 
   const formatExpiryDate = (expiryDate) => {
     if (!expiryDate) return "No upcoming expiry";
@@ -187,160 +182,106 @@ export default function InventoryList() {
     setSearchTerm(searchValue);
   }, []);
 
-
-
-
-
-
-
-
-
-
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-lg">Loading inventory...</div>
-        </div>
-        <RightSidebar />
-      </div>
+      <PageLayout
+        title="Inventory Items"
+        subtitle="Manage your pantry items"
+        icon={<Package className="w-6 h-6" />}
+      >
+        <LoadingSpinner text="Loading inventory..." />
+      </PageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <div className="flex-1 p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">Inventory Items</h1>
+    <PageLayout
+      title="Inventory Items"
+      subtitle="Manage your pantry items"
+      icon={<Package className="w-6 h-6" />}
+      headerActions={
+        <Button onClick={() => navigate("/inventory/add-ocr")}>
+          📦 Add Inventory
+        </Button>
+      }
+    >
+      <div className="mb-6">
+        {/* Search */}
+        <SearchInput
+          placeholder="Search items, categories, locations..."
+          onSearch={handleSearch}
+          className="max-w-md mb-4"
+        />
+
+        {/* Category Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {getUniqueCategories().map((category) => (
             <button
-              onClick={() => navigate("/inventory/add-ocr")}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium"
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] ${
+                selectedCategory === category
+                  ? "bg-green-600 text-white shadow-xl"
+                  : "bg-white text-gray-700 hover:bg-green-50 border border-gray-200 hover:border-green-200"
+              }`}
             >
-              📦 Add Inventory
+              <span className="text-lg">{getCategoryTabIcon(category)}</span>
+              {category}
+              <span className="text-xs opacity-75">
+                ({category === "All" ? items.length : items.filter(item => item.categoryName === category).length})
+              </span>
             </button>
-          </div>
-          
-          {/* Search */}
-          <SearchInput
-            placeholder="Search items, categories, locations..."
-            onSearch={handleSearch}
-            className="max-w-md mb-4"
-          />
-
-          {/* Category Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {getUniqueCategories().map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  selectedCategory === category
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                }`}
-              >
-                <span className="text-lg">{getCategoryTabIcon(category)}</span>
-                {category}
-                <span className="text-xs opacity-75">
-                  ({category === "All" ? items.length : items.filter(item => item.categoryName === category).length})
-                </span>
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Error */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
+      {/* Error */}
+      {error && (
+        <Alert
+          type="error"
+          title="Error Loading Inventory"
+          message={error}
+          className="mb-6"
+        />
+      )}
 
-        {/* Items Grid */}
-        {filteredItems.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-500">
-              {items.length === 0 ? (
-                <>No inventory items found. <button onClick={() => navigate("/inventory/add")} className="text-green-600 hover:underline">Add your first item</button></>
-              ) : (
-                `No items found ${selectedCategory !== "All" ? `in ${selectedCategory} category` : ""} ${searchTerm ? `matching "${searchTerm}"` : ""}.`
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredItems.map((item) => {
-              const itemCount = item.itemCount || 0;
-              const layers = Math.min(itemCount, 4);
-              
-              if (itemCount > 1) {
-                return (
-                  <div key={item.id} className="relative">
-                    {Array.from({ length: layers - 1 }, (_, i) => (
-                      <div 
-                        key={i} 
-                        className="absolute w-full h-full bg-white rounded-lg" 
-                        style={{ 
-                          top: `${(layers - 1 - i) * 4}px`, 
-                          left: `${(layers - 1 - i) * 4}px`,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                        }}
-                      ></div>
-                    ))}
-                    <div className="relative w-full bg-white rounded-lg shadow-lg p-6">
-                  {/* Item Header */}
-                  <div className="flex items-start gap-4 mb-4">
-                    {getCategoryIcon(item.categoryName)}
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {item.name ? item.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Unknown Item'}
-                      </h3>
-                      {item.description && (
-                        <p className="text-sm text-gray-600">{item.description}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Item Details */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Category</span>
-                      <span className="text-sm font-medium text-gray-900">{item.categoryName || "N/A"}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Total Quantity</span>
-                      <span className="text-sm font-medium text-gray-900">{item.totalQuantity} {item.unitName || ""}</span>
-                    </div>
-
-
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Early Expiry</span>
-                      <span className="text-xs font-medium text-gray-700">
-                        {formatExpiryDate(item.earliestExpiry)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => navigate(`/inventory/details/${item.id}`)}
-                      className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                    </div>
-                  </div>
-                );
-              } else {
-                return (
-                  <div key={item.id} className="bg-white rounded-lg shadow p-6">
+      {/* Items Grid */}
+      {filteredItems.length === 0 ? (
+        <EmptyState
+          icon={<Package className="w-10 h-10" />}
+          title={items.length === 0 ? "No Inventory Items" : "No Items Found"}
+          description={
+            items.length === 0 
+              ? "Start building your pantry inventory by adding your first item."
+              : `No items found ${selectedCategory !== "All" ? `in ${selectedCategory} category` : ""} ${searchTerm ? `matching "${searchTerm}"` : ""}.`
+          }
+          action={items.length === 0 && (
+            <Button onClick={() => navigate("/inventory/add")}>
+              Add Your First Item
+            </Button>
+          )}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredItems.map((item) => {
+            const itemCount = item.itemCount || 0;
+            const layers = Math.min(itemCount, 4);
+            
+            if (itemCount > 1) {
+              return (
+                <div key={item.id} className="relative">
+                  {Array.from({ length: layers - 1 }, (_, i) => (
+                    <div 
+                      key={i} 
+                      className="absolute w-full h-full bg-white rounded-lg" 
+                      style={{ 
+                        top: `${(layers - 1 - i) * 4}px`, 
+                        left: `${(layers - 1 - i) * 4}px`,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                      }}
+                    ></div>
+                  ))}
+                  <Card className="relative w-full shadow-lg">
                     {/* Item Header */}
                     <div className="flex items-start gap-4 mb-4">
                       {getCategoryIcon(item.categoryName)}
@@ -376,22 +317,71 @@ export default function InventoryList() {
 
                     {/* Actions */}
                     <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => navigate(`/inventory/details/${item.id}`)}
-                        className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                        className="flex-1 bg-green-50 hover:bg-green-100 text-green-700"
                       >
                         View Details
-                      </button>
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
+              );
+            } else {
+              return (
+                <Card key={item.id} hover>
+                  {/* Item Header */}
+                  <div className="flex items-start gap-4 mb-4">
+                    {getCategoryIcon(item.categoryName)}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {item.name ? item.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Unknown Item'}
+                      </h3>
+                      {item.description && (
+                        <p className="text-sm text-gray-600">{item.description}</p>
+                      )}
                     </div>
                   </div>
-                );
-              }
-            })}
-          </div>
-        )}
-      </div>
 
-      <RightSidebar />
-    </div>
+                  {/* Item Details */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Category</span>
+                      <span className="text-sm font-medium text-gray-900">{item.categoryName || "N/A"}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Total Quantity</span>
+                      <span className="text-sm font-medium text-gray-900">{item.totalQuantity} {item.unitName || ""}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Early Expiry</span>
+                      <span className="text-xs font-medium text-gray-700">
+                        {formatExpiryDate(item.earliestExpiry)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/inventory/details/${item.id}`)}
+                      className="flex-1 bg-green-50 hover:bg-green-100 text-green-700"
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                </Card>
+              );
+            }
+          })}
+        </div>
+      )}
+    </PageLayout>
   );
 }

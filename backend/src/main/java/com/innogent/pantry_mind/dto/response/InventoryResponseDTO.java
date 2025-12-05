@@ -14,6 +14,8 @@ public class InventoryResponseDTO {
     private String unitName;
     private Long totalQuantity;
     private Integer itemCount;
+    private Integer minExpiryDaysAlert;
+    private Long minStock;
     private Date earliestExpiry;
     private List<InventoryItemResponseDTO> items;
 }

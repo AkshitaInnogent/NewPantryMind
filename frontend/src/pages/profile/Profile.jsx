@@ -1,9 +1,11 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
-import RightSidebar from "../../components/layout/RightSidebar";
+import PageLayout from "../../components/layout/PageLayout";
+import { Button, Card } from "../../components/ui";
 import axiosClient from "../../services/api";
 import { updateProfile, changePassword } from "../../features/auth/authThunks";
 import { updateKitchen } from "../../features/kitchen/kitchenThunks";
+import { User } from "lucide-react";
 
 export default function Profile() {
   const dispatch = useDispatch();
@@ -144,187 +146,177 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex font-sans">
-      <div className="flex-1 p-8 flex gap-6">
-        <div className="flex-1 bg-white rounded-xl shadow-sm p-8 h-fit">
-          <h2 className="text-2xl font-bold text-gray-800 mb-8">Profile</h2>
-
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center mb-4">
-              <span className="text-white text-6xl font-bold">
-                {(user?.name || user?.username || "User").charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900">{user?.name}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-gray-500 text-sm">@{user?.username}</span>
-              <span className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded">
-                {user?.role}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-6 mb-8">
-            <div className="border border-gray-200 rounded-lg p-5">
-              <h4 className="text-gray-800 font-medium mb-3">Contact Information</h4>
-              {isEditing ? (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-bold text-gray-900 block mb-1">Username:</label>
-                    <input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-gray-900 block mb-1">Name:</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-gray-900 block mb-1">Email:</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <span className="text-sm font-bold text-gray-900 mr-1">Email:</span>
-                  <span className="text-sm text-gray-600">{user?.email}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-5">
-              <h4 className="text-gray-800 font-medium mb-3">Kitchen Details</h4>
-              {isEditing ? (
-                <div>
-                  <label className="text-sm font-bold text-gray-900 block mb-1">Kitchen Name:</label>
-                  <input
-                    type="text"
-                    name="kitchenName"
-                    value={formData.kitchenName}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <span className="text-sm font-bold text-gray-900 mr-1">Kitchen Name:</span>
-                  <span className="text-sm text-gray-600">{kitchenName || 'No kitchen assigned'}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {isChangingPassword && (
-            <div className="border border-gray-200 rounded-lg p-5 mb-6">
-              <h4 className="text-gray-800 font-medium mb-3">Change Password</h4>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-bold text-gray-900 block mb-1">Current Password:</label>
-                  <input
-                    type="password"
-                    name="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-gray-900 block mb-1">New Password:</label>
-                  <input
-                    type="password"
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-gray-900 block mb-1">Confirm New Password:</label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            {isChangingPassword ? (
-              <>
-                <button 
-                  onClick={handleSavePassword}
-                  disabled={loading}
-                  className="bg-green-800 text-white font-medium py-2 px-6 rounded-md hover:bg-green-900 transition disabled:opacity-50"
-                >
-                  {loading ? "Changing..." : "Change Password"}
-                </button>
-                <button 
-                  onClick={handleCancelPasswordChange}
-                  className="border border-gray-300 text-gray-700 font-medium py-2 px-6 rounded-md hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : isEditing ? (
-              <>
-                <button 
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="bg-green-800 text-white font-medium py-2 px-6 rounded-md hover:bg-green-900 transition disabled:opacity-50"
-                >
-                  {loading ? "Saving..." : "Save Changes"}
-                </button>
-                <button 
-                  onClick={handleCancel}
-                  className="border border-gray-300 text-gray-700 font-medium py-2 px-6 rounded-md hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  onClick={handleEdit}
-                  className="bg-green-800 text-white font-medium py-2 px-6 rounded-md hover:bg-green-900 transition"
-                >
-                  Edit Profile
-                </button>
-                <button 
-                  onClick={handleChangePassword}
-                  className="border border-gray-300 text-gray-700 font-medium py-2 px-6 rounded-md hover:bg-gray-50 transition"
-                >
-                  Change Password
-                </button>
-              </>
-            )}
-          </div>
+    <PageLayout
+      title="Profile Settings"
+      subtitle="Manage your account and kitchen preferences"
+      icon={<User className="w-6 h-6" />}
+    >
+      <div className="flex flex-col items-center mb-10">
+        <div className="w-32 h-32 bg-green-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
+          <span className="text-white text-6xl font-bold">
+            {(user?.name || user?.username || "User").charAt(0).toUpperCase()}
+          </span>
         </div>
-
-        <div className="w-80 shrink-0">
-           <RightSidebar />
+        <h3 className="text-xl font-bold text-gray-900">{user?.name}</h3>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-gray-500 text-sm">@{user?.username}</span>
+          <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full">
+            {user?.role}
+          </span>
         </div>
       </div>
-    </div>
+
+      <div className="space-y-6 mb-8">
+        <Card>
+          <h4 className="text-gray-800 font-medium mb-3">Contact Information</h4>
+          {isEditing ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-bold text-gray-900 block mb-1">Username:</label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-gray-900 block mb-1">Name:</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-gray-900 block mb-1">Email:</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <span className="text-sm font-bold text-gray-900 mr-1">Email:</span>
+              <span className="text-sm text-gray-600">{user?.email}</span>
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <h4 className="text-gray-800 font-medium mb-3">Kitchen Details</h4>
+          {isEditing ? (
+            <div>
+              <label className="text-sm font-bold text-gray-900 block mb-1">Kitchen Name:</label>
+              <input
+                type="text"
+                name="kitchenName"
+                value={formData.kitchenName}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <span className="text-sm font-bold text-gray-900 mr-1">Kitchen Name:</span>
+              <span className="text-sm text-gray-600">{kitchenName || 'No kitchen assigned'}</span>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {isChangingPassword && (
+        <Card className="mb-6">
+          <h4 className="text-gray-800 font-medium mb-3">Change Password</h4>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-bold text-gray-900 block mb-1">Current Password:</label>
+              <input
+                type="password"
+                name="currentPassword"
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-gray-900 block mb-1">New Password:</label>
+              <input
+                type="password"
+                name="newPassword"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-gray-900 block mb-1">Confirm New Password:</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <div className="flex gap-3">
+        {isChangingPassword ? (
+          <>
+            <Button 
+              onClick={handleSavePassword}
+              disabled={loading}
+              loading={loading}
+            >
+              Change Password
+            </Button>
+            <Button 
+              variant="secondary"
+              onClick={handleCancelPasswordChange}
+            >
+              Cancel
+            </Button>
+          </>
+        ) : isEditing ? (
+          <>
+            <Button 
+              onClick={handleSave}
+              disabled={loading}
+              loading={loading}
+            >
+              Save Changes
+            </Button>
+            <Button 
+              variant="secondary"
+              onClick={handleCancel}
+            >
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button onClick={handleEdit}>
+              Edit Profile
+            </Button>
+            <Button 
+              variant="secondary"
+              onClick={handleChangePassword}
+            >
+              Change Password
+            </Button>
+          </>
+        )}
+      </div>
+    </PageLayout>
   );
 }

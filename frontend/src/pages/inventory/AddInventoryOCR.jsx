@@ -386,7 +386,7 @@ export default function AddInventoryOCR() {
                       <button
                         type="button"
                         onClick={addManualItem}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                        className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
                       >
                         + Add Item
                       </button>
@@ -637,7 +637,7 @@ export default function AddInventoryOCR() {
                   setActiveMode(scanType);
                   startCamera();
                 }}
-                className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                className="p-6 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
               >
                 <div className="text-4xl mb-2">📷</div>
                 <h3 className="font-semibold mb-1">Use Camera</h3>
@@ -686,7 +686,7 @@ export default function AddInventoryOCR() {
                 setActiveMode('label');
                 fileInputRef.current?.click();
               }}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
             >
               <div className="text-4xl mb-2">🏷️</div>
               <h3 className="font-semibold mb-1">Scan Label</h3>
@@ -698,7 +698,7 @@ export default function AddInventoryOCR() {
                 setActiveMode('pantry');
                 fileInputRef.current?.click();
               }}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
             >
               <div className="text-4xl mb-2">📦</div>
               <h3 className="font-semibold mb-1">Scan Pantry</h3>
@@ -710,7 +710,7 @@ export default function AddInventoryOCR() {
                 setActiveMode('bill');
                 fileInputRef.current?.click();
               }}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors"
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
             >
               <div className="text-4xl mb-2">🧾</div>
               <h3 className="font-semibold mb-1">Scan Bill</h3>
