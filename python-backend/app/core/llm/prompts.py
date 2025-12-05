@@ -11,9 +11,9 @@ class PromptTemplates:
 
   {ocr_text}
 
-  {{"items":[{{"raw_name":"Milk","canonical_name":"Milk","category":"dairy","quantity":null,"unit":"l","price":2.50,"is_food":true,"confidence":0.9}},{{"raw_name":"Bread","canonical_name":"Bread","category":"bakery","quantity":null,"unit":"piece","price":1.20,"is_food":true,"confidence":0.8}}]}}
+  {{"items":[{{"raw_name":"Milk","canonical_name":"Milk","category":"dairy","quantity":null,"unit":"ml","price":2.50,"is_food":true,"confidence":0.9}},{{"raw_name":"Bread","canonical_name":"Bread","category":"bakery","quantity":null,"unit":"piece","price":1.20,"is_food":true,"confidence":0.8}}]}}
 
-  CRITICAL: Extract EVERY food item visible, ignore totals/taxes/store info. Use null for quantity in bills."""
+  CRITICAL: Extract EVERY food item visible, ignore totals/taxes/store info. Use null for quantity in bills. Units can be: grams, kg, ml, litre, piece, or dozen."""
 
 
 
@@ -24,9 +24,9 @@ class PromptTemplates:
     def label_vision_prompt() -> str:
         return """Extract product information from this label image. Return ONLY JSON:
 
-    {"product_name":"Maggi Instant Noodles","canonical_name":"Instant Noodles","brand":"Maggi","category":"packaged food","quantity":70,"unit":"g","expiry_date":"2025-07-15","storage_type":"pantry","is_food":true,"confidence":0.9}
+    {"product_name":"Maggi Instant Noodles","canonical_name":"Instant Noodles","brand":"Maggi","category":"packaged food","quantity":70,"unit":"grams","expiry_date":"2025-07-15","storage_type":"pantry","is_food":true,"confidence":0.9}
 
-    Extract: product name, brand, quantity, unit, expiry date if visible. Predict storage type and category."""
+    Extract: product name, brand, quantity, unit, expiry date if visible. Units can be: grams, kg, ml, litre, piece, or dozen."""
 
     staticmethod
     def label_extraction_prompt(ocr_text: str) -> str:
@@ -34,11 +34,11 @@ class PromptTemplates:
 
 {ocr_text}
 
-{{"product_name":"[extract from label]","canonical_name":"[simplified name]","brand":"[brand if visible]","category":"[predict category]","quantity":"[extract number]","unit":"[gm/kg/ml/l/piece]","expiry_date":"[YYYY-MM-DD if visible]","storage_type":"[pantry/fridge/freezer]","is_food":true,"confidence":"[0-1]"}}
+{{"product_name":"[extract from label]","canonical_name":"[simplified name]","brand":"[brand if visible]","category":"[predict category]","quantity":"[extract number]","unit":"[grams/ml/piece]","expiry_date":"[YYYY-MM-DD if visible]","storage_type":"[pantry/fridge/freezer]","is_food":true,"confidence":"[0-1]"}}
 
 CRITICAL: Extract visible information and predict missing details:
 - Extract product name, brand, quantity from label text
-- Predict appropriate unit based on product type
+- Units can be: grams, kg, ml, litre, piece, or dozen
 - Predict storage type based on product category
 - Extract expiry date if visible, otherwise leave null
 - Predict realistic confidence based on text clarity"""
@@ -64,9 +64,9 @@ CRITICAL: Extract visible information and predict missing details:
         else:
             return """Analyze this fridge/shelf image and identify ALL visible food items. Return ONLY valid JSON:
 
-    {"products":[{"product_name":"Milk 1L","canonical_name":"Milk","category":"dairy","brand":"Amul","quantity":1,"unit":"l","expiry_date":null,"storage_type":"fridge","is_food":true,"confidence":0.8},{"product_name":"Bread Loaf","canonical_name":"Bread","category":"bakery","brand":"Unknown","quantity":1,"unit":"piece","expiry_date":null,"storage_type":"pantry","is_food":true,"confidence":0.7}]}
+    {"products":[{"product_name":"Milk 1L","canonical_name":"Milk","category":"dairy","brand":"Amul","quantity":1000,"unit":"ml","expiry_date":null,"storage_type":"fridge","is_food":true,"confidence":0.8},{"product_name":"Bread Loaf","canonical_name":"Bread","category":"bakery","brand":"Unknown","quantity":1,"unit":"piece","expiry_date":null,"storage_type":"pantry","is_food":true,"confidence":0.7}]}
 
-    CRITICAL: Scan the entire image systematically. Look for bottles, containers, packages, fresh produce, anything edible. Be thorough."""
+    CRITICAL: Scan the entire image systematically. Look for bottles, containers, packages, fresh produce, anything edible. Be thorough. Units can be: grams, kg, ml, litre, piece, or dozen."""
 
 
     # Copy

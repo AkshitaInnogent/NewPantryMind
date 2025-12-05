@@ -18,6 +18,7 @@ import com.innogent.pantry_mind.repository.LocationRepository;
 import com.innogent.pantry_mind.repository.UnitRepository;
 import com.innogent.pantry_mind.repository.UserRepository;
 import com.innogent.pantry_mind.util.NameNormalizationUtil;
+import com.innogent.pantry_mind.util.UnitConversionUtil;
 import com.innogent.pantry_mind.service.InventoryService;
 import com.innogent.pantry_mind.exception.ItemNotFoundException;
 
@@ -44,15 +45,25 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public InventoryItemResponseDTO addInventoryItem(CreateInventoryItemRequestDTO dto) {
-        // Find or create inventory group
+        // Convert unit and quantity to base units
+        Unit inputUnit = unitRepository.findById(dto.getUnitId())
+                .orElseThrow(() -> new ItemNotFoundException("Unit not found: " + dto.getUnitId()));
+        
+        String baseUnitName = UnitConversionUtil.getBaseUnit(inputUnit.getName());
+        Long convertedQuantity = UnitConversionUtil.convertToBaseUnit(dto.getQuantity(), inputUnit.getName());
+        
+        Unit baseUnit = unitRepository.findByName(baseUnitName)
+                .orElseThrow(() -> new ItemNotFoundException("Base unit not found: " + baseUnitName));
+        
+        // Find or create inventory group with base unit
         Inventory inventory = findOrCreateInventory(dto.getName(), dto.getCategoryId(), 
-                                                   dto.getUnitId(), dto.getKitchenId());
+                                                   baseUnit.getId(), dto.getKitchenId());
         
         // Create inventory item
         InventoryItem item = new InventoryItem();
         item.setInventory(inventory);
         item.setDescription(dto.getDescription());
-        item.setQuantity(dto.getQuantity());
+        item.setQuantity(convertedQuantity);
         if (dto.getLocationId() != null) {
             Location location = locationRepository.findById(dto.getLocationId()).orElse(null);
             item.setLocation(location);
@@ -153,7 +164,12 @@ public class InventoryServiceImpl implements InventoryService {
                 .orElseThrow(() -> new ItemNotFoundException(itemId));
         
         if (dto.getDescription() != null) item.setDescription(dto.getDescription());
-        if (dto.getQuantity() != null) item.setQuantity(dto.getQuantity());
+        if (dto.getQuantity() != null) {
+            // Convert quantity if needed (assuming same unit as existing item)
+            String currentUnitName = item.getInventory().getUnit().getName();
+            Long convertedQuantity = UnitConversionUtil.convertToBaseUnit(dto.getQuantity(), currentUnitName);
+            item.setQuantity(convertedQuantity);
+        }
         if (dto.getLocationId() != null) {
             Location location = locationRepository.findById(dto.getLocationId()).orElse(null);
             item.setLocation(location);

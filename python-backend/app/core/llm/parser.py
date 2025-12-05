@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class LLMResponseParser:
     
-    VALID_UNITS = {'g', 'kg', 'l', 'ml', 'piece'}
+    VALID_UNITS = {'grams', 'kg', 'ml', 'litre', 'piece', 'dozen'}
     
     # def parse_bill_response(self, llm_response: str) -> List[ExtractedItem]:
     #     """Parse LLM response for bill extraction"""
@@ -208,6 +208,7 @@ class LLMResponseParser:
             logger.error(f"Raw response was: {llm_response}")
             raise LLMError("PARSE_ERROR", f"Failed to parse LLM response: {str(e)}")
 
+
     def _normalize_unit(self, unit: str) -> Optional[str]:
         """Normalize unit to allowed values"""
         if not unit:
@@ -215,22 +216,23 @@ class LLMResponseParser:
         
         unit = unit.lower().strip()
         
-        unit_mapping = {
-            'pcs': 'piece', 'pc': 'piece', 'pieces': 'piece', 'count': 'piece',
-            'gm': 'g', 'gram': 'g', 'grams': 'g',
-            'kilogram': 'kg', 'kilograms': 'kg',
-            'liter': 'l', 'liters': 'l', 'litre': 'l', 'litres': 'l',
-            'milliliter': 'ml', 'milliliters': 'ml', 'millilitre': 'ml', 'millilitres': 'ml'
-        }
-        
-        if unit in self.VALID_UNITS:
-            return unit
-        
-        if unit in unit_mapping:
-            return unit_mapping[unit]
+        # Keep kg and l as valid units, convert others
+        if unit in ['kg', 'kilogram', 'kilograms']:
+            return 'kg'
+        elif unit in ['l', 'liter', 'liters', 'litre', 'litres']:
+            return 'litre'
+        elif unit in ['dozen']:
+            return 'dozen'
+        elif unit in ['g', 'gm', 'gram', 'grams', 'oz', 'pound', 'lb']:
+            return 'grams'
+        elif unit in ['ml', 'milliliter', 'milliliters', 'millilitre', 'millilitres', 'cup', 'tablespoon', 'teaspoon', 'fl oz']:
+            return 'ml'
+        elif unit in ['pcs', 'pc', 'pieces', 'piece', 'count', 'pack', 'bottle', 'can', 'box', 'bag']:
+            return 'piece'
         
         logger.warning(f"Unknown unit '{unit}', defaulting to 'piece'")
         return 'piece'
+
 
     def _predict_expiry_date(self, product_name: str) -> Optional[date]:
         """Predict expiry date based on product type"""

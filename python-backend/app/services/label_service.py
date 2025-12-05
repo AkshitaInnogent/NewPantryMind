@@ -11,7 +11,6 @@ from app.models.response import OCRResponse
 from app.utils.exceptions import OCRServiceError
 from app.utils.timing import PerformanceTimer
 import logging
-
 logger = logging.getLogger(__name__)
 
 class LabelService:

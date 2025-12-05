@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { fetchCategories, createCategory } from "./categoryThunks";
-
 const initialState = {
   categories: [],
   loading: false,

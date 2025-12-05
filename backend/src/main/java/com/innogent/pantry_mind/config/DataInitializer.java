@@ -1,9 +1,11 @@
 package com.innogent.pantry_mind.config;
 
 import com.innogent.pantry_mind.entity.Category;
+import com.innogent.pantry_mind.entity.Location;
 import com.innogent.pantry_mind.entity.Role;
 import com.innogent.pantry_mind.entity.Unit;
 import com.innogent.pantry_mind.repository.CategoryRepository;
+import com.innogent.pantry_mind.repository.LocationRepository;
 import com.innogent.pantry_mind.repository.RoleRepository;
 import com.innogent.pantry_mind.repository.UnitRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,12 +19,14 @@ public class DataInitializer implements CommandLineRunner {
     private final CategoryRepository categoryRepository;
     private final UnitRepository unitRepository;
     private final RoleRepository roleRepository;
+    private final LocationRepository locationRepository;
 
     @Override
     public void run(String... args) throws Exception {
         initializeRoles();
         initializeCategories();
         initializeUnits();
+        initializeLocations();
     }
 
     private void initializeRoles() {
@@ -50,19 +54,34 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initializeUnits() {
-        if (unitRepository.count() == 0) {
-            String[][] units = {
-                {"Piece", "Count"}, {"Kg", "Weight"}, {"Gram", "Weight"}, 
-                {"Liter", "Volume"}, {"ml", "Volume"}, {"Cup", "Volume"},
-                {"Tablespoon", "Volume"}, {"Teaspoon", "Volume"}, {"Dozen", "Count"},
-                {"Pack", "Count"}, {"Bottle", "Count"}, {"Can", "Count"}
-            };
+    if (unitRepository.count() == 0) {
+        String[][] units = {
+            {"grams", "Weight"}, 
+            {"kg", "Weight"},
+            {"ml", "Volume"}, 
+            {"litre", "Volume"},
+            {"piece", "Count"},
+            {"dozen", "Count"}
+        };
+        
+        for (String[] unitData : units) {
+            Unit unit = new Unit();
+            unit.setName(unitData[0]);
+            unit.setType(unitData[1]);
+            unitRepository.save(unit);
+        }
+    }
+}
+
+
+    private void initializeLocations() {
+        if (locationRepository.count() == 0) {
+            String[] locations = {"Refrigerator", "Pantry", "Freezer"};
             
-            for (String[] unitData : units) {
-                Unit unit = new Unit();
-                unit.setName(unitData[0]);
-                unit.setType(unitData[1]);
-                unitRepository.save(unit);
+            for (String locationName : locations) {
+                Location location = new Location();
+                location.setName(locationName);
+                locationRepository.save(location);
             }
         }
     }
