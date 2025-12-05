@@ -17,6 +17,7 @@ import Reports from './pages/reports/Reports'
 import Settings from './pages/settings/Settings'
 import Profile from './pages/profile/Profile'
 import SmartRecipes from './pages/recipes/SmartRecipes'
+import RecipeDetail from './pages/recipes/RecipeDetail'
 import ShoppingList from './pages/shopping/ShoppingList'
 import AuthDebug from './components/AuthDebug'
 
@@ -123,10 +124,16 @@ function App() {
           </RoleBasedRoute>
         } />
         
-        {/* Smart Recipes Route */}
+        {/* Smart Recipes Routes */}
         <Route path="/recipes" element={
           <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
             <SmartRecipes />
+          </RoleBasedRoute>
+        } />
+        
+        <Route path="/recipe-detail" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <RecipeDetail />
           </RoleBasedRoute>
         } />
         
