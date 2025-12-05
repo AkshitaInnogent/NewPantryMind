@@ -25,11 +25,7 @@ public class OcrUpload {
     @Column(name = "original_filename")
     private String originalFilename;
 
-    @Column(name = "cloudinary_url", nullable = false)
-    private String cloudinaryUrl;
 
-    @Column(name = "cloudinary_public_id")
-    private String cloudinaryPublicId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "document_type")

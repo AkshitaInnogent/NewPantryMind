@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { fetchInventoryItems, deleteInventoryItem } from "../../features/inventory/inventoryThunks";
+import { fetchInventoryItems } from "../../features/inventory/inventoryThunks";
 import { SearchInput } from "../../components/ui";
 import RightSidebar from "../../components/layout/RightSidebar";
 
@@ -9,8 +9,8 @@ export default function InventoryList() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items, loading, error } = useSelector((state) => state.inventory);
-  const { user } = useSelector((state) => state.auth || {});
-  const [filteredItems, setFilteredItems] = useState([]);
+
+
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -29,24 +29,10 @@ export default function InventoryList() {
     };
   }, [dispatch]);
 
-  const getCardStyle = (itemCount) => {
-    const stackOffset = Math.min(itemCount, 3); // max 3 layers
-    return {
-      className: "bg-white rounded-lg relative transition-all duration-300",
-      style: {
-        boxShadow: `0 ${stackOffset * 2}px ${stackOffset * 4}px rgba(0,0,0,0.1), 0 ${stackOffset}px ${stackOffset * 2}px rgba(0,0,0,0.05)`,
-        transform: `translateY(-${stackOffset}px)`,
-        zIndex: stackOffset
-      }
-    };
-  };
 
 
-  const getBadgeStyle = (itemCount) => {
-    if (itemCount <= 1) return "px-2 py-1 text-xs";
-    if (itemCount <= 4) return "px-3 py-1 text-sm";
-    return "px-4 py-2 text-base font-bold";
-  };
+
+
 
   const formatExpiryDate = (expiryDate) => {
     if (!expiryDate) return "No upcoming expiry";
@@ -59,12 +45,8 @@ export default function InventoryList() {
     }
     return date.toLocaleDateString();
   };
-
-  useEffect(() => {
-    filterItems();
-  }, [items, selectedCategory, searchTerm]);
-
-  const filterItems = () => {
+  
+  const filteredItems = useMemo(() => {
     let filtered = items;
 
     // Filter by category
@@ -84,8 +66,8 @@ export default function InventoryList() {
       );
     }
 
-    setFilteredItems(filtered);
-  };
+    return filtered;
+  }, [items, selectedCategory, searchTerm]);
 
   const getUniqueCategories = () => {
     const categories = ["All"];
@@ -205,33 +187,11 @@ export default function InventoryList() {
     setSearchTerm(searchValue);
   }, []);
 
-  const handleDelete = async (itemId) => {
-    if (window.confirm("Are you sure you want to delete this item?")) {
-      dispatch(deleteInventoryItem(itemId));
-    }
-  };
 
-  const getExpiryStatus = (expiryDate) => {
-    if (!expiryDate) return "no-expiry";
-    const today = new Date();
-    const expiry = new Date(expiryDate);
-    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) return "expired";
-    if (diffDays <= 3) return "expiring-soon";
-    if (diffDays <= 7) return "expiring-week";
-    return "fresh";
-  };
 
-  const getExpiryColor = (status) => {
-    switch (status) {
-      case "expired": return "bg-red-100 text-red-800";
-      case "expiring-soon": return "bg-orange-100 text-orange-800";
-      case "expiring-week": return "bg-yellow-100 text-yellow-800";
-      case "fresh": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
+
+
+
 
 
 
