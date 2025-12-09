@@ -7,6 +7,7 @@ import categoryReducer from "../features/categories/categorySlice";
 import unitReducer from "../features/units/unitSlice";
 import locationReducer from "../features/locations/locationSlice";
 import recipeReducer from "../features/recipes/recipeSlice";
+import shoppingReducer from "../features/shopping/shoppingSlice";
 
 export const store = configureStore({
   reducer: {
@@ -18,5 +19,6 @@ export const store = configureStore({
     units: unitReducer,
     locations: locationReducer,
     recipes: recipeReducer,
+    shopping: shoppingReducer,
   },
 });

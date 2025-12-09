@@ -24,3 +24,5 @@ pytest-asyncio
 
 google-generativeai
 groq
+
+pandas

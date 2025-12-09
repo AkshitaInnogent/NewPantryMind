@@ -9,8 +9,9 @@ class Settings(BaseSettings):
     port: int = 8001
     debug: bool = False
     
-    # Gemini Configuration
+    # AI API Keys
     gemini_api_key: str
+    groq_api_key: str
     
     # OCR Configuration
     max_image_size_mb: int = 10
@@ -28,6 +29,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
-        extra = "ignore"  # Ignore extra fields from .env
+        extra = "ignore"
 
 settings = Settings()

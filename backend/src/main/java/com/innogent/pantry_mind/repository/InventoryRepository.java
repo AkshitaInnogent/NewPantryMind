@@ -15,7 +15,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     List<Inventory> findByKitchenId(Long kitchenId);
     
     Optional<Inventory> findByNormalizedNameAndCategoryIdAndUnitIdAndKitchenId(
-        String normalizedName, Long categoryId, Long unitId, Long kitchenId);
+    String normalizedName, Long categoryId, Long unitId, Long kitchenId);
     
     @Query("SELECT i.name FROM Inventory i WHERE i.kitchenId = :kitchenId AND i.category.id = :categoryId AND i.unit.id = :unitId")
     List<String> findExistingNamesByKitchenAndCategoryAndUnit(
@@ -30,10 +30,19 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Query(value = "SELECT COALESCE(SUM((SELECT SUM(price) FROM inventory_item WHERE inventory_id = inventory.id)), 0) FROM inventory", nativeQuery = true)
     Double calculateTotalValue();
     
-    @Query(value = "SELECT COUNT(*) FROM inventory WHERE total_quantity <= min_stock", nativeQuery = true)
+    @Query(value = "SELECT COUNT(*) FROM inventory WHERE total_quantity <= COALESCE(min_stock, 5)", nativeQuery = true)
     Long countLowStockItems();
     
     @Query(value = "SELECT COUNT(DISTINCT inventory.id) FROM inventory JOIN inventory_item ON inventory.id = inventory_item.inventory_id WHERE inventory_item.expiry_date <= CURRENT_DATE + INTERVAL '7 days'", nativeQuery = true)
     Long countExpiringItems();
 
+    // Low stock items query - fixed to use minStock properly
+    @Query("SELECT i FROM Inventory i WHERE i.kitchenId = :kitchenId AND (i.totalQuantity IS NULL OR i.totalQuantity <= COALESCE(i.minStock, 5))")
+    List<Inventory> findLowStockByKitchenId(@Param("kitchenId") Long kitchenId);
+
+    @Query("SELECT i FROM Inventory i WHERE i.name = :name AND i.kitchenId = :kitchenId")
+    Inventory findByNameAndKitchenId(@Param("name") String name, @Param("kitchenId") Long kitchenId);
+
+    @Query("SELECT i FROM Inventory i WHERE i.kitchenId = :kitchenId AND i.totalQuantity <= COALESCE(i.minStock, 5)")
+    List<Inventory> findLowStockItems(@Param("kitchenId") Long kitchenId);
 }

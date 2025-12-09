@@ -2,15 +2,14 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.api.routes import ocr, health
+from app.api.routes import ocr, health, ai_shopping, recipes
 from app.config.settings import settings
 from app.utils.exceptions import OCRServiceError
 from app.utils.logger import setup_logging
 import logging
 
 
-# for recipes  ----
-from app.api.routes import recipes
+
 
 # Setup logging
 setup_logging()
@@ -34,12 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(health.router)
+# Include routers# Include routers
+app.include_router(health.router, tags=["Health"])
 app.include_router(ocr.router)
-
-# for recipes 
 app.include_router(recipes.router)
+app.include_router(ai_shopping.router, prefix="/api/ai-shopping", tags=["AI Shopping"])
 
 # Global exception handler
 @app.exception_handler(OCRServiceError)

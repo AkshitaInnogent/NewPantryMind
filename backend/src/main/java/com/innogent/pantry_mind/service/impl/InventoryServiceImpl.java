@@ -4,19 +4,10 @@ import com.innogent.pantry_mind.dto.request.CreateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
-import com.innogent.pantry_mind.entity.Category;
-import com.innogent.pantry_mind.entity.Inventory;
-import com.innogent.pantry_mind.entity.InventoryItem;
-import com.innogent.pantry_mind.entity.Location;
-import com.innogent.pantry_mind.entity.Unit;
+import com.innogent.pantry_mind.entity.*;
 import com.innogent.pantry_mind.mapper.InventoryItemMapper;
 import com.innogent.pantry_mind.mapper.InventoryMapper;
-import com.innogent.pantry_mind.repository.CategoryRepository;
-import com.innogent.pantry_mind.repository.InventoryItemRepository;
-import com.innogent.pantry_mind.repository.InventoryRepository;
-import com.innogent.pantry_mind.repository.LocationRepository;
-import com.innogent.pantry_mind.repository.UnitRepository;
-import com.innogent.pantry_mind.repository.UserRepository;
+import com.innogent.pantry_mind.repository.*;
 import com.innogent.pantry_mind.util.NameNormalizationUtil;
 import com.innogent.pantry_mind.util.UnitConversionUtil;
 import com.innogent.pantry_mind.service.InventoryService;
@@ -26,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +31,8 @@ public class InventoryServiceImpl implements InventoryService {
     private final UnitRepository unitRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
+    private final KitchenRepository kitchenRepository;
+    private final ConsumptionEventRepository consumptionEventRepository;
     private final InventoryItemMapper inventoryItemMapper;
     private final InventoryMapper inventoryMapper;
 
@@ -133,6 +127,9 @@ public class InventoryServiceImpl implements InventoryService {
         InventoryItem item = inventoryItemRepository.findById(id)
                 .orElseThrow(() -> new ItemNotFoundException(id));
         
+        // Record consumption event
+        recordConsumptionEvent(item, ConsumptionEvent.EventReason.CONSUMED);
+        
         Inventory inventory = item.getInventory();
         inventoryItemRepository.deleteById(id);
         
@@ -189,6 +186,27 @@ public class InventoryServiceImpl implements InventoryService {
         InventoryItem item = inventoryItemRepository.findById(itemId)
                 .orElseThrow(() -> new ItemNotFoundException(itemId));
         return inventoryItemMapper.toResponseDTO(item);
+    }
+    
+    private void recordConsumptionEvent(InventoryItem item, ConsumptionEvent.EventReason reason) {
+        try {
+            Kitchen kitchen = kitchenRepository.findById(item.getInventory().getKitchenId()).orElse(null);
+            User user = item.getCreatedByUser();
+            
+            if (kitchen != null) {
+                ConsumptionEvent event = ConsumptionEvent.builder()
+                    .canonicalName(item.getInventory().getName())
+                    .quantityConsumed(BigDecimal.valueOf(item.getQuantity()))
+                    .kitchen(kitchen)
+                    .reason(reason)
+                    .triggeredBy(user)
+                    .build();
+                    
+                consumptionEventRepository.save(event);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to record consumption event: " + e.getMessage());
+        }
     }
     
     private Inventory findOrCreateInventory(String name, Long categoryId, Long unitId, Long kitchenId) {

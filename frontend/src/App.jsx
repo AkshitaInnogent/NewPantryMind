@@ -95,6 +95,8 @@ function App() {
             <EditInventoryItem />
           </RoleBasedRoute>
         } />
+
+        <Route path="/shopping" element={<ShoppingList />} />
         
         {/* Member Management Routes - ADMIN only */}
         <Route path="/members" element={

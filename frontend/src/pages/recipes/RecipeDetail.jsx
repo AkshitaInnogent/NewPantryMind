@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChefHat, Clock, Users, ArrowLeft, CheckCircle, ShoppingCart, Utensils, Timer, AlertCircle, Package } from "lucide-react";
+import { ChefHat, Clock, Users, ArrowLeft, CheckCircle, ShoppingCart, Utensils, Timer, AlertCircle, Package, Minus } from "lucide-react";
+import { useSelector } from "react-redux";
+import axiosClient from "../../services/api";
 
 export default function RecipeDetail() {
   const location = useLocation();
   const navigate = useNavigate();
   const { recipe, servings } = location.state || {};
+  const { user } = useSelector((state) => state.auth);
   
   const [checkedIngredients, setCheckedIngredients] = useState({});
   const [checkedShoppingItems, setCheckedShoppingItems] = useState({});
   const [checkedSteps, setCheckedSteps] = useState({});
+  const [isConsuming, setIsConsuming] = useState(false);
 
   if (!recipe) {
     return (
@@ -46,6 +50,30 @@ export default function RecipeDetail() {
       ...prev,
       [index]: !prev[index]
     }));
+  };
+
+  const consumeIngredients = async () => {
+    if (!user?.kitchenId) return;
+    
+    setIsConsuming(true);
+    try {
+      const checkedIngredientsList = recipe.ingredients?.filter((_, index) => checkedIngredients[index]) || [];
+      
+      if (checkedIngredientsList.length === 0) {
+        alert("Please select ingredients to consume");
+        return;
+      }
+
+      await axiosClient.post(`/recipes/consume/${user.kitchenId}`, checkedIngredientsList);
+      
+      alert(`Successfully consumed ${checkedIngredientsList.length} ingredients from inventory!`);
+      setCheckedIngredients({});
+    } catch (error) {
+      console.error("Error consuming ingredients:", error);
+      alert("Failed to consume ingredients. Please try again.");
+    } finally {
+      setIsConsuming(false);
+    }
   };
 
   return (
@@ -117,11 +145,23 @@ export default function RecipeDetail() {
           <div className="lg:col-span-1 space-y-6">
             {/* Recipe Ingredients */}
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-                <Package className="w-5 h-5 text-green-600" />
-                Recipe Ingredients
-              </h2>
-              <p className="text-sm text-gray-600 mb-4">Exact quantities needed for this recipe:</p>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                  <Package className="w-5 h-5 text-green-600" />
+                  Recipe Ingredients
+                </h2>
+                {Object.keys(checkedIngredients).some(key => checkedIngredients[key]) && (
+                  <button
+                    onClick={consumeIngredients}
+                    disabled={isConsuming}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <Minus className="w-4 h-4" />
+                    {isConsuming ? "Consuming..." : "Consume Selected"}
+                  </button>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 mb-4">Check ingredients to consume from inventory:</p>
               
               <div className="space-y-3">
                 {recipe.ingredients?.map((ingredient, index) => {
