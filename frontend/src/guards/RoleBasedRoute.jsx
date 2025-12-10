@@ -9,14 +9,21 @@ export default function RoleBasedRoute({ children, allowedRoles = [] }) {
     return <Navigate to="/login" replace />;
   }
   
-  // If user has no role or role is "USER", redirect to kitchen setup
-  if (!user.role || user.role === "USER") {
+  // If user has no role, redirect to kitchen setup
+  if (!user.role) {
     return <Navigate to="/kitchen-setup" replace />;
   }
   
   // If specific roles are required, check if user has allowed role
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+    // Redirect based on user's actual role
+    if (user.role === "ADMIN") {
+      return <Navigate to="/admin" replace />;
+    } else if (user.role === "MEMBER") {
+      return <Navigate to="/member" replace />;
+    } else {
+      return <Navigate to="/user" replace />;
+    }
   }
   
   return children;

@@ -24,12 +24,30 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     @Query("SELECT COUNT(i) FROM InventoryItem i WHERE i.inventory.id = :inventoryId")
     Long countByInventoryId(@Param("inventoryId") Long inventoryId);
     
-    @Query(value = "SELECT COALESCE(SUM(CAST(price AS DECIMAL)), 0) FROM inventory_item", nativeQuery = true)
+    @Query(value = "SELECT COALESCE(SUM(price), 0) FROM inventory_item", nativeQuery = true)
     Double calculateTotalValue();
     
-    @Query(value = "SELECT COUNT(*) FROM inventory WHERE total_quantity <= COALESCE(min_stock, 5)", nativeQuery = true)
+    @Query(value = "SELECT COUNT(*) FROM inventory WHERE total_quantity <= COALESCE(min_stock, 250)", nativeQuery = true)
     Long countLowStockItems();
     
-    @Query(value = "SELECT COUNT(*) FROM inventory_item WHERE expiry_date <= CURRENT_DATE + INTERVAL '7 days'", nativeQuery = true)
+    @Query(value = "SELECT COUNT(*) FROM inventory_item ii JOIN inventory i ON ii.inventory_id = i.id WHERE ii.expiry_date <= CURRENT_DATE + INTERVAL '1 day' * COALESCE(i.min_expiry_days_alert, 3)", nativeQuery = true)
     Long countExpiringItems();
+    
+    @Query(value = "SELECT COALESCE(SUM(ii.price), 0) FROM inventory_item ii JOIN inventory i ON ii.inventory_id = i.id WHERE i.kitchen_id = :kitchenId", nativeQuery = true)
+    Double calculateTotalValueByKitchen(@Param("kitchenId") Long kitchenId);
+    
+    @Query(value = "SELECT COUNT(*) FROM inventory WHERE kitchen_id = :kitchenId AND total_quantity < COALESCE(min_stock, 250)", nativeQuery = true)
+    Long countLowStockItemsByKitchen(@Param("kitchenId") Long kitchenId);
+    
+    @Query(value = "SELECT COUNT(DISTINCT i.id) FROM inventory i JOIN inventory_item ii ON ii.inventory_id = i.id WHERE i.kitchen_id = :kitchenId AND ii.expiry_date <= CURRENT_DATE + INTERVAL '7 days'", nativeQuery = true)
+    Long countExpiringItemsByKitchen(@Param("kitchenId") Long kitchenId);
+    
+    @Query(value = "SELECT ii.id, i.name, ii.expiry_date, 7 as alert_days, CURRENT_DATE + INTERVAL '7 days' as alert_date FROM inventory_item ii JOIN inventory i ON ii.inventory_id = i.id WHERE i.kitchen_id = :kitchenId AND ii.expiry_date <= CURRENT_DATE + INTERVAL '7 days'", nativeQuery = true)
+    List<Object[]> findExpiringItemsDebug(@Param("kitchenId") Long kitchenId);
+    
+    @Query(value = "SELECT COUNT(*) FROM inventory_item ii JOIN inventory i ON ii.inventory_id = i.id WHERE (:kitchenId IS NULL OR i.kitchen_id = :kitchenId)", nativeQuery = true)
+    Long countTotalItemsByKitchen(@Param("kitchenId") Long kitchenId);
+    
+    @Query(value = "SELECT COUNT(*) FROM inventory_item", nativeQuery = true)
+    Long countAllItems();
 }

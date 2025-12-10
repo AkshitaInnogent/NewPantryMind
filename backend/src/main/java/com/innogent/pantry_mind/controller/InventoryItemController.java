@@ -2,6 +2,7 @@ package com.innogent.pantry_mind.controller;
 
 import com.innogent.pantry_mind.dto.request.CreateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
+import com.innogent.pantry_mind.dto.request.UpdateInventoryAlertsRequestDTO;
 import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
 import com.innogent.pantry_mind.service.impl.InventoryServiceImpl;
@@ -60,5 +61,11 @@ public class InventoryItemController {
     @Operation(summary = "Get individual inventory item by ID")
     public ResponseEntity<InventoryItemResponseDTO> getItemById(@PathVariable Long id) {
         return ResponseEntity.ok(inventoryService.getInventoryItemByItemId(id));
+    }
+
+    @PutMapping("/{id}/alerts")
+    @Operation(summary = "Update inventory alert settings")
+    public ResponseEntity<InventoryResponseDTO> updateAlerts(@PathVariable Long id, @RequestBody UpdateInventoryAlertsRequestDTO dto) {
+        return ResponseEntity.ok(inventoryService.updateInventoryAlerts(id, dto));
     }
 }

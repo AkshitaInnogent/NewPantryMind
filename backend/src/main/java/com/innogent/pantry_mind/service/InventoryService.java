@@ -2,6 +2,7 @@ package com.innogent.pantry_mind.service;
 
 import com.innogent.pantry_mind.dto.request.CreateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
+import com.innogent.pantry_mind.dto.request.UpdateInventoryAlertsRequestDTO;
 import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
 
@@ -20,4 +21,6 @@ public interface InventoryService {
     void deleteInventoryItem(Long id);
 
     InventoryItemResponseDTO getInventoryItemByItemId(Long itemId);
+    
+    InventoryResponseDTO updateInventoryAlerts(Long inventoryId, UpdateInventoryAlertsRequestDTO dto);
 }

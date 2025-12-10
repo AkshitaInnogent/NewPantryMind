@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchKitchenMembers, removeMember } from "../../features/members/memberThunks";
+import { fetchKitchenMembers, removeMember, leaveKitchen } from "../../features/members/memberThunks";
+import { refreshUser } from "../../features/auth/authThunks";
 import PageLayout from "../../components/layout/PageLayout";
 import { SearchInput, Button, Card, LoadingSpinner, Alert, EmptyState } from "../../components/ui";
 import { Users } from "lucide-react";
+import websocketService from "../../services/websocketService";
 
 export default function MemberList() {
   const dispatch = useDispatch();
@@ -22,6 +24,21 @@ export default function MemberList() {
       fetchKitchenDetails();
     }
   }, [dispatch, user]);
+
+  useEffect(() => {
+    if (!user?.kitchenId) return;
+
+    const handleMemberAdded = () => {
+      console.log('🔄 New member added - refreshing list');
+      dispatch(fetchKitchenMembers());
+    };
+
+    websocketService.subscribeToKitchen(user.kitchenId, handleMemberAdded);
+
+    return () => {
+      websocketService.unsubscribeFromKitchen(user.kitchenId);
+    };
+  }, [dispatch, user?.kitchenId]);
 
   useEffect(() => {
     if (searchTerm.trim()) {
@@ -82,7 +99,21 @@ export default function MemberList() {
 
   const handleRemoveMember = async (memberId) => {
     if (window.confirm("Are you sure you want to remove this member?")) {
-      dispatch(removeMember(memberId));
+      dispatch(removeMember(memberId)).then(() => {
+        dispatch(fetchKitchenMembers());
+        // Force refresh current user data if they removed themselves
+        if (memberId === user?.id) {
+          window.location.href = '/login';
+        }
+      });
+    }
+  };
+
+  const handleLeaveKitchen = async () => {
+    if (window.confirm("Are you sure you want to leave this kitchen?")) {
+      dispatch(leaveKitchen()).then(() => {
+        window.location.href = '/user';
+      });
     }
   };
 
@@ -107,6 +138,11 @@ export default function MemberList() {
       title="Kitchen Members"
       subtitle={`Manage your kitchen team • ${filteredMembers.length} members`}
       icon={<Users className="w-6 h-6" />}
+      headerActions={user?.role === "MEMBER" && (
+        <Button variant="danger" onClick={handleLeaveKitchen}>
+          Leave Kitchen
+        </Button>
+      )}
     >
       {kitchen && (
         <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200 mb-8">

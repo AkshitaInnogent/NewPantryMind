@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { loginUser, registerUser, refreshUser, updateProfile } from "./authThunks";
-import { getToken, removeToken, setToken } from "../../utils/auth";
+import { loginUser, registerUser, refreshUser, updateProfile, validateUser } from "./authThunks";
+import { getToken, removeToken, setToken, isTokenExpired } from "../../utils/auth";
 
 const initialState = {
   user: (() => {
@@ -21,6 +21,28 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    initializeAuth(state) {
+      const token = getToken();
+      const userData = (() => {
+        try {
+          return JSON.parse(localStorage.getItem("user")) || null;
+        } catch {
+          return null;
+        }
+      })();
+      
+      if (token && userData && !isTokenExpired(token)) {
+        state.token = token;
+        state.user = userData;
+        state.isAuthenticated = true;
+      } else {
+        state.token = null;
+        state.user = null;
+        state.isAuthenticated = false;
+        removeToken();
+        localStorage.removeItem("user");
+      }
+    },
     logout(state) {
       state.user = null;
       state.token = null;
@@ -109,9 +131,19 @@ const authSlice = createSlice({
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      
+      // VALIDATE USER
+      .addCase(validateUser.fulfilled, (state, action) => {
+        state.user = action.payload;
+        localStorage.setItem("user", JSON.stringify(action.payload));
+      })
+      .addCase(validateUser.rejected, (state) => {
+        // Don't logout on validation failure - keep user logged in with stored data
+        console.log('User validation failed, keeping stored user data');
       });
   },
 });
 
-export const { logout, clearError, updateUserRole, updateUserKitchen } = authSlice.actions;
+export const { initializeAuth, logout, clearError, updateUserRole, updateUserKitchen } = authSlice.actions;
 export default authSlice.reducer;

@@ -83,12 +83,28 @@ public class UserController {
     public ResponseEntity<?> logout() {
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
+    
+    @GetMapping("/check-session")
+    public ResponseEntity<?> checkSession() {
+        try {
+            String email = getCurrentUserEmail();
+            userService.getUserByEmail(email); // This will throw if user doesn't exist
+            return ResponseEntity.ok(Map.of("valid", true));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("valid", false, "reason", "DATABASE_RESET"));
+        }
+    }
 
     @GetMapping("/profile")
     public ResponseEntity<UserResponseDTO> getProfile() {
-        String email = getCurrentUserEmail();
-        UserResponseDTO user = userService.getUserByEmail(email);
-        return ResponseEntity.ok(user);
+        try {
+            String email = getCurrentUserEmail();
+            UserResponseDTO user = userService.getUserByEmail(email);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            // User not found (database reset) - return 401 to trigger logout
+            return ResponseEntity.status(401).build();
+        }
     }
 
     @PutMapping("/profile")

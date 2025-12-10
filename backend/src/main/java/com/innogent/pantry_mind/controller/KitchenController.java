@@ -75,4 +75,15 @@ public class KitchenController {
         kitchenService.removeMember(memberId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/leave")
+    public ResponseEntity<Void> leaveKitchen(@RequestParam Long userId) {
+        kitchenService.removeMember(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/recent-members")
+    public ResponseEntity<List<UserResponseDTO>> getRecentMembers(@RequestParam Long kitchenId) {
+        return ResponseEntity.ok(kitchenService.getRecentMembers(kitchenId));
+    }
 }

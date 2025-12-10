@@ -1,5 +1,6 @@
 import { Package, IndianRupee, TrendingDown, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getDashboardStats } from '../../services/dashboardApi';
 
 export default function InventoryStats() {
@@ -14,6 +15,7 @@ export default function InventoryStats() {
     const fetchStats = async () => {
       try {
         const data = await getDashboardStats();
+        console.log('Dashboard stats received:', data);
         setStats(data);
       } catch (error) {
         console.error('Failed to fetch stats:', error);
@@ -21,12 +23,14 @@ export default function InventoryStats() {
     };
     fetchStats();
   }, []);
+  const navigate = useNavigate();
+
   const handleLowStockClick = () => {
-    console.log('Navigate to low stock alerts');
+    navigate('/alerts/low-stock');
   };
 
   const handleExpiryClick = () => {
-    console.log('Navigate to expiry alerts');
+    navigate('/alerts/expiry');
   };
 
   const formatValue = (value) => {
@@ -35,7 +39,10 @@ export default function InventoryStats() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div className="bg-green-600 text-white p-6 rounded-xl shadow-lg transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl">
+      <div 
+        className="bg-green-600 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-green-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
+        onClick={() => navigate('/inventory')}
+      >
         <div className="flex items-center justify-between">
           <div>
             <p className="text-green-100 text-sm font-medium">Total Products</p>
@@ -45,7 +52,10 @@ export default function InventoryStats() {
         </div>
       </div>
 
-      <div className="bg-green-700 text-white p-6 rounded-xl shadow-lg transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl">
+      <div 
+        className="bg-green-700 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-green-800 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
+        onClick={() => navigate('/reports')}
+      >
         <div className="flex items-center justify-between">
           <div>
             <p className="text-green-100 text-sm font-medium">Total Value</p>

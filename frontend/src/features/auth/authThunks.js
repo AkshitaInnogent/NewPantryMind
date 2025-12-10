@@ -72,3 +72,15 @@ export const changePassword = createAsyncThunk(
     }
   }
 );
+
+export const validateUser = createAsyncThunk(
+  "user/validate",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.get("/user/profile");
+      return res.data;
+    } catch (err) {
+      return rejectWithValue("User validation failed");
+    }
+  }
+);

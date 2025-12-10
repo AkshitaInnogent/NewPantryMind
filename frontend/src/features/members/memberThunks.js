@@ -30,3 +30,16 @@ export const removeMember = createAsyncThunk(
     }
   }
 );
+
+export const leaveKitchen = createAsyncThunk(
+  "members/leaveKitchen",
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      const { user } = getState().auth;
+      await api.post(`/kitchens/leave?userId=${user.id}`);
+      return true;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to leave kitchen");
+    }
+  }
+);

@@ -73,16 +73,20 @@ public class Inventory {
     private Long minStock;
     
     public void setDefaultMinStock() {
-        if (this.minStock == null && this.unit != null) {
-            String unitName = this.unit.getName().toLowerCase();
-            if (unitName.contains("gm") || unitName.contains("gram")) {
-                this.minStock = 250L;
-            } else if (unitName.contains("ml") || unitName.contains("liter")) {
-                this.minStock = 250L;
-            } else if (unitName.contains("piece") || unitName.contains("pcs")) {
-                this.minStock = 5L;
+        if (this.minStock == null) {
+            if (this.unit != null) {
+                String unitName = this.unit.getName().toLowerCase();
+                if (unitName.contains("gm") || unitName.contains("gram")) {
+                    this.minStock = 250L;
+                } else if (unitName.contains("ml") || unitName.contains("liter")) {
+                    this.minStock = 250L;
+                } else if (unitName.contains("piece") || unitName.contains("pcs")) {
+                    this.minStock = 5L;
+                } else {
+                    this.minStock = 250L; // default
+                }
             } else {
-                this.minStock = 250L; // default
+                this.minStock = 250L; // default when unit is null
             }
         }
     }

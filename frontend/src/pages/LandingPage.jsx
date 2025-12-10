@@ -18,7 +18,7 @@ export default function LandingPage() {
   return (
     <div className="font-inter antialiased text-gray-900 bg-gray-50">
       {/* ================= HERO SECTION ================= */}
-      <header className="max-w-7xl mx-auto px-6 md:px-12 py-16 md:py-24">
+      <header className="max-w-7xl mx-auto px-6 md:px-12 py-28 md:py-40">
         <div className="flex flex-col md:flex-row items-center gap-12">
           {/* Left Illustration */}
           <div className="flex-1 flex justify-center">
@@ -167,15 +167,13 @@ export default function LandingPage() {
             AI-powered pantry management.
           </p>
 
-          <Link to="/register">
-            <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold shadow transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl">
-              Get Started Free
-            </button>
-          </Link>
-
-          <p className="mt-6 text-sm text-green-300">
-            No credit card required • Free forever • Cancel anytime
-          </p>
+          <div className="mt-8">
+            <Link to="/register">
+              <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold shadow transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl">
+                Get Started Free
+              </button>
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
