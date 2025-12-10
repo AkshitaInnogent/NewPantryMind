@@ -10,15 +10,18 @@ import com.innogent.pantry_mind.mapper.KitchenMapper;
 import com.innogent.pantry_mind.repository.KitchenRepository;
 import com.innogent.pantry_mind.repository.UserRepository;
 import com.innogent.pantry_mind.repository.RoleRepository;
+import com.innogent.pantry_mind.repository.InventoryRepository;
 import com.innogent.pantry_mind.service.KitchenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import com.innogent.pantry_mind.dto.response.UserResponseDTO;
 import com.innogent.pantry_mind.mapper.UserMapper;
+import com.innogent.pantry_mind.service.NotificationService;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,8 @@ public class KitchenServiceImpl implements KitchenService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
+    private final InventoryRepository inventoryRepository;
 
     @Override
     public KitchenResponseDTO create(KitchenRequestDTO requestDTO) {
@@ -65,6 +70,21 @@ public class KitchenServiceImpl implements KitchenService {
         if (!kitchenRepository.existsById(id)) {
             throw new ResourceNotFoundException("Kitchen not found with id: " + id);
         }
+        
+        // Delete all inventory items first
+        inventoryRepository.deleteAll(inventoryRepository.findByKitchenId(id));
+        
+        // Remove all users from kitchen
+        List<User> users = userRepository.findByKitchen_Id(id);
+        Role userRole = roleRepository.findByName("USER")
+                .orElseGet(() -> roleRepository.save(Role.builder().name("USER").build()));
+        
+        for (User user : users) {
+            user.setKitchen(null);
+            user.setRole(userRole);
+            userRepository.save(user);
+        }
+        
         kitchenRepository.deleteById(id);
     }
 
@@ -110,6 +130,9 @@ public class KitchenServiceImpl implements KitchenService {
         User savedUser = userRepository.save(user);
         System.out.println("👥 MEMBER user saved: " + savedUser.getUsername() + ", Kitchen: " + (savedUser.getKitchen() != null ? savedUser.getKitchen().getId() : "null"));
         
+        // Send real-time notification to kitchen members
+        notificationService.notifyMemberAdded(kitchen.getId(), user.getName() != null ? user.getName() : user.getEmail());
+        
         return kitchenMapper.toResponse(kitchen);
     }
 
@@ -131,6 +154,10 @@ public class KitchenServiceImpl implements KitchenService {
         User user = userRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + memberId));
         
+        // Get kitchen ID and member name before removing
+        Long kitchenId = user.getKitchen() != null ? user.getKitchen().getId() : null;
+        String memberName = user.getName() != null ? user.getName() : user.getEmail();
+        
         // Remove user from kitchen by setting kitchen to null
         user.setKitchen(null);
         
@@ -140,7 +167,23 @@ public class KitchenServiceImpl implements KitchenService {
         user.setRole(userRole);
         
         userRepository.save(user);
+        
+        // Send real-time notification
+        if (kitchenId != null) {
+            notificationService.notifyMemberRemoved(kitchenId, memberName);
+        }
+        notificationService.notifyUserRemoved(memberId);
+        
         System.out.println("🚫 Removed member: " + user.getUsername() + " from kitchen");
+    }
+
+    @Override
+    public List<UserResponseDTO> getRecentMembers(Long kitchenId) {
+        LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
+        List<User> recentMembers = userRepository.findByKitchen_IdAndCreatedAtAfterOrderByCreatedAtDesc(kitchenId, oneDayAgo);
+        return recentMembers.stream()
+                .map(userMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     private String generateInvitationCode() {

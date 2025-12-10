@@ -4,6 +4,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { updateInventoryItem, fetchInventoryItemById, fetchInventoryDetails } from "../../features/inventory/inventoryThunks";
 import { fetchCategories } from "../../features/categories/categoryThunks";
 import { fetchLocations } from "../../features/locations/locationThunks";
+import { formatDateForInput } from "../../utils/dateUtils";
 
 export default function EditInventoryItem() {
   const dispatch = useDispatch();
@@ -46,7 +47,7 @@ export default function EditInventoryItem() {
           unitName: inventory.unitName || "",
           quantity: item.quantity || "",
           locationId: item.locationId || "",
-          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : "",
+          expiryDate: formatDateForInput(item.expiryDate),
           price: item.price || "",
         });
       } catch (error) {

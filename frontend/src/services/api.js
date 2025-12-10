@@ -29,11 +29,15 @@ axiosClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      console.error("Authentication failed - redirecting to login");
+    const errorMessage = error.response?.data?.error || error.response?.data || "";
+    
+    if (error.response?.status === 401 || 
+        error.response?.status === 403 ||
+        (typeof errorMessage === 'string' && errorMessage.includes('User not found'))) {
+      console.error("Authentication failed, user not found, or database reset - logging out");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      window.location.href = '/login';
     }
 
     return Promise.reject(error);

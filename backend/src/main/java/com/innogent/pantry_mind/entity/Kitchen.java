@@ -21,6 +21,15 @@ public class Kitchen {
     
     @Column(unique = true)
     private String invitationCode;
+    
+    @Column(name = "alert_time_hour")
+    private Integer alertTimeHour = 8; // Default 8 AM
+    
+    @Column(name = "alert_time_minute")
+    private Integer alertTimeMinute = 0; // Default 0 minutes
+    
+    @Column(name = "alerts_enabled")
+    private Boolean alertsEnabled = true;
 
     @OneToMany(mappedBy = "kitchen", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<User> users;

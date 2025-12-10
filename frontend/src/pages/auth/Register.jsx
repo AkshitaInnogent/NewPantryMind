@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { registerUser } from "../../features/auth/authThunks";
-import { Input } from "../../components/ui";
+import { clearError } from "../../features/auth/authSlice";
+import { Input, Alert } from "../../components/ui";
 import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, user } = useSelector((state) => state.auth);
+  const { loading, user, isAuthenticated, error } = useSelector((state) => state.auth);
 
   const [form, setForm] = useState({
     username: "",
@@ -25,6 +26,11 @@ export default function Register() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isAuthenticated) {
+      alert("You are already logged in!");
+      return;
+    }
+    dispatch(clearError());
     dispatch(registerUser(form));
   };
 
@@ -34,6 +40,24 @@ export default function Register() {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md border border-gray-200"
       >
+        {isAuthenticated && (
+          <Alert
+            type="warning"
+            title="Already Logged In"
+            message="You are already logged in. Please logout first to register a new account."
+            className="mb-4"
+          />
+        )}
+
+        {error && (
+          <Alert
+            type="error"
+            title="Registration Failed"
+            message={error.message || error || "User already exists or registration failed"}
+            className="mb-4"
+          />
+        )}
+
         {/* Green Tag Badge (same style as landing page) */}
         <div className="inline-flex items-center gap-2 bg-[#e8f7ec] text-[#14833b] px-4 py-2 rounded-full text-sm font-medium mx-auto mb-6">
           📝 Create Your Account
@@ -48,12 +72,14 @@ export default function Register() {
             label="Username"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
+            disabled={isAuthenticated}
           />
 
           <Input
             label="Name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
+            disabled={isAuthenticated}
           />
 
           <Input
@@ -61,6 +87,7 @@ export default function Register() {
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
+            disabled={isAuthenticated}
           />
 
           <Input
@@ -68,13 +95,14 @@ export default function Register() {
             type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
+            disabled={isAuthenticated}
           />
         </div>
 
         <button
-          disabled={loading}
+          disabled={loading || isAuthenticated}
           className={`w-full mt-6 py-3 rounded-xl text-white font-semibold transition-all ${
-            loading
+            loading || isAuthenticated
               ? "bg-[#1fa74a]/40 cursor-not-allowed"
               : "bg-[#1fa74a] hover:bg-[#188a3c] shadow-sm hover:shadow-md"
           }`}
@@ -84,7 +112,10 @@ export default function Register() {
 
         <p className="text-center mt-4 text-sm text-gray-500">
           Already have an account?{" "}
-          <span className="text-[#1fa74a] hover:underline cursor-pointer">
+          <span 
+            onClick={() => navigate("/login")}
+            className="text-[#1fa74a] hover:underline cursor-pointer"
+          >
             Login
           </span>
         </p>

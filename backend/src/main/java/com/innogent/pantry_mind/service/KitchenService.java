@@ -15,4 +15,5 @@ public interface KitchenService {
     KitchenResponseDTO joinByCode(Long userId, String invitationCode);
     List<UserResponseDTO> getKitchenMembers(Long kitchenId);
     void removeMember(Long memberId);
+    List<UserResponseDTO> getRecentMembers(Long kitchenId);
 }

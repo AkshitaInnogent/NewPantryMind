@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { fetchInventoryDetails, deleteInventoryItem } from "../../features/inventory/inventoryThunks";
 import { ChevronLeft, Pencil, Trash2, Package2, Layers3, Scale, Boxes } from "lucide-react";
+import { formatDate } from "../../utils/dateUtils";
 
 export default function InventoryDetails() {
   const { id } = useParams();
@@ -60,9 +61,9 @@ export default function InventoryDetails() {
     const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) return { key: "expired", label: "Expired", cls: "bg-red-100 text-red-800" };
-    if (diffDays <= 3) return { key: "expiring-soon", label: `Good until ${expiry.toLocaleDateString()}` , cls: "bg-orange-100 text-orange-800" };
-    if (diffDays <= 7) return { key: "expiring-week", label: `Good until ${expiry.toLocaleDateString()}` , cls: "bg-yellow-100 text-yellow-800" };
-    return { key: "fresh", label: `Good until ${expiry.toLocaleDateString()}`, cls: "bg-green-100 text-green-800" };
+    if (diffDays <= 3) return { key: "expiring-soon", label: `Good until ${formatDate(expiryDate)}` , cls: "bg-orange-100 text-orange-800" };
+    if (diffDays <= 7) return { key: "expiring-week", label: `Good until ${formatDate(expiryDate)}` , cls: "bg-yellow-100 text-yellow-800" };
+    return { key: "fresh", label: `Good until ${formatDate(expiryDate)}`, cls: "bg-green-100 text-green-800" };
   };
 
 

@@ -74,3 +74,35 @@ export const fetchInventoryItemById = (itemId) => async (dispatch) => {
     throw error;
   }
 };
+
+export const fetchInventory = () => async (dispatch, getState) => {
+  dispatch(setLoading(true));
+  try {
+    const { user } = getState().auth;
+    const kitchenId = user?.kitchenId;
+    
+    if (!kitchenId) {
+      dispatch(setItems([]));
+      return;
+    }
+    
+    const response = await axiosClient.get(`/inventory?kitchenId=${kitchenId}`);
+    dispatch(setItems(response.data));
+  } catch (error) {
+    dispatch(setError(error.response?.data?.message || "Failed to fetch inventory"));
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
+export const updateInventoryAlerts = (inventoryId, alertData) => async (dispatch) => {
+  try {
+    const response = await axiosClient.put(`/inventory/${inventoryId}/alerts`, alertData);
+    dispatch(updateItem(response.data));
+    return response.data;
+  } catch (error) {
+    console.error('Update alerts error:', error.response?.data || error.message);
+    dispatch(setError(error.response?.data?.message || "Failed to update alerts"));
+    throw error;
+  }
+};

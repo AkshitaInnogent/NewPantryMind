@@ -15,13 +15,16 @@
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "@reduxjs/toolkit": "^2.11.0",
+    "@stomp/stompjs": "^7.2.1",
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.2",
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-icons": "^5.5.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.6",
+    "sockjs-client": "^1.6.1",
     "tailwindcss": "^4.1.17"
   },
   "devDependencies": {

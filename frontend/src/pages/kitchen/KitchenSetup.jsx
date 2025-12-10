@@ -1,17 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { createKitchenWithAdmin, joinKitchen } from "../../features/kitchen/kitchenThunks";
 
 export default function KitchenSetup() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { loading, error } = useSelector((state) => state.kitchen);
-  const { user } = useSelector((state) => state.auth); // Move this outside
+  const { user } = useSelector((state) => state.auth);
   
   const [selectedOption, setSelectedOption] = useState("");
   const [kitchenName, setKitchenName] = useState("");
   const [kitchenCode, setKitchenCode] = useState("");
+
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'create' || mode === 'join') {
+      setSelectedOption(mode);
+    }
+  }, [searchParams]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

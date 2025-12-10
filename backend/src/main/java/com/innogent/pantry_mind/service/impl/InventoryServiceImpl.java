@@ -2,6 +2,7 @@ package com.innogent.pantry_mind.service.impl;
 
 import com.innogent.pantry_mind.dto.request.CreateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
+import com.innogent.pantry_mind.dto.request.UpdateInventoryAlertsRequestDTO;
 import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
 import com.innogent.pantry_mind.entity.Category;
@@ -115,7 +116,10 @@ public class InventoryServiceImpl implements InventoryService {
             response.getItems().forEach(item -> {
                 if (item.getCreatedBy() != null) {
                     userRepository.findById(item.getCreatedBy())
-                        .ifPresent(user -> item.setCreatedByName(user.getName()));
+                        .ifPresentOrElse(
+                            user -> item.setCreatedByName(user.getName()),
+                            () -> item.setCreatedByName("Unknown User")
+                        );
                 }
             });
         }
@@ -189,6 +193,23 @@ public class InventoryServiceImpl implements InventoryService {
         InventoryItem item = inventoryItemRepository.findById(itemId)
                 .orElseThrow(() -> new ItemNotFoundException(itemId));
         return inventoryItemMapper.toResponseDTO(item);
+    }
+    
+    @Override
+    @Transactional
+    public InventoryResponseDTO updateInventoryAlerts(Long inventoryId, UpdateInventoryAlertsRequestDTO dto) {
+        Inventory inventory = inventoryRepository.findById(inventoryId)
+                .orElseThrow(() -> new ItemNotFoundException(inventoryId));
+        
+        if (dto.getMinExpiryDaysAlert() != null) {
+            inventory.setMinExpiryDaysAlert(dto.getMinExpiryDaysAlert());
+        }
+        if (dto.getMinStock() != null) {
+            inventory.setMinStock(dto.getMinStock());
+        }
+        
+        Inventory saved = inventoryRepository.save(inventory);
+        return inventoryMapper.toResponseDTO(saved);
     }
     
     private Inventory findOrCreateInventory(String name, Long categoryId, Long unitId, Long kitchenId) {
