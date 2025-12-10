@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../features/auth/authThunks";
+import { clearError } from "../../features/auth/authSlice";
 import { Input } from "../../components/ui";
 
 export default function Login() {
@@ -30,7 +31,13 @@ export default function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    dispatch(clearError());
     dispatch(loginUser(form));
+  };
+
+  const handleInputChange = (field, value) => {
+    if (error) dispatch(clearError());
+    setForm({ ...form, [field]: value });
   };
 
   return (
@@ -51,7 +58,7 @@ export default function Login() {
         {/* Error display */}
         {error && (
           <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm">
-            {error.message || error}
+            {typeof error === 'string' ? error : error.error || error.message || "Login failed. Please check your credentials."}
           </div>
         )}
 
@@ -59,14 +66,14 @@ export default function Login() {
           <Input
             label="Email"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(e) => handleInputChange('email', e.target.value)}
           />
 
           <Input
             label="Password"
             type="password"
             value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            onChange={(e) => handleInputChange('password', e.target.value)}
           />
         </div>
 

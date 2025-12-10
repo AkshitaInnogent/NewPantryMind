@@ -3,8 +3,6 @@ package com.innogent.pantry_mind.dto.request;
 import lombok.Data;
 
 @Data
-public class ResetPasswordRequestDTO {
+public class SendOtpRequestDTO {
     private String email;
-    private String otp;
-    private String newPassword;
 }

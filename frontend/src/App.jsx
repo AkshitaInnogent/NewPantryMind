@@ -6,7 +6,7 @@ import { validateUser } from './features/auth/authThunks';
 import websocketService from './services/websocketService';
 import './App.css'
 import LandingPage from './pages/LandingPage'
-import { Login, Register, ForgotPassword, ResetPassword } from './pages/auth'
+import { Login, Register, ForgotPassword, ResetPassword, VerifyOtp } from './pages/auth'
 import KitchenSetup from './pages/kitchen/KitchenSetup'
 import { AdminDashboard, MemberDashboard, UserDashboard } from './pages/dashboard'
 import { ProtectedRoute, RoleBasedRoute } from './guards'
@@ -113,7 +113,8 @@ function App() {
         <Route path="/" element={isAuthenticated ? <DashboardRedirect /> : <LandingPage />} />
         <Route path="/register" element={isAuthenticated ? <DashboardRedirect /> : <Register />} />
         <Route path="/login" element={isAuthenticated ? <DashboardRedirect /> : <Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-otp" element={isAuthenticated ? <DashboardRedirect /> : <VerifyOtp />} />
+        <Route path="/forgot-password" element={isAuthenticated ? <DashboardRedirect /> : <ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         
         {/* User Dashboard for USER role */}

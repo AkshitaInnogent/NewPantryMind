@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 export default function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, user, isAuthenticated, error } = useSelector((state) => state.auth);
+  const { loading, user, isAuthenticated, error, registrationEmail } = useSelector((state) => state.auth);
 
   const [form, setForm] = useState({
     username: "",
@@ -23,15 +23,26 @@ export default function Register() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (registrationEmail) {
+      navigate("/verify-otp", { state: { email: registrationEmail } });
+    }
+  }, [registrationEmail, navigate]);
 
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (isAuthenticated) {
       alert("You are already logged in!");
       return;
     }
     dispatch(clearError());
-    dispatch(registerUser(form));
+    try {
+      await dispatch(registerUser(form)).unwrap();
+      // Registration successful, will redirect to OTP verification via useEffect
+    } catch (err) {
+      // Error handled by Redux
+    }
   };
 
   return (
@@ -53,7 +64,7 @@ export default function Register() {
           <Alert
             type="error"
             title="Registration Failed"
-            message={error.message || error || "User already exists or registration failed"}
+            message={typeof error === 'string' ? error : error.error || error.message || "User already exists or registration failed"}
             className="mb-4"
           />
         )}
