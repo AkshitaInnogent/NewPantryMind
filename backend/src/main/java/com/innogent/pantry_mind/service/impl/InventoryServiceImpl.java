@@ -1,23 +1,13 @@
 package com.innogent.pantry_mind.service.impl;
 
+import com.innogent.pantry_mind.dto.request.ConsumeItemsRequestDTO;
 import com.innogent.pantry_mind.dto.request.CreateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryAlertsRequestDTO;
 import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
-import com.innogent.pantry_mind.entity.Category;
-import com.innogent.pantry_mind.entity.Inventory;
-import com.innogent.pantry_mind.entity.InventoryItem;
-import com.innogent.pantry_mind.entity.Location;
-import com.innogent.pantry_mind.entity.Unit;
 import com.innogent.pantry_mind.mapper.InventoryItemMapper;
 import com.innogent.pantry_mind.mapper.InventoryMapper;
-import com.innogent.pantry_mind.repository.CategoryRepository;
-import com.innogent.pantry_mind.repository.InventoryItemRepository;
-import com.innogent.pantry_mind.repository.InventoryRepository;
-import com.innogent.pantry_mind.repository.LocationRepository;
-import com.innogent.pantry_mind.repository.UnitRepository;
-import com.innogent.pantry_mind.repository.UserRepository;
 import com.innogent.pantry_mind.entity.*;
 import com.innogent.pantry_mind.repository.*;
 import com.innogent.pantry_mind.util.NameNormalizationUtil;
@@ -491,4 +481,93 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.setTotalQuantity(totalQuantity != null ? totalQuantity : 0L);
         inventoryRepository.save(inventory);
     }
+
+    // Add this method to your InventoryServiceImpl class
+    @Transactional
+    public void consumeItems(ConsumeItemsRequestDTO dto) {
+        System.out.println("🔥 [BACKEND] Starting to consume " + dto.getItems().size() + " items");
+        
+        for (ConsumeItemsRequestDTO.ConsumeItemDTO consumeItem : dto.getItems()) {
+            System.out.println("🔥 [BACKEND] Processing item ID: " + consumeItem.getId() + ", quantity: " + consumeItem.getConsumedQuantity());
+            
+            // First try to find as inventory item (individual item)
+            Optional<InventoryItem> inventoryItem = inventoryItemRepository.findById(consumeItem.getId());
+            
+            if (inventoryItem.isPresent()) {
+                System.out.println("✅ [BACKEND] Found individual inventory item: " + inventoryItem.get().getInventory().getName());
+                // Handle individual inventory item
+                InventoryItem item = inventoryItem.get();
+                Long consumedQuantityLong = consumeItem.getConsumedQuantity().longValue();
+                
+                if (item.getQuantity() >= consumedQuantityLong) {
+                    item.setQuantity(item.getQuantity() - consumedQuantityLong);
+                    
+                    if (item.getQuantity() == 0) {
+                        recordConsumptionEvent(item, ConsumptionEvent.EventReason.CONSUMED);
+                        Inventory inventory = item.getInventory();
+                        inventoryItemRepository.delete(item);
+                        
+                        inventory.setItemCount(inventory.getItemCount() - 1);
+                        if (inventory.getItemCount() <= 0) {
+                            inventoryRepository.delete(inventory);
+                        } else {
+                            updateInventoryTotalQuantity(inventory.getId());
+                            inventoryRepository.save(inventory);
+                        }
+                    } else {
+                        inventoryItemRepository.save(item);
+                        updateInventoryTotalQuantity(item.getInventory().getId());
+                    }
+                }
+            } else {
+                System.out.println("🔍 [BACKEND] Not found as individual item, trying as inventory group...");
+                // Try to find as inventory group and consume from its items
+                Optional<Inventory> inventory = inventoryRepository.findById(consumeItem.getId());
+                
+                if (inventory.isPresent()) {
+                    System.out.println("✅ [BACKEND] Found inventory group: " + inventory.get().getName());
+                    Inventory inv = inventory.get();
+                    Long consumedQuantityLong = consumeItem.getConsumedQuantity().longValue();
+                    
+                    // Get all items for this inventory group
+                    List<InventoryItem> items = inventoryItemRepository.findByInventoryIdOrderByExpiryDateAsc(inv.getId());
+                    System.out.println("📦 [BACKEND] Found " + items.size() + " items in group");
+                    
+                    Long remainingToConsume = consumedQuantityLong;
+                    
+                    for (InventoryItem item : items) {
+                        if (remainingToConsume <= 0) break;
+                        
+                        Long toConsumeFromThisItem = Math.min(remainingToConsume, item.getQuantity());
+                        System.out.println("🍽️ [BACKEND] Consuming " + toConsumeFromThisItem + " from item " + item.getId());
+                        
+                        item.setQuantity(item.getQuantity() - toConsumeFromThisItem);
+                        remainingToConsume -= toConsumeFromThisItem;
+                        
+                        if (item.getQuantity() == 0) {
+                            recordConsumptionEvent(item, ConsumptionEvent.EventReason.CONSUMED);
+                            inventoryItemRepository.delete(item);
+                            inv.setItemCount(inv.getItemCount() - 1);
+                        } else {
+                            inventoryItemRepository.save(item);
+                        }
+                    }
+                    
+                    // Update inventory totals
+                    if (inv.getItemCount() <= 0) {
+                        inventoryRepository.delete(inv);
+                    } else {
+                        updateInventoryTotalQuantity(inv.getId());
+                        inventoryRepository.save(inv);
+                    }
+                } else {
+                    System.err.println("❌ [BACKEND] Inventory item not found with ID: " + consumeItem.getId());
+                    throw new RuntimeException("Inventory item not found with ID: " + consumeItem.getId());
+                }
+            }
+        }
+        
+        System.out.println("✅ [BACKEND] Successfully consumed all items");
+    }
+
 }
