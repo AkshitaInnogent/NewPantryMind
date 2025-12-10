@@ -3,9 +3,11 @@ package com.innogent.pantry_mind.controller;
 import com.innogent.pantry_mind.dto.response.ShoppingListItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.RecipeResponseDTO;
 import com.innogent.pantry_mind.service.AIService;
+import com.innogent.pantry_mind.service.impl.AIServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +16,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "AI Services", description = "AI-powered features for smart pantry management")
 public class AIController {
 
@@ -26,9 +29,20 @@ public class AIController {
             @RequestBody Map<String, Object> request) {
         try {
             Long kitchenId = Long.valueOf(request.get("kitchenId").toString());
-            List<ShoppingListItemResponseDTO> suggestions = aiService.generateAISuggestions(kitchenId);
+            String listType = request.getOrDefault("listType", "DAILY").toString();
+            
+            @SuppressWarnings("unchecked")
+            List<String> existingItems = (List<String>) request.getOrDefault("existingItems", Collections.emptyList());
+            
+            log.info("Generating AI suggestions for kitchen {} with list type {}", kitchenId, listType);
+            
+            List<ShoppingListItemResponseDTO> suggestions = 
+                ((AIServiceImpl) aiService).generateAISuggestionsForListType(kitchenId, listType, existingItems);
+            
+            log.info("Generated {} suggestions for kitchen {}", suggestions.size(), kitchenId);
             return ResponseEntity.ok(suggestions);
         } catch (Exception e) {
+            log.error("Error generating AI suggestions: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Collections.emptyList());
         }
     }
@@ -40,9 +54,12 @@ public class AIController {
             @RequestBody Map<String, Object> request) {
         try {
             Long kitchenId = Long.valueOf(request.get("kitchenId").toString());
+            log.info("Analyzing consumption patterns for kitchen {}", kitchenId);
+            
             Map<String, Object> analysis = aiService.analyzeConsumptionPatterns(kitchenId);
             return ResponseEntity.ok(analysis);
         } catch (Exception e) {
+            log.error("Error analyzing consumption patterns: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to analyze consumption patterns");
             errorResponse.put("analysisType", "ERROR");
@@ -63,6 +80,7 @@ public class AIController {
             RecipeResponseDTO recipes = aiService.generateSeasonalRecipes(kitchenId, season, servings);
             return ResponseEntity.ok(recipes);
         } catch (Exception e) {
+            log.error("Error generating seasonal recipes: {}", e.getMessage());
             return ResponseEntity.badRequest().body(new RecipeResponseDTO());
         }
     }
@@ -79,6 +97,7 @@ public class AIController {
             RecipeResponseDTO recipes = aiService.generateLowStockRecipes(kitchenId, servings);
             return ResponseEntity.ok(recipes);
         } catch (Exception e) {
+            log.error("Error generating low stock recipes: {}", e.getMessage());
             return ResponseEntity.badRequest().body(new RecipeResponseDTO());
         }
     }
@@ -101,6 +120,7 @@ public class AIController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Error generating recipe recommendations: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("recommendations", Arrays.asList("Basic Rice", "Simple Soup"));
             errorResponse.put("error", "Failed to generate recommendations");

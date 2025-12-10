@@ -33,6 +33,11 @@ public interface ShoppingListService {
     List<Map<String, Object>> getLowStockItems(Long kitchenId);
     void addItemToInventory(Long listId, Long itemId, AddToInventoryRequest request);
     
-    // New method for AI consumption data
+    // New methods for purchased items management
+    ShoppingListItemResponseDTO markItemAsPurchased(Long itemId);
+    List<ShoppingListItemResponseDTO> markMultipleItemsAsPurchased(List<Long> itemIds);
+    void cleanupPurchasedItems();
+    
+    // AI consumption data
     Map<String, Object> getConsumptionDataForAI(Long kitchenId);
 }

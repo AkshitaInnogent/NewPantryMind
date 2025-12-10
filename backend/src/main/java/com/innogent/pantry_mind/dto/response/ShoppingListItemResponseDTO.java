@@ -9,13 +9,14 @@ public class ShoppingListItemResponseDTO {
     private Long id;
     private Long shoppingListId;
     private String canonicalName;
-    private String rawName;  // Add this field for display name
+    private String rawName;
     private BigDecimal suggestedQuantity;
     private UnitResponseDTO unit;
     private String unitName;
     private String suggestedBy;
     private String suggestionReason;
     private String status;
+    private LocalDateTime purchasedAt;
     private BigDecimal confidenceScore;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

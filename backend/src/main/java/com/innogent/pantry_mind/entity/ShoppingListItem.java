@@ -5,8 +5,6 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-// import com.innogent.pantry_mind.entity.ShoppingListItem.SuggestionSource;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -49,6 +47,9 @@ public class ShoppingListItem {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ItemStatus status = ItemStatus.PENDING;
+    
+    @Column(name = "purchased_at")
+    private LocalDateTime purchasedAt;
     
     @Column(name = "suggestion_reason")
     private String suggestionReason;

@@ -138,6 +138,26 @@ public class ShoppingListController {
         return ResponseEntity.ok().build();
     }
 
+    // New endpoints for purchased items management
+    @PostMapping("/items/{itemId}/mark-purchased")
+    public ResponseEntity<ShoppingListItemResponseDTO> markItemAsPurchased(@PathVariable Long itemId) {
+        ShoppingListItemResponseDTO item = shoppingListService.markItemAsPurchased(itemId);
+        return ResponseEntity.ok(item);
+    }
+
+    @PostMapping("/items/mark-purchased-batch")
+    public ResponseEntity<List<ShoppingListItemResponseDTO>> markMultipleItemsAsPurchased(
+            @RequestBody List<Long> itemIds) {
+        List<ShoppingListItemResponseDTO> items = shoppingListService.markMultipleItemsAsPurchased(itemIds);
+        return ResponseEntity.ok(items);
+    }
+
+    @PostMapping("/cleanup-purchased")
+    public ResponseEntity<Void> cleanupPurchasedItems() {
+        shoppingListService.cleanupPurchasedItems();
+        return ResponseEntity.ok().build();
+    }
+
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
@@ -145,6 +165,4 @@ public class ShoppingListController {
             .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getId();
     }
-
-    
 }

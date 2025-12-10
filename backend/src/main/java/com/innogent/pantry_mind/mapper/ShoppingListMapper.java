@@ -16,8 +16,13 @@ public interface ShoppingListMapper {
     @Mapping(target = "pendingItems", expression = "java(countPendingItems(shoppingList))")
     ShoppingListResponseDTO toResponseDTO(ShoppingList shoppingList);
 
+    @Mapping(source = "shoppingList.id", target = "shoppingListId")
     @Mapping(source = "rawName", target = "rawName")
     @Mapping(source = "unit", target = "unit")
+    @Mapping(source = "status", target = "status")
+    @Mapping(source = "purchasedAt", target = "purchasedAt")
+    @Mapping(source = "suggestedBy", target = "suggestedBy")
+    @Mapping(target = "unitName", expression = "java(item.getUnit() != null ? item.getUnit().getName() : null)")
     ShoppingListItemResponseDTO toItemResponseDTO(ShoppingListItem item);
 
     default Long countPendingItems(ShoppingList shoppingList) {

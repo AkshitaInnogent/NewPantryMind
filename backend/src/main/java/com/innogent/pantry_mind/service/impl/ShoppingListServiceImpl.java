@@ -42,10 +42,11 @@ public class ShoppingListServiceImpl implements ShoppingListService {
     private final InventoryItemRepository inventoryItemRepository;
     private final CategoryRepository categoryRepository;
     private final LocationRepository locationRepository;
+    private final ConsumptionEventRepository consumptionEventRepository;
     private final ShoppingListMapper shoppingListMapper;
     private final RestTemplate restTemplate;
 
-    @Value("${python.backend.url:http://localhost:8001}")
+    @Value("${python.backend.url:http://localhost:8000}")
     private String pythonBackendUrl;
 
     @Override
@@ -193,10 +194,18 @@ public class ShoppingListServiceImpl implements ShoppingListService {
             ShoppingList shoppingList = shoppingListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("Shopping list not found"));
 
+            // Get existing items in current list
             List<String> existingItems = shoppingListItemRepository.findByShoppingList(shoppingList)
                 .stream()
                 .map(ShoppingListItem::getCanonicalName)
                 .collect(Collectors.toList());
+
+            // Get recently purchased items to exclude
+            List<String> recentlyPurchased = getRecentlyPurchasedItems(kitchenId, shoppingList.getListType());
+            
+            // Combine existing and recently purchased for exclusion
+            Set<String> itemsToExclude = new HashSet<>(existingItems);
+            itemsToExclude.addAll(recentlyPurchased);
 
             try {
                 // Get consumption data for AI analysis
@@ -205,8 +214,11 @@ public class ShoppingListServiceImpl implements ShoppingListService {
                 Map<String, Object> request = new HashMap<>();
                 request.put("kitchenId", kitchenId);
                 request.put("listType", shoppingList.getListType().name());
-                request.put("existingItems", existingItems);
+                request.put("existingItems", new ArrayList<>(itemsToExclude));
                 request.put("consumptionData", consumptionData);
+
+                System.out.println("Sending AI request for " + shoppingList.getListType().name() + " list with " + 
+                    ((List<?>) consumptionData.get("consumptionEvents")).size() + " consumption events");
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
@@ -219,6 +231,7 @@ public class ShoppingListServiceImpl implements ShoppingListService {
                 if (response != null && response.containsKey("suggestions")) {
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> suggestions = (List<Map<String, Object>>) response.get("suggestions");
+                    System.out.println("Received " + suggestions.size() + " AI suggestions");
                     return convertToSuggestionDTOs(suggestions);
                 }
             } catch (Exception e) {
@@ -226,7 +239,7 @@ public class ShoppingListServiceImpl implements ShoppingListService {
                 // Fallback to low stock suggestions on error
             }
 
-            return getLowStockSuggestions(kitchenId, existingItems);
+            return getLowStockSuggestions(kitchenId, new ArrayList<>(itemsToExclude));
             
         } catch (Exception e) {
             System.err.println("AI suggestions error: " + e.getMessage());
@@ -285,31 +298,47 @@ public class ShoppingListServiceImpl implements ShoppingListService {
 
     @Override
     public Map<String, Object> getConsumptionDataForAI(Long kitchenId) {
-        // For now, return empty consumption data since ConsumptionEvent doesn't exist
-        // This will make the Python backend fall back to smart suggestions
+        // Fetch actual consumption events from the last 90 days
+        LocalDateTime analysisStartDate = LocalDateTime.now().minusDays(90);
+        List<ConsumptionEvent> consumptionEvents = consumptionEventRepository
+            .findByKitchenIdAndCreatedAtAfter(kitchenId, analysisStartDate);
         
+        // Convert consumption events to the format expected by Python AI
+        List<Map<String, Object>> consumptionData = consumptionEvents.stream()
+            .map(event -> {
+                Map<String, Object> eventMap = new HashMap<>();
+                eventMap.put("itemName", event.getCanonicalName());
+                eventMap.put("quantity", event.getQuantityConsumed());
+                eventMap.put("consumedAt", event.getCreatedAt().toString());
+                eventMap.put("reason", event.getReason().toString());
+                if (event.getUnit() != null) {
+                    eventMap.put("unit", event.getUnit().getName());
+                }
+                return eventMap;
+            })
+            .collect(Collectors.toList());
+        
+        // Fetch current inventory
         List<Inventory> inventory = inventoryRepository.findByKitchenId(kitchenId);
-        
-        // Empty consumption data - will trigger fallback in Python
-        List<Map<String, Object>> consumptionData = new ArrayList<>();
-        
-        // Current inventory data
-        List<Map<String, Object>> inventoryData = new ArrayList<>();
-        for (Inventory item : inventory) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("itemName", item.getName());
-            map.put("currentQuantity", item.getTotalQuantity());
-            map.put("minStock", item.getMinStock());
-            map.put("unit", item.getUnit() != null ? item.getUnit().getName() : "pieces");
-            inventoryData.add(map);
-        }
+        List<Map<String, Object>> inventoryData = inventory.stream()
+            .map(item -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("itemName", item.getName());
+                map.put("currentQuantity", item.getTotalQuantity());
+                map.put("minStock", item.getMinStock());
+                map.put("unit", item.getUnit() != null ? item.getUnit().getName() : "pieces");
+                return map;
+            })
+            .collect(Collectors.toList());
         
         Map<String, Object> result = new HashMap<>();
         result.put("consumptionEvents", consumptionData);
         result.put("currentInventory", inventoryData);
         result.put("kitchenId", kitchenId);
-        result.put("analysisStartDate", LocalDateTime.now().minusDays(90).toString());
+        result.put("analysisStartDate", analysisStartDate.toString());
         
+        System.out.println("Fetched " + consumptionData.size() + " consumption events and " + 
+            inventoryData.size() + " inventory items for AI analysis");
         return result;
     }
 
@@ -494,6 +523,94 @@ public class ShoppingListServiceImpl implements ShoppingListService {
         
         inventoryItemRepository.save(inventoryItem);
         shoppingListItemRepository.delete(item);
+    }
+
+    // New methods for purchased items management
+    @Override
+    @Transactional
+    public ShoppingListItemResponseDTO markItemAsPurchased(Long itemId) {
+        ShoppingListItem item = shoppingListItemRepository.findById(itemId)
+            .orElseThrow(() -> new RuntimeException("Shopping list item not found"));
+
+        item.setStatus(ShoppingListItem.ItemStatus.PURCHASED);
+        item.setPurchasedAt(LocalDateTime.now());
+        
+        ShoppingListItem updated = shoppingListItemRepository.save(item);
+        return shoppingListMapper.toItemResponseDTO(updated);
+    }
+
+    @Override
+    @Transactional
+    public List<ShoppingListItemResponseDTO> markMultipleItemsAsPurchased(List<Long> itemIds) {
+        List<ShoppingListItem> items = shoppingListItemRepository.findAllById(itemIds);
+        LocalDateTime now = LocalDateTime.now();
+        
+        items.forEach(item -> {
+            item.setStatus(ShoppingListItem.ItemStatus.PURCHASED);
+            item.setPurchasedAt(now);
+        });
+        
+        List<ShoppingListItem> updated = shoppingListItemRepository.saveAll(items);
+        return updated.stream()
+            .map(shoppingListMapper::toItemResponseDTO)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void cleanupPurchasedItems() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Daily lists: cleanup after 10 AM next day
+        LocalDateTime dailyCleanupTime = now.toLocalDate().atTime(10, 0);
+        if (now.isBefore(dailyCleanupTime)) {
+            dailyCleanupTime = dailyCleanupTime.minusDays(1);
+        }
+        
+        // Weekly lists: cleanup after Monday
+        LocalDateTime weeklyCleanupTime = now.toLocalDate()
+            .with(java.time.DayOfWeek.MONDAY)
+            .atStartOfDay();
+        if (now.getDayOfWeek().getValue() < 1) {
+            weeklyCleanupTime = weeklyCleanupTime.minusWeeks(1);
+        }
+        
+        // Monthly lists: cleanup after 1st of month
+        LocalDateTime monthlyCleanupTime = now.toLocalDate()
+            .withDayOfMonth(1)
+            .atStartOfDay();
+        if (now.getDayOfMonth() == 1 && now.getHour() < 1) {
+            monthlyCleanupTime = monthlyCleanupTime.minusMonths(1);
+        }
+        
+        shoppingListItemRepository.deletePurchasedItemsByTimeAndType(
+            dailyCleanupTime, weeklyCleanupTime, monthlyCleanupTime);
+    }
+
+    private List<String> getRecentlyPurchasedItems(Long kitchenId, ShoppingList.ListType listType) {
+        LocalDateTime cutoffTime = calculateCutoffTime(listType);
+        
+        return shoppingListItemRepository
+            .findRecentlyPurchasedItemsByKitchenAndType(kitchenId, listType, cutoffTime)
+            .stream()
+            .map(ShoppingListItem::getCanonicalName)
+            .collect(Collectors.toList());
+    }
+
+    private LocalDateTime calculateCutoffTime(ShoppingList.ListType listType) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        switch (listType) {
+            case DAILY:
+                return now.toLocalDate().atTime(10, 0);
+            case WEEKLY:
+                return now.toLocalDate().with(java.time.DayOfWeek.MONDAY).atStartOfDay();
+            case MONTHLY:
+                return now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+            case RANDOM:
+            default:
+                return now.minusHours(24);
+        }
     }
 
     private User getCurrentUser() {
