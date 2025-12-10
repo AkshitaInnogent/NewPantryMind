@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { loginUser, registerUser, refreshUser, updateProfile, validateUser } from "./authThunks";
+import { loginUser, registerUser, refreshUser, updateProfile, validateUser, verifyRegistrationOtp, resetPasswordWithOtp, sendPasswordResetOtp } from "./authThunks";
 import { getToken, removeToken, setToken, isTokenExpired } from "../../utils/auth";
 // import { loginUser, registerUser, refreshUser, updateProfile } from "./authThunks";
 // import { getToken, removeToken, setToken } from "../../utils/auth";
@@ -17,6 +17,7 @@ const initialState = {
   isAuthenticated: !!getToken(),
   loading: false,
   error: null,
+  registrationEmail: null,
 };
 
 const authSlice = createSlice({
@@ -78,17 +79,60 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
-        
-        // Handle response with both user and token
-        if (action.payload.user && action.payload.token) {
-          state.user = action.payload.user;
-          state.token = action.payload.token;
-          state.isAuthenticated = true;
-          setToken(action.payload.token);
-          localStorage.setItem("user", JSON.stringify(action.payload.user));
-        }
+        // Registration successful, but no auto-login - wait for OTP verification
+        state.registrationEmail = action.payload.user?.email;
       })
       .addCase(registerUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // OTP VERIFICATION
+      .addCase(verifyRegistrationOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyRegistrationOtp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+        state.registrationEmail = null;
+        setToken(action.payload.token);
+        localStorage.setItem("user", JSON.stringify(action.payload.user));
+      })
+      .addCase(verifyRegistrationOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // PASSWORD RESET WITH OTP
+      .addCase(resetPasswordWithOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resetPasswordWithOtp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+        setToken(action.payload.token);
+        localStorage.setItem("user", JSON.stringify(action.payload.user));
+      })
+      .addCase(resetPasswordWithOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // SEND PASSWORD RESET OTP
+      .addCase(sendPasswordResetOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(sendPasswordResetOtp.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(sendPasswordResetOtp.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

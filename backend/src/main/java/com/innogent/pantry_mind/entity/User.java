@@ -25,6 +25,7 @@ public class User {
     private String passwordHash;
     private String googleId;
     private Boolean isActive = true;
+    private Boolean emailVerified = false;
     
     @CreationTimestamp
     private LocalDateTime createdAt;

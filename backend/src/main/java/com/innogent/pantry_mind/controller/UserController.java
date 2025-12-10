@@ -30,8 +30,10 @@ public class UserController {
     public ResponseEntity<?> register(@RequestBody RegisterRequestDTO request) {
         try {
             UserResponseDTO user = userService.register(request);
-            String token = jwtUtil.generateToken(request.getEmail());
-            return ResponseEntity.ok(Map.of("token", token, "user", user));
+            return ResponseEntity.ok(Map.of(
+                "message", "Registration successful. Please check your email for verification code.",
+                "user", user
+            ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -147,6 +149,56 @@ public class UserController {
         }
     }
     
+    @PostMapping("/send-registration-otp")
+    public ResponseEntity<?> sendRegistrationOtp(@RequestBody SendOtpRequestDTO request) {
+        try {
+            userService.sendRegistrationOtp(request.getEmail());
+            return ResponseEntity.ok(Map.of("message", "OTP sent to your email"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/verify-registration-otp")
+    public ResponseEntity<?> verifyRegistrationOtp(@RequestBody VerifyOtpRequestDTO request) {
+        try {
+            UserResponseDTO user = userService.verifyRegistrationOtp(request.getEmail(), request.getOtp());
+            String token = jwtUtil.generateToken(request.getEmail());
+            return ResponseEntity.ok(Map.of(
+                "message", "Email verified successfully",
+                "token", token,
+                "user", user
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/send-password-reset-otp")
+    public ResponseEntity<?> sendPasswordResetOtp(@RequestBody SendOtpRequestDTO request) {
+        try {
+            userService.sendPasswordResetOtp(request.getEmail());
+            return ResponseEntity.ok(Map.of("message", "Password reset OTP sent to your email"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/reset-password-with-otp")
+    public ResponseEntity<?> resetPasswordWithOtp(@RequestBody ResetPasswordRequestDTO request) {
+        try {
+            UserResponseDTO user = userService.resetPasswordWithOtp(request);
+            String token = jwtUtil.generateToken(request.getEmail());
+            return ResponseEntity.ok(Map.of(
+                "message", "Password reset successful",
+                "token", token,
+                "user", user
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
     private String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
@@ -154,6 +206,5 @@ public class UserController {
         }
         throw new RuntimeException("User not authenticated");
     }
-
 
 }

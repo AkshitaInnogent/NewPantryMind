@@ -1,7 +1,6 @@
 // frontend/src/features/shopping/shoppingThunks.js
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
-
 export const fetchShoppingLists = createAsyncThunk(
   "shopping/fetchLists",
   async (kitchenId) => {
@@ -9,7 +8,6 @@ export const fetchShoppingLists = createAsyncThunk(
     return response.data;
   }
 );
-
 export const createShoppingList = createAsyncThunk(
   "shopping/createList",
   async (listData) => {
@@ -17,7 +15,6 @@ export const createShoppingList = createAsyncThunk(
     return response.data;
   }
 );
-
 export const fetchShoppingListById = createAsyncThunk(
   "shopping/fetchListById",
   async (listId) => {
@@ -25,15 +22,18 @@ export const fetchShoppingListById = createAsyncThunk(
     return response.data;
   }
 );
-
 export const addItemToList = createAsyncThunk(
   "shopping/addItem",
   async (itemData) => {
-    const response = await api.post("/shopping-lists/items", itemData);
+    const { shoppingListId, ...data } = itemData;
+    const response = await api.post(`/shopping-lists/${shoppingListId}/items?userId=${data.userId || 1}`, {
+      itemName: data.canonicalName,
+      quantity: data.suggestedQuantity,
+      unitId: data.unitId
+    });
     return response.data;
   }
 );
-
 export const updateItem = createAsyncThunk(
   "shopping/updateItem",
   async ({ itemId, ...updateData }) => {
@@ -41,7 +41,6 @@ export const updateItem = createAsyncThunk(
     return response.data;
   }
 );
-
 export const deleteItem = createAsyncThunk(
   "shopping/deleteItem",
   async (itemId) => {
@@ -49,7 +48,6 @@ export const deleteItem = createAsyncThunk(
     return itemId;
   }
 );
-
 export const updateItemStatus = createAsyncThunk(
   "shopping/updateItemStatus",
   async ({ itemId, status }) => {
@@ -57,7 +55,6 @@ export const updateItemStatus = createAsyncThunk(
     return { itemId, status, item: response.data };
   }
 );
-
 export const generateAISuggestions = createAsyncThunk(
   "shopping/generateAISuggestions",
   async ({ listId, kitchenId }) => {
@@ -65,7 +62,6 @@ export const generateAISuggestions = createAsyncThunk(
     return response.data;
   }
 );
-
 export const addAllLowStockItems = createAsyncThunk(
   "shopping/addAllLowStock",
   async ({ listId, kitchenId }) => {
@@ -73,7 +69,6 @@ export const addAllLowStockItems = createAsyncThunk(
     return response.data;
   }
 );
-
 export const addSelectedItems = createAsyncThunk(
   "shopping/addSelectedItems",
   async ({ listId, itemNames }) => {
@@ -81,7 +76,6 @@ export const addSelectedItems = createAsyncThunk(
     return response.data;
   }
 );
-
 export const getLowStockItems = createAsyncThunk(
   "shopping/getLowStockItems",
   async (kitchenId) => {
@@ -89,7 +83,6 @@ export const getLowStockItems = createAsyncThunk(
     return response.data;
   }
 );
-
 export const markAsPurchased = createAsyncThunk(
   "shopping/markAsPurchased",
   async ({ itemId, actualQuantity }) => {

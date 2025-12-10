@@ -84,3 +84,52 @@ export const validateUser = createAsyncThunk(
     }
   }
 );
+
+// OTP Thunks
+export const sendRegistrationOtp = createAsyncThunk(
+  "user/sendRegistrationOtp",
+  async (email, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.post("/user/send-registration-otp", { email });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Failed to send OTP");
+    }
+  }
+);
+
+export const verifyRegistrationOtp = createAsyncThunk(
+  "user/verifyRegistrationOtp",
+  async ({ email, otp }, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.post("/user/verify-registration-otp", { email, otp });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "OTP verification failed");
+    }
+  }
+);
+
+export const sendPasswordResetOtp = createAsyncThunk(
+  "user/sendPasswordResetOtp",
+  async (email, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.post("/user/send-password-reset-otp", { email });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Failed to send reset OTP");
+    }
+  }
+);
+
+export const resetPasswordWithOtp = createAsyncThunk(
+  "user/resetPasswordWithOtp",
+  async ({ email, otp, newPassword }, { rejectWithValue }) => {
+    try {
+      const res = await axiosClient.post("/user/reset-password-with-otp", { email, otp, newPassword });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Password reset failed");
+    }
+  }
+);
