@@ -15,27 +15,41 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
   
   useEffect(() => {
-    if (user?.kitchenId && (user?.role === "ADMIN" || user?.role === "MEMBER")) {
+    if (user?.kitchenId && (user?.id || user?.userId || user?.email) && (user?.role === "ADMIN" || user?.role === "MEMBER")) {
       fetchUnreadCount();
-      websocketService.subscribeToKitchen(user.kitchenId, () => {}, setUnreadCount);
+      
+      // Connect WebSocket first, then subscribe
+      websocketService.connect(user.userId || user.id || user.email, () => {});
+      
+      // Delay subscription to ensure connection is established
+      setTimeout(() => {
+        websocketService.subscribeToKitchen(user.kitchenId, fetchUnreadCount, fetchUnreadCount);
+      }, 1000);
       
       const handleNotificationsRead = () => setUnreadCount(0);
+      const handleRefreshBadge = () => fetchUnreadCount();
+      
       window.addEventListener('notificationsRead', handleNotificationsRead);
+      window.addEventListener('refreshBadge', handleRefreshBadge);
       
       return () => {
         window.removeEventListener('notificationsRead', handleNotificationsRead);
+        window.removeEventListener('refreshBadge', handleRefreshBadge);
       };
     }
-  }, [user?.kitchenId, user?.role]);
+  }, [user?.kitchenId, user?.id, user?.role]);
   
 
   
   const fetchUnreadCount = async () => {
     try {
-      const response = await notificationApi.getUnreadCount(user.kitchenId, user.role);
+      // Fetching unread count
+      const response = await notificationApi.getUnreadCount(user.kitchenId, user.role, user.id);
+      // Badge count response received
       setUnreadCount(response.data);
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      // Failed to fetch unread count
+      setUnreadCount(0);
     }
   };
 
@@ -83,17 +97,7 @@ export default function Header() {
                 
                 {(user?.role === "ADMIN" || user?.role === "MEMBER") && (
                   <button
-                    onClick={async () => {
-                      navigate("/dashboard");
-                      if (unreadCount > 0) {
-                        try {
-                          await notificationApi.markAllAsRead(user.kitchenId, user.role);
-                          setUnreadCount(0);
-                        } catch (error) {
-                          console.error('Failed to mark notifications as read:', error);
-                        }
-                      }
-                    }}
+                    onClick={() => navigate("/dashboard")}
                     className="p-2 text-gray-600 hover:text-green-600 transition-colors duration-200 relative"
                     title="Go to Dashboard"
                   >

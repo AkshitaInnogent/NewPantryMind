@@ -11,11 +11,11 @@ export const createKitchenWithAdmin = createAsyncThunk(
       const { user } = getState().auth;
       
       if (!user?.id) {
-        console.error("User ID not found in state:", user);
+        // User ID not found in state
         return rejectWithValue("User ID not found. Please login again.");
       }
 
-      console.log("Creating kitchen with userId:", user.id);
+      // Creating kitchen with userId
       const res = await axiosClient.post(`/kitchens/create-with-admin?userId=${user.id}`, {
         name: data.name
       });
@@ -26,7 +26,7 @@ export const createKitchenWithAdmin = createAsyncThunk(
       
       return res.data;
     } catch (err) {
-      console.error("Kitchen creation error:", err.response?.data || err.message);
+      // Kitchen creation error
       return rejectWithValue(err.response?.data || "Kitchen creation failed");
     }
   }
@@ -40,11 +40,11 @@ export const joinKitchen = createAsyncThunk(
       const { user } = getState().auth;
       
       if (!user?.id) {
-        console.error("User ID not found in state:", user);
+        // User ID not found in state
         return rejectWithValue("User ID not found. Please login again.");
       }
 
-      console.log("Joining kitchen with invitation code:", data.invitationCode);
+      // Joining kitchen with invitation code
       const res = await axiosClient.post(`/kitchens/join-by-code`, {
         invitationCode: data.invitationCode,
         userId: user.id
@@ -56,7 +56,7 @@ export const joinKitchen = createAsyncThunk(
       
       return res.data;
     } catch (err) {
-      console.error("Kitchen join error:", err.response?.data || err.message);
+      // Kitchen join error
       return rejectWithValue(err.response?.data || "Failed to join kitchen");
     }
   }

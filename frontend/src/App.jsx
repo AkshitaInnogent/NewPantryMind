@@ -62,7 +62,7 @@ function App() {
         try {
           await dispatch(validateUser()).unwrap();
         } catch (error) {
-          console.log('Server validation failed, using stored user data');
+          // Server validation failed, using stored user data
         }
       }
       

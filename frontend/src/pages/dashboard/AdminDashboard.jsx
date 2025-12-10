@@ -18,40 +18,49 @@ export default function AdminDashboard() {
     if (user?.kitchenId) {
       dispatch(fetchKitchenMembers(user.kitchenId));
       fetchNotifications();
-      markNotificationsAsRead();
       
       // Listen for new notifications via WebSocket
       websocketService.subscribeToKitchen(user.kitchenId, () => {
-        fetchNotifications(); // Refresh notifications when new member events occur
+        fetchNotifications();
+        dispatch(fetchKitchenMembers(user.kitchenId));
+        window.dispatchEvent(new CustomEvent('refreshBadge'));
+      }, () => {
+        fetchNotifications();
+        window.dispatchEvent(new CustomEvent('refreshBadge'));
       });
+      
+      // Mark notifications as read when leaving dashboard
+      return () => {
+        markNotificationsAsRead();
+      };
     }
   }, [dispatch, user?.kitchenId]);
   
   const fetchNotifications = async () => {
     try {
-      const response = await notificationApi.getNotifications(user.kitchenId, user.role);
+      const response = await notificationApi.getNotifications(user.kitchenId, user.role, user.id);
       setNotifications(response.data);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      // Failed to fetch notifications
     }
   };
   
   const markNotificationsAsRead = async () => {
     try {
-      await notificationApi.markAllAsRead(user.kitchenId, user.role);
+      await notificationApi.markAllAsRead(user.kitchenId, user.role, user.id);
       // Trigger header badge update by dispatching custom event
       window.dispatchEvent(new CustomEvent('notificationsRead'));
     } catch (error) {
-      console.error('Failed to mark notifications as read:', error);
+      // Failed to mark notifications as read
     }
   };
   
   const deleteNotification = async (id) => {
     try {
-      await notificationApi.deleteNotification(id);
+      await notificationApi.deleteNotification(id, user.id);
       setNotifications(notifications.filter(n => n.id !== id));
     } catch (error) {
-      console.error('Failed to delete notification:', error);
+      // Failed to delete notification
     }
   };
 
@@ -97,31 +106,45 @@ export default function AdminDashboard() {
             <div className="bg-gray-50 rounded-lg p-4">
               {notifications.length > 0 ? (
                 <div className="space-y-2">
-                  {notifications.map((notification) => (
-                    <div key={notification.id} className={`bg-white p-3 rounded border-l-4 flex justify-between items-start ${
-                      notification.type === 'MEMBER_JOINED' ? 'border-green-500' : 'border-red-500'
-                    }`}>
-                      <div>
-                        <p className="text-gray-800">{notification.message}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(notification.createdAt).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          })}
-                        </p>
+                  {notifications.map((notification) => {
+                    const isUnread = !notification.readByUsers?.includes(user?.id);
+                    return (
+                      <div key={notification.id} className={`bg-white p-3 rounded border-l-4 flex justify-between items-start ${
+                        notification.type === 'MEMBER_JOINED' ? 'border-green-500' : 
+                        notification.type === 'MEMBER_REMOVED' ? 'border-red-500' :
+                        notification.severity === 'CRITICAL' ? 'border-red-500' :
+                        notification.severity === 'WARNING' ? 'border-yellow-500' : 'border-blue-500'
+                      } ${isUnread ? 'bg-blue-50' : ''}`}>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {notification.title && (
+                              <p className="font-medium text-gray-800">{notification.title}</p>
+                            )}
+                            {isUnread && (
+                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            )}
+                          </div>
+                          <p className="text-gray-600">{notification.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(notification.createdAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteNotification(notification.id)}
+                          className="text-gray-400 hover:text-red-500 text-sm ml-2"
+                          title="Delete notification"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <button
-                        onClick={() => deleteNotification(notification.id)}
-                        className="text-gray-400 hover:text-red-500 text-sm"
-                        title="Delete notification"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-600">No notifications</p>

@@ -44,11 +44,6 @@ public class NotificationService {
     }
     
     public void sendInventoryAlert(Long kitchenId, String alertType, String message, Long relatedItemId) {
-        // Check if alert already sent today
-        if (hasRecentAlert(kitchenId, alertType)) {
-            return;
-        }
-        
         Notification notification = Notification.builder()
                 .kitchenId(kitchenId)
                 .type(alertType)
@@ -82,7 +77,6 @@ public class NotificationService {
         java.util.Map<String, Object> payload = java.util.Map.of(
             "type", type,
             "message", message,
-            "unreadCount", notificationRepository.countByKitchenIdAndIsReadFalse(kitchenId),
             "timestamp", System.currentTimeMillis()
         );
         

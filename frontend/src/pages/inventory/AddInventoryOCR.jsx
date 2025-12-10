@@ -60,7 +60,7 @@ export default function AddInventoryOCR() {
       }
       setShowCamera(true);
     } catch (error) {
-      console.error('Camera access denied:', error);
+      // Camera access denied
       alert('Camera access is required for this feature');
     }
   };
@@ -113,7 +113,7 @@ export default function AddInventoryOCR() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('OCR Response:', data);
+        // OCR Response received
         
         // Handle different response structures
         let items = [];
@@ -165,7 +165,7 @@ export default function AddInventoryOCR() {
           price: item.price || ''
         }));
         
-        console.log('Editable Items:', editableItems);
+        // Editable Items prepared
         setEditingItems(editableItems);
         setActiveMode('edit');
       } else if (response.status === 429) {
@@ -176,7 +176,7 @@ export default function AddInventoryOCR() {
         setErrorMessage('❌ OCR processing failed. Please try again with a different image.');
       }
     } catch (error) {
-      console.error('OCR error:', error);
+      // OCR error
       setErrorMessage('🔌 Connection error. Please check your internet connection and try again.');
     } finally {
       setOcrLoading(false);
@@ -249,7 +249,7 @@ export default function AddInventoryOCR() {
       if (error.message?.includes('Date') || error.message?.includes('date')) {
         alert('Please add a correct valid date or greater than today date');
       } else {
-        console.error("Failed to save items:", error);
+        // Failed to save items
       }
     } finally {
       setOcrLoading(false);
@@ -325,7 +325,7 @@ export default function AddInventoryOCR() {
       if (error.message?.includes('Date') || error.message?.includes('date')) {
         alert('Please add a correct valid date or greater than today date');
       } else {
-        console.error("Failed to create items:", error);
+        // Failed to create items
       }
     } finally {
       setOcrLoading(false);

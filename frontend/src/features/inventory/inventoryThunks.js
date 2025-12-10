@@ -15,7 +15,7 @@ export const fetchInventoryItems = () => async (dispatch, getState) => {
     const response = await axiosClient.get(`/inventory?kitchenId=${kitchenId}`);
     dispatch(setItems(response.data));
   } catch (error) {
-    console.error("Failed to fetch inventory items:", error);
+    // Failed to fetch inventory items
     dispatch(setError(error.response?.data?.message || "Failed to fetch inventory items"));
   } finally {
     dispatch(setLoading(false));
@@ -28,7 +28,7 @@ export const createInventoryItem = (itemData) => async (dispatch) => {
     dispatch(addItem(response.data));
     return response.data;
   } catch (error) {
-    console.error("Failed to create item:", error);
+    // Failed to create item
     dispatch(setError(error.response?.data?.message || "Failed to create item"));
     throw error;
   }
@@ -59,7 +59,7 @@ export const updateInventoryItem = (itemId, itemData) => async (dispatch) => {
     dispatch(updateItem(response.data));
     return response.data;
   } catch (error) {
-    console.error("Failed to update item:", error);
+    // Failed to update item
     dispatch(setError(error.response?.data?.message || "Failed to update item"));
     throw error;
   }
@@ -101,7 +101,7 @@ export const updateInventoryAlerts = (inventoryId, alertData) => async (dispatch
     dispatch(updateItem(response.data));
     return response.data;
   } catch (error) {
-    console.error('Update alerts error:', error.response?.data || error.message);
+    // Update alerts error
     dispatch(setError(error.response?.data?.message || "Failed to update alerts"));
     throw error;
   }

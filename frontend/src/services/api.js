@@ -15,7 +15,7 @@ axiosClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.warn("localStorage not available");
+      // localStorage not available
     }
 
     return config;
@@ -34,7 +34,7 @@ axiosClient.interceptors.response.use(
     if (error.response?.status === 401 || 
         error.response?.status === 403 ||
         (typeof errorMessage === 'string' && errorMessage.includes('User not found'))) {
-      console.error("Authentication failed, user not found, or database reset - logging out");
+      // Authentication failed, user not found, or database reset - logging out
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = '/login';

@@ -11,7 +11,7 @@ export default function NotificationDropdown() {
   const { currentKitchen } = useSelector(state => state.kitchen);
 
   useEffect(() => {
-    if (user?.role === 'ADMIN' && currentKitchen?.id) {
+    if ((user?.role === 'ADMIN' || user?.role === 'MEMBER') && currentKitchen?.id) {
       dispatch(fetchUnreadCount());
       const interval = setInterval(() => {
         dispatch(fetchUnreadCount());
@@ -39,7 +39,11 @@ export default function NotificationDropdown() {
   };
 
   const handleDelete = (id) => {
-    dispatch(deleteNotification(id));
+    if (user?.role === 'MEMBER') {
+      dispatch(deleteNotification({ id, isMember: true }));
+    } else {
+      dispatch(deleteNotification(id));
+    }
   };
 
   const formatTime = (dateString) => {
@@ -53,7 +57,7 @@ export default function NotificationDropdown() {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  if (user?.role !== 'ADMIN' || !currentKitchen?.id) return null;
+  if ((user?.role !== 'ADMIN' && user?.role !== 'MEMBER') || !currentKitchen?.id) return null;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -91,9 +95,11 @@ export default function NotificationDropdown() {
                       <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                       <p className="text-xs text-gray-400 mt-2">{formatTime(notification.createdAt)}</p>
                     </div>
+                    {console.log('Rendering delete button for user role:', user?.role)}
                     <button
                       onClick={() => handleDelete(notification.id)}
                       className="ml-2 text-gray-400 hover:text-red-500 transition-colors"
+                      title={`Delete (Role: ${user?.role})`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -21,7 +21,7 @@ export function AIShoppingSuggestions({ kitchenId, currentListId }) {
       const response = await api.post('/ai/shopping-suggestions', { kitchenId });
       setAiSuggestions(response.data);
     } catch (error) {
-      console.error('Failed to fetch AI suggestions:', error);
+      // Failed to fetch AI suggestions
       setAiSuggestions([]);
     } finally {
       setAiLoading(false);
@@ -35,7 +35,7 @@ export function AIShoppingSuggestions({ kitchenId, currentListId }) {
       const response = await api.post('/ai/analyze-consumption', { kitchenId });
       setConsumptionAnalysis(response.data);
     } catch (error) {
-      console.error('Failed to fetch consumption analysis:', error);
+      // Failed to fetch consumption analysis
     }
   };
 

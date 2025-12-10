@@ -162,9 +162,10 @@ const AlertSettings = () => {
                 onChange={(e) => setSettings({...settings, alertTimeMinute: parseInt(e.target.value)})}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
               >
-                {[0, 15, 30, 45].map(min => (
-                  <option key={min} value={min}>{min.toString().padStart(2, '0')}</option>
-                ))}
+                <option value={0}>00</option>
+                <option value={15}>15</option>
+                <option value={30}>30</option>
+                <option value={45}>45</option>
               </select>
             </div>
             

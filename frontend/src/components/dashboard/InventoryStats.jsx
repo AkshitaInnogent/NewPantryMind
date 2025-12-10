@@ -15,10 +15,9 @@ export default function InventoryStats() {
     const fetchStats = async () => {
       try {
         const data = await getDashboardStats();
-        console.log('Dashboard stats received:', data);
         setStats(data);
       } catch (error) {
-        console.error('Failed to fetch stats:', error);
+        // Failed to fetch stats
       }
     };
     fetchStats();

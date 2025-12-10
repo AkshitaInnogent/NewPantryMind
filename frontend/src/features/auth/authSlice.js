@@ -142,7 +142,6 @@ const authSlice = createSlice({
       })
       .addCase(validateUser.rejected, (state) => {
         // Don't logout on validation failure - keep user logged in with stored data
-        console.log('User validation failed, keeping stored user data');
       });
   },
 });

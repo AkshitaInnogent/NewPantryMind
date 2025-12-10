@@ -17,8 +17,12 @@ public class NotificationController {
     private final NotificationRepository notificationRepository;
 
     @GetMapping
-    public ResponseEntity<List<Notification>> getNotifications(@RequestParam Long kitchenId, @RequestParam(defaultValue = "ADMIN") String userRole) {
+    public ResponseEntity<List<Notification>> getNotifications(@RequestParam Long kitchenId, @RequestParam(defaultValue = "ADMIN") String userRole, @RequestParam Long userId) {
         List<Notification> notifications = notificationRepository.findByKitchenIdOrderByCreatedAtDesc(kitchenId);
+        
+        notifications = notifications.stream()
+            .filter(n -> !n.isDeletedByUser(userId))
+            .collect(Collectors.toList());
         
         if ("MEMBER".equals(userRole)) {
             notifications = notifications.stream()
@@ -30,24 +34,30 @@ public class NotificationController {
     }
     
     @GetMapping("/unread-count")
-    public ResponseEntity<Long> getUnreadCount(@RequestParam Long kitchenId, @RequestParam(defaultValue = "ADMIN") String userRole) {
+    public ResponseEntity<Long> getUnreadCount(@RequestParam Long kitchenId, @RequestParam(defaultValue = "ADMIN") String userRole, @RequestParam Long userId) {
         List<Notification> notifications = notificationRepository.findByKitchenIdOrderByCreatedAtDesc(kitchenId);
         
-        if ("MEMBER".equals(userRole)) {
-            long count = notifications.stream()
-                .filter(n -> !n.isRead())
-                .filter(n -> !"MEMBER_JOINED".equals(n.getType()) && !"MEMBER_REMOVED".equals(n.getType()))
-                .count();
-            return ResponseEntity.ok(count);
-        } else {
-            long count = notificationRepository.countByKitchenIdAndIsReadFalse(kitchenId);
-            return ResponseEntity.ok(count);
-        }
+        long count = notifications.stream()
+            .filter(n -> !n.isDeletedByUser(userId))
+            .filter(n -> !n.isReadByUser(userId))
+            .filter(n -> {
+                if ("MEMBER".equals(userRole)) {
+                    return !"MEMBER_JOINED".equals(n.getType()) && !"MEMBER_REMOVED".equals(n.getType());
+                }
+                return true;
+            })
+            .count();
+        
+        return ResponseEntity.ok(count);
     }
     
     @PostMapping("/mark-read")
-    public ResponseEntity<Void> markAllAsRead(@RequestParam Long kitchenId, @RequestParam(defaultValue = "ADMIN") String userRole) {
+    public ResponseEntity<Void> markAllAsRead(@RequestParam Long kitchenId, @RequestParam(defaultValue = "ADMIN") String userRole, @RequestParam Long userId) {
         List<Notification> notifications = notificationRepository.findByKitchenIdOrderByCreatedAtDesc(kitchenId);
+        
+        notifications = notifications.stream()
+            .filter(n -> !n.isDeletedByUser(userId))
+            .collect(Collectors.toList());
         
         if ("MEMBER".equals(userRole)) {
             notifications = notifications.stream()
@@ -55,14 +65,18 @@ public class NotificationController {
                 .collect(Collectors.toList());
         }
         
-        notifications.forEach(n -> n.setRead(true));
+        notifications.forEach(n -> n.markAsReadByUser(userId));
         notificationRepository.saveAll(notifications);
         return ResponseEntity.ok().build();
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
-        notificationRepository.deleteById(id);
+    public ResponseEntity<Void> deleteNotification(@PathVariable Long id, @RequestParam Long userId) {
+        Notification notification = notificationRepository.findById(id).orElse(null);
+        if (notification != null) {
+            notification.markAsDeletedByUser(userId);
+            notificationRepository.save(notification);
+        }
         return ResponseEntity.ok().build();
     }
 }

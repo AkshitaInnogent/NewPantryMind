@@ -15,51 +15,29 @@ class WebSocketService {
       webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
       onConnect: () => {
         this.connected = true;
-        console.log('✅ WebSocket connected');
+        // WebSocket connected
         
-        // Subscribe to user-specific notifications
-        this.client.subscribe(`/topic/user/${userId}`, (message) => {
-          if (message.body === 'ACCESS_REVOKED') {
-            console.log('🚫 Access revoked - logging out');
-            onAccessRevoked();
-          }
-        });
-        
-        // Subscribe to global notifications (database reset)
-        this.client.subscribe('/topic/global', (message) => {
-          if (message.body === 'DATABASE_RESET') {
-            console.log('🔄 Database reset detected - logging out');
-            localStorage.clear();
-            window.location.href = '/login';
-          }
-        });
-        
-        // Subscribe to force logout
-        this.client.subscribe('/topic/logout', (message) => {
-          if (message.body === 'FORCE_LOGOUT') {
-            console.log('🚪 Force logout - redirecting to login');
-            localStorage.clear();
-            window.location.href = '/login';
-          }
-        });
+        // Skip immediate subscriptions to avoid connection errors
 
         // Handle pending kitchen subscription
-        if (this.pendingKitchenSubscription) {
-          const { kitchenId, onMemberAdded, onNotificationUpdate } = this.pendingKitchenSubscription;
-          this.subscribeToKitchen(kitchenId, onMemberAdded, onNotificationUpdate);
-          this.pendingKitchenSubscription = null;
-        }
+        setTimeout(() => {
+          if (this.pendingKitchenSubscription) {
+            const { kitchenId, onMemberAdded, onNotificationUpdate } = this.pendingKitchenSubscription;
+            this.subscribeToKitchen(kitchenId, onMemberAdded, onNotificationUpdate);
+            this.pendingKitchenSubscription = null;
+          }
+        }, 1000);
       },
       onDisconnect: () => {
         this.connected = false;
-        console.log('❌ WebSocket disconnected');
+        // WebSocket disconnected
       },
       onStompError: (frame) => {
-        console.error('❌ WebSocket STOMP error:', frame);
+        // WebSocket STOMP error
         this.connected = false;
       },
       onWebSocketError: (error) => {
-        console.error('❌ WebSocket connection error:', error);
+        // WebSocket connection error
         this.connected = false;
       }
     });
@@ -76,7 +54,7 @@ class WebSocketService {
 
   subscribeToKitchen(kitchenId, onMemberAdded, onNotificationUpdate) {
     if (!this.client || !this.connected) {
-      console.log('WebSocket not connected, queuing kitchen subscription');
+      // WebSocket not connected, queuing kitchen subscription
       this.pendingKitchenSubscription = { kitchenId, onMemberAdded, onNotificationUpdate };
       return;
     }
@@ -84,24 +62,24 @@ class WebSocketService {
     try {
       const subscription = this.client.subscribe(`/topic/kitchen/${kitchenId}`, (message) => {
         if (message.body === 'MEMBER_ADDED' || message.body === 'MEMBER_REMOVED') {
-          console.log('🔔 Kitchen member change detected');
+          // Kitchen member change detected
           onMemberAdded();
         }
       });
       
       const alertSubscription = this.client.subscribe(`/topic/kitchen/${kitchenId}/alerts`, (message) => {
         const data = JSON.parse(message.body);
-        console.log('🔔 Notification update:', data);
+        // Notification update
         if (onNotificationUpdate) {
-          onNotificationUpdate(data.unreadCount);
+          onNotificationUpdate();
         }
       });
       
       this.subscriptions.set(`kitchen-${kitchenId}`, subscription);
       this.subscriptions.set(`alerts-${kitchenId}`, alertSubscription);
-      console.log(`✅ Subscribed to kitchen ${kitchenId}`);
+      // Subscribed to kitchen
     } catch (error) {
-      console.error('Failed to subscribe to kitchen topic:', error);
+      // Failed to subscribe to kitchen topic
     }
   }
 
