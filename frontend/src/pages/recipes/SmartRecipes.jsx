@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { generateRecipes } from "../../features/recipes/recipeThunks";
+import { generateRecipes, generateRecipeByName } from "../../features/recipes/recipeThunks";
 import { clearRecipe, clearError } from "../../features/recipes/recipeSlice";
 import PageLayout from "../../components/layout/PageLayout";
 import { Button, LoadingSpinner, Alert, Card } from "../../components/ui";
-import { ChefHat, Clock, Users, Plus, Minus, Package, ShoppingCart } from "lucide-react";
+import { ChefHat, Clock, Users, Plus, Minus, Package, ShoppingCart, Zap, AlertTriangle, Recycle, Settings } from "lucide-react";
 
 export default function SmartRecipes() {
   const dispatch = useDispatch();
@@ -14,6 +14,8 @@ export default function SmartRecipes() {
   const { recipe, loading, error } = useSelector((state) => state.recipes);
   const [generating, setGenerating] = useState(false);
   const [servings, setServings] = useState(4);
+
+  const [recipeName, setRecipeName] = useState("");
 
   const handleGenerateRecipes = async () => {
     if (!user?.kitchenId) {
@@ -41,6 +43,23 @@ export default function SmartRecipes() {
   const handleNewRecipes = () => {
     dispatch(clearRecipe());
     dispatch(clearError());
+  };
+
+  const handleSearchRecipe = async () => {
+    if (!user?.kitchenId || !recipeName.trim()) return;
+    
+    console.log("🔍 [FRONTEND] Searching for recipe:", recipeName);
+    setGenerating(true);
+    dispatch(clearError());
+    
+    try {
+      await dispatch(generateRecipeByName(user.kitchenId, recipeName.trim(), servings));
+      console.log("🎉 [FRONTEND] Recipe search successful!");
+    } catch (err) {
+      console.error("😱 [FRONTEND] Recipe search failed:", err);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const adjustServings = (increment) => {
@@ -72,70 +91,112 @@ export default function SmartRecipes() {
     >
       {!recipe && !loading && (
         <div className="text-center py-16">
-          <span className="inline-block bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full mb-4">
-            Cook with what you have
-          </span>
           
-          <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-green-50 text-green-600 rounded-xl">
-            <ChefHat className="w-10 h-10" />
-          </div>
-          
-          <h2 className="text-3xl md:text-4xl font-extrabold leading-tight text-gray-900 mb-4">
-            Get <span className="text-green-600">4 Personalized</span> Recipe Suggestions
-          </h2>
-          
-          <p className="text-gray-600 max-w-2xl mx-auto mb-12">
-            Our AI analyzes your pantry ingredients and creates delicious recipes tailored to your available items. 
-            Choose how many people you're cooking for and get instant suggestions!
-          </p>
-          
-          {/* Servings Selector */}
-          <div className="mb-12">
-            <label className="block text-lg font-semibold text-gray-900 mb-6">
-              How many people are you cooking for?
-            </label>
-            <div className="flex items-center justify-center gap-6">
-              <button
-                onClick={() => adjustServings(-1)}
-                disabled={servings <= 1}
-                className="w-12 h-12 rounded-full bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl text-green-600"
+          {/* Recipe Type Options */}
+          <div className="bg-gray-50 rounded-xl p-6 mb-12">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Choose Recipe Type</h3>
+            <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/recipes/expiry')}
+                className="flex flex-col items-center gap-2 h-auto py-6 bg-white border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
               >
-                <Minus className="w-5 h-5" />
-              </button>
+                <AlertTriangle className="w-8 h-8 text-orange-600" />
+                <span className="font-bold text-gray-900">Expiry Recipes</span>
+                <span className="text-xs text-gray-600">Use expiring items first</span>
+              </Button>
               
-              <div className="flex items-center gap-3 px-8 py-4 bg-green-50 rounded-xl border-2 border-green-100">
-                <Users className="w-6 h-6 text-green-600" />
-                <span className="text-3xl font-extrabold text-green-600">{servings}</span>
-                <span className="text-green-600 font-semibold">people</span>
-              </div>
-              
-              <button
-                onClick={() => adjustServings(1)}
-                disabled={servings >= 20}
-                className="w-12 h-12 rounded-full bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl text-green-600"
+              <Button
+                variant="outline"
+                onClick={() => navigate('/recipes/quick')}
+                className="flex flex-col items-center gap-2 h-auto py-6 bg-white border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
               >
-                <Plus className="w-5 h-5" />
-              </button>
+                <Zap className="w-8 h-8 text-blue-600" />
+                <span className="font-bold text-gray-900">Quick Recipes</span>
+                <span className="text-xs text-gray-600">Ready in minutes</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => navigate('/recipes/specific')}
+                className="flex flex-col items-center gap-2 h-auto py-6 bg-white border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+              >
+                <ChefHat className="w-8 h-8 text-purple-600" />
+                <span className="font-bold text-gray-900">Specific Recipes</span>
+                <span className="text-xs text-gray-600">Sweet, spicy, seasonal & more</span>
+              </Button>
             </div>
           </div>
           
-          <Button
-            size="xl"
-            onClick={handleGenerateRecipes}
-            disabled={generating || !user?.kitchenId}
-            loading={generating}
-            className="mb-4"
-          >
-            {generating ? "Generating 4 Recipes..." : "Generate 4 Smart Recipes"}
-          </Button>
-          
-          {!user?.kitchenId && (
-            <p className="text-sm text-red-600 mb-4">Please set up your kitchen first to get recipe suggestions</p>
-          )}
-          
-          <p className="text-sm text-gray-400">
-            Personalized recipes • Reduce food waste • Cook smarter
-          </p>
+          {/* Search Recipe Interface */}
+          <div>
+              <span className="inline-block bg-blue-100 text-blue-700 text-sm font-medium px-3 py-1 rounded-full mb-4">
+                Search for specific recipe
+              </span>
+              
+              <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl">
+                <ChefHat className="w-10 h-10" />
+              </div>
+              
+              <h2 className="text-3xl md:text-4xl font-extrabold leading-tight text-gray-900 mb-4">
+                What do you want to <span className="text-blue-600">cook today?</span>
+              </h2>
+              
+              <p className="text-gray-600 max-w-2xl mx-auto mb-8">
+                Type the name of any recipe and we'll show you how to make it with your available ingredients
+              </p>
+
+              {/* Recipe Search Input */}
+              <div className="max-w-md mx-auto mb-8">
+                <input
+                  type="text"
+                  placeholder="e.g., Matar Paneer, Biryani, Pasta..."
+                  value={recipeName}
+                  onChange={(e) => setRecipeName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearchRecipe()}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
+                />
+              </div>
+
+              {/* Servings for Search */}
+              <div className="mb-8">
+                <label className="block text-lg font-semibold text-gray-900 mb-4">
+                  How many people?
+                </label>
+                <div className="flex items-center justify-center gap-6">
+                  <button
+                    onClick={() => adjustServings(-1)}
+                    disabled={servings <= 1}
+                    className="w-12 h-12 rounded-full bg-blue-50 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+                  >
+                    <Minus className="w-5 h-5" />
+                  </button>
+                  
+                  <div className="flex items-center gap-3 px-6 py-3 bg-blue-50 rounded-xl">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <span className="text-2xl font-bold text-blue-600">{servings}</span>
+                  </div>
+                  
+                  <button
+                    onClick={() => adjustServings(1)}
+                    disabled={servings >= 20}
+                    className="w-12 h-12 rounded-full bg-blue-50 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <Button
+                size="xl"
+                onClick={handleSearchRecipe}
+                disabled={generating || !recipeName.trim() || !user?.kitchenId}
+                loading={generating}
+                className="mb-4"
+              >
+                {generating ? "Searching Recipe..." : "Get Recipe"}
+              </Button>
+          </div>
         </div>
       )}
 
@@ -169,9 +230,9 @@ export default function SmartRecipes() {
           </Card>
 
           {/* Recipes Grid */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className={`grid gap-6 ${recipe.recipes.length === 1 ? '' : 'md:grid-cols-2'}`}>
             {recipe.recipes.map((recipeItem, index) => (
-              <Card key={index} hover className="flex flex-col h-full">
+              <Card key={index} hover className={`flex flex-col h-full ${recipe.recipes.length === 1 ? 'max-w-lg mx-auto' : ''}`}>
                 {/* Recipe Header */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-3">
@@ -279,20 +340,25 @@ export default function SmartRecipes() {
             ))}
           </div>
 
-          {/* Generate New Recipes */}
+          {/* Action Buttons */}
           <div className="text-center pt-8 border-t border-gray-200">
-            <Button
-              size="xl"
-              onClick={handleGenerateRecipes}
-              disabled={generating}
-              loading={generating}
-              className="mb-4"
-            >
-              {generating ? "Generating..." : "Generate 4 New Recipes"}
-            </Button>
-            <p className="text-sm text-gray-400">
-              Get fresh recipe ideas • Same ingredients, different flavors
-            </p>
+            <div className="flex justify-center gap-4">
+              <Button
+                variant="outline"
+                onClick={handleNewRecipes}
+                className="flex items-center gap-2"
+              >
+                ← New Search
+              </Button>
+              <Button
+                onClick={handleSearchRecipe}
+                disabled={generating || !recipeName.trim()}
+                loading={generating}
+                className="flex items-center gap-2"
+              >
+                {generating ? "Regenerating..." : "Regenerate Recipe"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -24,6 +24,11 @@ import LowStockAlerts from './pages/alerts/LowStockAlerts'
 import ExpiryAlerts from './pages/alerts/ExpiryAlerts'
 import SmartRecipes from './pages/recipes/SmartRecipes'
 import RecipeDetail from './pages/recipes/RecipeDetail'
+import ExpiryRecipes from './pages/recipes/ExpiryRecipes'
+import QuickRecipes from './pages/recipes/QuickRecipes'
+import SpecificRecipes from './pages/recipes/SpecificRecipes'
+
+import RecipePreferences from './pages/preferences/RecipePreferences'
 import ShoppingList from './pages/shopping/ShoppingList'
 import AuthDebug from './components/AuthDebug'
 import Logout from './pages/Logout'
@@ -210,6 +215,32 @@ function App() {
         <Route path="/recipes" element={
           <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
             <SmartRecipes />
+          </RoleBasedRoute>
+        } />
+        
+        <Route path="/recipes/expiry" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <ExpiryRecipes />
+          </RoleBasedRoute>
+        } />
+        
+        <Route path="/recipes/quick" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <QuickRecipes />
+          </RoleBasedRoute>
+        } />
+        
+        <Route path="/recipes/specific" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <SpecificRecipes />
+          </RoleBasedRoute>
+        } />
+        
+
+        
+        <Route path="/preferences/recipe" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <RecipePreferences />
           </RoleBasedRoute>
         } />
         
