@@ -22,13 +22,20 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 @Data
 @Entity
 @Table(name = "inventory", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"normalized_name", "category_id", "unit_id", "kitchen_id"})
 })
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Inventory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

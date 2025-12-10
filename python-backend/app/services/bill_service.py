@@ -1,12 +1,13 @@
 # app/services/bill_service.py
 import uuid
-import time
-from typing import List
-from app.core.ocr.engine import ocr_engine
-from app.core.ocr.preprocessor import image_preprocessor
+import base64
+import asyncio
+from typing import List, Tuple
+from app.core.vision.preprocessor import minimal_vision_preprocessing
 from app.core.llm.client import llm_client
-from app.core.llm.prompts import PromptTemplates
+from app.core.llm.prompts import BillPrompts
 from app.core.llm.parser import llm_parser
+from app.services.enrichment_service import enrichment_service
 from app.models.common import ExtractedItem, DocumentType
 from app.models.response import OCRResponse
 from app.utils.exceptions import OCRServiceError
@@ -15,102 +16,86 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BillService:
+    def __init__(self):
+        self._metadata_cache = None
+        self._cache_timestamp = 0
+        self._cache_ttl = 300  # 5 minutes
     
-    async def process_bill(
-        self, 
-        image_data: bytes, 
-        filename: str,
-        locale: str = "en-IN",
-        timezone: str = "Asia/Kolkata"
-    ) -> OCRResponse:
-        """Process bill image and extract items"""
+    async def _get_cached_metadata(self) -> Tuple[List[dict], List[dict]]:
+        """Get cached categories and units"""
+        import time
+        current_time = time.time()
         
+        if (self._metadata_cache is None or 
+            (current_time - self._cache_timestamp) > self._cache_ttl):
+            
+            categories_task = enrichment_service._get_categories()
+            units_task = enrichment_service._get_units()
+            categories, units = await asyncio.gather(categories_task, units_task)
+            
+            self._metadata_cache = (categories, units)
+            self._cache_timestamp = current_time
+            logger.info("Metadata cache refreshed")
+        
+        return self._metadata_cache
+    
+    async def process_bill(self, image_data: bytes, filename: str, locale: str = "en-IN", timezone: str = "Asia/Kolkata") -> OCRResponse:
         request_id = str(uuid.uuid4())
         timer = PerformanceTimer(request_id)
         
         try:
             logger.info(f"Processing bill {request_id}")
             
-            # Step 1: Validate and preprocess image
-            with timer.time_step("image_preprocessing"):
-                processed_image, _ = await image_preprocessor.validate_and_process(image_data, filename)
+            # Parallel preprocessing with minimal image processing
+            with timer.time_step("parallel_preprocessing"):
+                metadata_task = self._get_cached_metadata()
+                image_task = minimal_vision_preprocessing(image_data, filename)
+                (categories, units), processed_image = await asyncio.gather(metadata_task, image_task)
             
-            # Step 2: Extract text using OCR
-            with timer.time_step("ocr_text_extraction"):
-                raw_text = await ocr_engine.extract_text(processed_image)
+            # Vision processing
+            with timer.time_step("vision_processing"):
+                image_base64 = base64.b64encode(processed_image).decode('utf-8')
+                prompt = BillPrompts.vision_extraction(locale, categories, units)
+                llm_response = await llm_client.vision_completion(prompt, image_base64)
             
-            if not raw_text.strip():
-                raise OCRServiceError("NO_TEXT_FOUND", "No text could be extracted from the image")
-            
-            # Step 3: Use LLM to parse structured data
-            # with timer.time_step("llm_prompt_generation"):
-            #     prompt = PromptTemplates.bill_extraction_prompt(raw_text, locale)
-            
-            # with timer.time_step("llm_api_call"):
-            #     llm_response = await llm_client.text_completion(prompt)
-            
-            with timer.time_step("llm_prompt_generation"):
-                prompt = PromptTemplates.bill_extraction_prompt(raw_text, locale)
-
-            with timer.time_step("llm_api_call"):
-                llm_response = await llm_client.text_completion(prompt, max_tokens=3500)
-            # Step 4: Parse LLM response into structured items
-            with timer.time_step("llm_response_parsing"):
+            with timer.time_step("response_parsing"):
                 items = llm_parser.parse_bill_response(llm_response)
             
-            # Step 5: Calculate confidence summary
-            with timer.time_step("confidence_calculation"):
-                confidence_summary = self._calculate_confidence_summary(items)
-            
+            confidence_summary = self._calculate_confidence_summary(items)
             processing_time = int(timer.get_total_time())
             timer.log_summary()
             
-            logger.info(f"Bill {request_id} processed successfully: {len(items)} items in {processing_time}ms")
+            logger.info(f"Bill {request_id} processed: {len(items)} items in {processing_time}ms")
             
             return OCRResponse(
                 request_id=request_id,
                 document_type=DocumentType.BILL,
-                raw_ocr_text=raw_text,
+                raw_ocr_text="Vision-based processing",
                 items=items,
                 confidence_summary=confidence_summary,
                 processing_time_ms=processing_time,
-                message=self._generate_user_message(items, raw_text, confidence_summary)
+                message=self._generate_user_message(items, confidence_summary)
             )
             
-        except OCRServiceError:
-            timer.log_summary()
-            raise
         except Exception as e:
             timer.log_summary()
             logger.error(f"Bill processing failed for {request_id}: {str(e)}")
             raise OCRServiceError("PROCESSING_FAILED", f"Failed to process bill: {str(e)}")
     
     def _calculate_confidence_summary(self, items: List[ExtractedItem]) -> float:
-        """Calculate overall confidence score"""
         if not items:
             return 0.0
-        
         total_confidence = sum(item.confidence for item in items)
         return round(total_confidence / len(items), 2)
     
-    def _generate_user_message(self, items: List[ExtractedItem], raw_text: str, confidence: float) -> str:
-        """Generate helpful message for user based on results"""
+    def _generate_user_message(self, items: List[ExtractedItem], confidence: float) -> str:
         if not items:
-            if len(raw_text.strip()) < 20:
-                return "Image quality appears poor. Please upload a clearer picture of your receipt."
-            elif "total" in raw_text.lower() or "receipt" in raw_text.lower():
-                return "Receipt detected but no food items found. This may contain non-food items only."
-            else:
-                return "No food items detected in this image. Please ensure it's a grocery receipt or food label."
-        
+            return "No food items detected. Please ensure it's a clear grocery receipt."
         elif confidence < 0.5:
-            return f"Found {len(items)} items but with low confidence. Consider uploading a clearer image for better accuracy."
-        
+            return f"Found {len(items)} items with low confidence. Consider clearer image."
         elif confidence < 0.7:
-            return f"Successfully extracted {len(items)} items. Some items may need verification due to image quality."
-        
+            return f"Extracted {len(items)} items. Some may need verification."
         else:
-            return f"Successfully extracted {len(items)} food items from your receipt."
+            return f"Successfully extracted {len(items)} food items from receipt."
 
-# Global service instance
 bill_service = BillService()

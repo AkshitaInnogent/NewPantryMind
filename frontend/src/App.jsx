@@ -56,12 +56,12 @@ function App() {
     const initializeApp = async () => {
       dispatch(initializeAuth());
       
-      // If user appears to be authenticated, validate with server
-      if (isAuthenticated) {
+      // Check if we have a token to validate
+      const token = localStorage.getItem('token');
+      if (token) {
         try {
           await dispatch(validateUser()).unwrap();
         } catch (error) {
-          // If validation fails (server restart), keep user logged in with stored data
           console.log('Server validation failed, using stored user data');
         }
       }
@@ -70,7 +70,7 @@ function App() {
     };
     
     initializeApp();
-  }, [dispatch, isAuthenticated]);
+  }, [dispatch]);
   
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
@@ -170,6 +170,8 @@ function App() {
             <EditInventoryItem />
           </RoleBasedRoute>
         } />
+
+        <Route path="/shopping" element={<ShoppingList />} />
         
         {/* Member Management Routes - ADMIN only */}
         <Route path="/members" element={
@@ -236,7 +238,7 @@ function App() {
           </RoleBasedRoute>
         } />
         
-
+        
         
         <Route path="/preferences/recipe" element={
           <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>

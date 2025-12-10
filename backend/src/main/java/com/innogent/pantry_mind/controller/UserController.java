@@ -28,20 +28,28 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequestDTO request) {
-        UserResponseDTO user = userService.register(request);
-        String token = jwtUtil.generateToken(request.getEmail());
-        return ResponseEntity.ok(Map.of("token", token, "user", user));
+        try {
+            UserResponseDTO user = userService.register(request);
+            String token = jwtUtil.generateToken(request.getEmail());
+            return ResponseEntity.ok(Map.of("token", token, "user", user));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
-        
-        String token = jwtUtil.generateToken(request.getEmail());
-        UserResponseDTO user = userService.getUserByEmail(request.getEmail());
-        return ResponseEntity.ok(Map.of("token", token, "user", user));
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+            
+            String token = jwtUtil.generateToken(request.getEmail());
+            UserResponseDTO user = userService.getUserByEmail(request.getEmail());
+            return ResponseEntity.ok(Map.of("token", token, "user", user));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
+        }
     }
 
     @GetMapping("/refresh")
