@@ -1,5 +1,6 @@
 package com.innogent.pantry_mind.controller;
 
+import com.innogent.pantry_mind.dto.request.ConsumeItemsRequestDTO;
 import com.innogent.pantry_mind.dto.request.CreateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryAlertsRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
@@ -38,6 +39,13 @@ public class InventoryItemController {
         return ResponseEntity.ok(inventoryService.getAllInventoryItems());
     }
 
+    @PostMapping("/consume")
+    @Operation(summary = "Consume inventory items for cooking")
+    public ResponseEntity<String> consumeItems(@Valid @RequestBody ConsumeItemsRequestDTO dto) {
+        inventoryService.consumeItems(dto);
+        return ResponseEntity.ok("Items consumed successfully");
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get inventory details with all individual items")
     public ResponseEntity<InventoryResponseDTO> getInventoryById(@PathVariable Long id) {
@@ -56,12 +64,6 @@ public class InventoryItemController {
         inventoryService.deleteInventoryItem(id);
         return ResponseEntity.noContent().build();
     }
-
-    // @GetMapping("/items/{id}")
-    // @Operation(summary = "Get individual inventory item by ID")
-    // public ResponseEntity<InventoryItemResponseDTO> getItemById(@PathVariable Long id) {
-    //     return ResponseEntity.ok(inventoryService.getInventoryItemByItemId(id));
-    // }
 
     @PutMapping("/{id}/alerts")
     @Operation(summary = "Update inventory alert settings")

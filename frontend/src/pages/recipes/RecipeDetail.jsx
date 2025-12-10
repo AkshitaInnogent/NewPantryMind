@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { ChefHat, Clock, Users, ArrowLeft, CheckCircle, ShoppingCart, Utensils, Timer, AlertCircle, Package } from "lucide-react";
+import { cookRecipe } from "../../features/inventory/inventoryThunks";
 
 export default function RecipeDetail() {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { recipe, servings } = location.state || {};
   
   const [checkedIngredients, setCheckedIngredients] = useState({});
   const [checkedShoppingItems, setCheckedShoppingItems] = useState({});
   const [checkedSteps, setCheckedSteps] = useState({});
+  const [isCooked, setIsCooked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!recipe) {
     return (
@@ -26,6 +31,19 @@ export default function RecipeDetail() {
       </div>
     );
   }
+
+  const handleCookRecipe = async () => {
+    setIsLoading(true);
+    try {
+      await dispatch(cookRecipe(recipe));
+      setIsCooked(true);
+    } catch (error) {
+      console.error('Failed to cook recipe:', error);
+      alert(error.message || 'Failed to cook recipe');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const toggleIngredient = (index) => {
     setCheckedIngredients(prev => ({
@@ -275,6 +293,18 @@ export default function RecipeDetail() {
             className="border border-green-600 text-green-700 px-6 py-3 rounded-lg font-semibold hover:bg-green-50 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
           >
             Back to Recipes
+          </button>
+          
+          <button 
+            onClick={handleCookRecipe}
+            disabled={isCooked || isLoading}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] ${
+              isCooked || isLoading
+                ? 'bg-gray-400 text-white cursor-not-allowed' 
+                : 'bg-orange-600 hover:bg-orange-700 text-white'
+            }`}
+          >
+            {isLoading ? 'Cooking...' : isCooked ? 'Recipe Cooked!' : 'Cook Recipe'}
           </button>
           
           <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]">

@@ -15,6 +15,9 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     @Query("SELECT i FROM InventoryItem i LEFT JOIN FETCH i.createdByUser WHERE i.inventory.id = :inventoryId")
     List<InventoryItem> findByInventoryId(@Param("inventoryId") Long inventoryId);
     
+    @Query("SELECT i FROM InventoryItem i WHERE i.inventory.id = :inventoryId ORDER BY i.expiryDate ASC")
+    List<InventoryItem> findByInventoryIdOrderByExpiryDateAsc(@Param("inventoryId") Long inventoryId);
+    
     @Query("SELECT SUM(i.quantity) FROM InventoryItem i WHERE i.inventory.id = :inventoryId")
     Long sumQuantityByInventoryId(@Param("inventoryId") Long inventoryId);
     
@@ -23,15 +26,6 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     
     @Query("SELECT COUNT(i) FROM InventoryItem i WHERE i.inventory.id = :inventoryId")
     Long countByInventoryId(@Param("inventoryId") Long inventoryId);
-    
-    // @Query(value = "SELECT COALESCE(SUM(price), 0) FROM inventory_item", nativeQuery = true)
-    // Double calculateTotalValue();
-    
-    // @Query(value = "SELECT COUNT(*) FROM inventory WHERE total_quantity <= COALESCE(min_stock, 250)", nativeQuery = true)
-    // Long countLowStockItems();
-    
-    // @Query(value = "SELECT COUNT(*) FROM inventory_item ii JOIN inventory i ON ii.inventory_id = i.id WHERE ii.expiry_date <= CURRENT_DATE + INTERVAL '1 day' * COALESCE(i.min_expiry_days_alert, 3)", nativeQuery = true)
-    // Long countExpiringItems();
     
     @Query(value = "SELECT COALESCE(SUM(ii.price), 0) FROM inventory_item ii JOIN inventory i ON ii.inventory_id = i.id WHERE i.kitchen_id = :kitchenId", nativeQuery = true)
     Double calculateTotalValueByKitchen(@Param("kitchenId") Long kitchenId);

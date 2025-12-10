@@ -28,6 +28,17 @@ const inventorySlice = createSlice({
     removeItem: (state, action) => {
       state.items = state.items.filter(item => item.id !== action.payload);
     },
+    consumeItems: (state, action) => {
+      action.payload.forEach(({ id, consumedQuantity }) => {
+        const item = state.items.find(item => item.id === id);
+        if (item && item.quantity >= consumedQuantity) {
+          item.quantity -= consumedQuantity;
+          if (item.quantity === 0) {
+            state.items = state.items.filter(i => i.id !== id);
+          }
+        }
+      });
+    },
     setError: (state, action) => {
       state.error = action.payload;
     },
@@ -37,5 +48,5 @@ const inventorySlice = createSlice({
   },
 });
 
-export const { setLoading, setItems, addItem, updateItem, removeItem, setError, clearError } = inventorySlice.actions;
+export const { setLoading, setItems, addItem, updateItem, removeItem, consumeItems, setError, clearError } = inventorySlice.actions;
 export default inventorySlice.reducer;

@@ -23,4 +23,9 @@ export const store = configureStore({
     preferences: preferencesReducer,
     shopping: shoppingReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      immutableCheck: false,
+      serializableCheck: false,
+    }),
 });

@@ -1,10 +1,87 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { fetchInventoryItems } from "../../features/inventory/inventoryThunks";
+import { fetchInventoryItems, manualConsumeItem } from "../../features/inventory/inventoryThunks";
 import { SearchInput, Button, Card, LoadingSpinner, Alert, EmptyState } from "../../components/ui";
 import PageLayout from "../../components/layout/PageLayout";
-import { Package } from "lucide-react";
+import { Package, Minus, X } from "lucide-react";
+
+// Manual Consume Modal Component
+function ManualConsumeModal({ item, isOpen, onClose }) {
+  const dispatch = useDispatch();
+  const [quantity, setQuantity] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+
+  if (!isOpen || !item) return null;
+
+  const handleConsume = async () => {
+    if (quantity <= 0 || quantity > item.quantity) return;
+    
+    setIsLoading(true);
+    try {
+      await dispatch(manualConsumeItem(item.id, quantity));
+      onClose();
+      setQuantity(1);
+    } catch (error) {
+      console.error('Failed to consume item:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Consume Item</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 mb-2">Item:</p>
+          <p className="font-medium text-gray-900">{item.name}</p>
+          <p className="text-sm text-gray-500">Available: {item.quantity} {item.unitName}</p>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Quantity to consume:
+          </label>
+          <input
+            type="number"
+            min="1"
+            max={item.quantity}
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConsume}
+            disabled={isLoading || quantity <= 0 || quantity > item.quantity}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 flex items-center justify-center gap-2"
+          >
+            <Minus className="w-4 h-4" />
+            {isLoading ? 'Consuming...' : 'Consume'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function InventoryList() {
   const dispatch = useDispatch();
@@ -13,6 +90,7 @@ export default function InventoryList() {
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [consumeModal, setConsumeModal] = useState({ isOpen: false, item: null });
 
   useEffect(() => {
     dispatch(fetchInventoryItems());
@@ -28,6 +106,14 @@ export default function InventoryList() {
       window.removeEventListener('inventoryUpdated', handleInventoryUpdate);
     };
   }, [dispatch]);
+
+  const openConsumeModal = (item) => {
+    setConsumeModal({ isOpen: true, item });
+  };
+
+  const closeConsumeModal = () => {
+    setConsumeModal({ isOpen: false, item: null });
+  };
 
   const formatExpiryDate = (expiryDate) => {
     if (!expiryDate) return "No upcoming expiry";
@@ -248,140 +334,73 @@ export default function InventoryList() {
       {/* Items Grid */}
       {filteredItems.length === 0 ? (
         <EmptyState
-          icon={<Package className="w-10 h-10" />}
-          title={items.length === 0 ? "No Inventory Items" : "No Items Found"}
-          description={
-            items.length === 0 
-              ? "Start building your pantry inventory by adding your first item."
-              : `No items found ${selectedCategory !== "All" ? `in ${selectedCategory} category` : ""} ${searchTerm ? `matching "${searchTerm}"` : ""}.`
-          }
-          action={items.length === 0 && (
-            <Button onClick={() => navigate("/inventory/add")}>
-              Add Your First Item
+          icon={<Package className="w-16 h-16 text-gray-400" />}
+          title="No inventory items found"
+          description={searchTerm ? "Try adjusting your search terms" : "Start by adding some items to your inventory"}
+          action={
+            <Button onClick={() => navigate("/inventory/add-ocr")}>
+              Add First Item
             </Button>
-          )}
+          }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map((item) => {
-            const itemCount = item.itemCount || 0;
-            const layers = Math.min(itemCount, 4);
-            
-            if (itemCount > 1) {
-              return (
-                <div key={item.id} className="relative">
-                  {Array.from({ length: layers - 1 }, (_, i) => (
-                    <div 
-                      key={i} 
-                      className="absolute w-full h-full bg-white rounded-lg" 
-                      style={{ 
-                        top: `${(layers - 1 - i) * 4}px`, 
-                        left: `${(layers - 1 - i) * 4}px`,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                      }}
-                    ></div>
-                  ))}
-                  <Card className="relative w-full shadow-lg">
-                    {/* Item Header */}
-                    <div className="flex items-start gap-4 mb-4">
-                      {getCategoryIcon(item.categoryName)}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          {item.name ? item.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Unknown Item'}
-                        </h3>
-                        {item.description && (
-                          <p className="text-sm text-gray-600">{item.description}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Item Details */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-500">Category</span>
-                        <span className="text-sm font-medium text-gray-900">{item.categoryName || "N/A"}</span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-500">Total Quantity</span>
-                        <span className="text-sm font-medium text-gray-900">{item.totalQuantity} {item.unitName || ""}</span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-500">Early Expiry</span>
-                        <span className="text-xs font-medium text-gray-700">
-                          {formatExpiryDate(item.earliestExpiry)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/inventory/details/${item.id}`)}
-                        className="flex-1 bg-green-50 hover:bg-green-100 text-green-700"
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-              );
-            } else {
-              return (
-                <Card key={item.id} hover>
-                  {/* Item Header */}
-                  <div className="flex items-start gap-4 mb-4">
-                    {getCategoryIcon(item.categoryName)}
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {item.name ? item.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Unknown Item'}
-                      </h3>
-                      {item.description && (
-                        <p className="text-sm text-gray-600">{item.description}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Item Details */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Category</span>
-                      <span className="text-sm font-medium text-gray-900">{item.categoryName || "N/A"}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Total Quantity</span>
-                      <span className="text-sm font-medium text-gray-900">{item.totalQuantity} {item.unitName || ""}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Early Expiry</span>
-                      <span className="text-xs font-medium text-gray-700">
-                        {formatExpiryDate(item.earliestExpiry)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/inventory/details/${item.id}`)}
-                      className="flex-1 bg-green-50 hover:bg-green-100 text-green-700"
+          {filteredItems.map((item) => (
+            <Card key={item.id} className="hover:shadow-lg transition-all duration-300 ease-out hover:-translate-y-1">
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  {getCategoryIcon(item.categoryName)}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openConsumeModal(item)}
+                      className="px-2 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 flex items-center gap-1 text-sm"
                     >
-                      View Details
-                    </Button>
+                      <Minus className="w-3 h-3" />
+                      Consume
+                    </button>
                   </div>
-                </Card>
-              );
-            }
-          })}
+                </div>
+
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.name}</h3>
+                  <p className="text-sm text-gray-600">{item.categoryName}</p>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Quantity:</span>
+                    <span className="font-medium">{item.totalQuantity} {item.unitName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Items:</span>
+                    <span className="font-medium">{item.itemCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Expires:</span>
+                    <span className="text-sm font-medium">{formatExpiryDate(item.earliestExpiry)}</span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  // onClick={() => navigate(`/inventory/${item.id}`)}
+                  onClick={() => navigate(`/inventory/details/${item.id}`)}
+                  className="w-full"
+                >
+                  View Details
+                </Button>
+              </div>
+            </Card>
+          ))}
         </div>
       )}
+
+      <ManualConsumeModal
+        item={consumeModal.item}
+        isOpen={consumeModal.isOpen}
+        onClose={closeConsumeModal}
+      />
     </PageLayout>
   );
 }
