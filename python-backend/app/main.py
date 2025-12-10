@@ -10,7 +10,7 @@ import logging
 
 
 # for recipes  ----
-from app.api.routes import recipes
+from app.api.routes import recipes, advanced_recipes
 
 # Setup logging
 setup_logging()
@@ -40,6 +40,7 @@ app.include_router(ocr.router)
 
 # for recipes 
 app.include_router(recipes.router)
+app.include_router(advanced_recipes.router)
 
 # Global exception handler
 @app.exception_handler(OCRServiceError)

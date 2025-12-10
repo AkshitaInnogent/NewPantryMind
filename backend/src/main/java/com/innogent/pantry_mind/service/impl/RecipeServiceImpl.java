@@ -1,15 +1,19 @@
 package com.innogent.pantry_mind.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.innogent.pantry_mind.dto.request.AdvancedRecipeRequestDTO;
 import com.innogent.pantry_mind.dto.request.RecipeRequestDTO;
 import com.innogent.pantry_mind.dto.response.RecipeResponseDTO;
+import com.innogent.pantry_mind.dto.response.UserPreferencesResponseDTO;
 import com.innogent.pantry_mind.entity.Inventory;
 import com.innogent.pantry_mind.repository.InventoryRepository;
 import com.innogent.pantry_mind.service.RecipeService;
+import com.innogent.pantry_mind.service.UserPreferencesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,10 +22,17 @@ public class RecipeServiceImpl implements RecipeService {
     
     private final InventoryRepository inventoryRepository;
     private final RestTemplate restTemplate;
+    private final UserPreferencesService userPreferencesService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Override
     public RecipeResponseDTO generateRecipes(Long kitchenId, Integer servings) {
-        System.out.println("🚀 [BACKEND] Recipe generation started for kitchenId: " + kitchenId + ", servings: " + servings);
+        return generateRecipes(kitchenId, servings, null);
+    }
+    
+    @Override
+    public RecipeResponseDTO generateRecipes(Long kitchenId, Integer servings, String category) {
+        System.out.println("🚀 [BACKEND] Recipe generation started for kitchenId: " + kitchenId + ", servings: " + servings + ", category: " + category);
         
         List<Inventory> inventory = inventoryRepository.findByKitchenIdAndTotalQuantityGreaterThan(kitchenId, 0L);
         System.out.println("📦 [BACKEND] Found " + inventory.size() + " inventory items");
@@ -37,6 +48,11 @@ public class RecipeServiceImpl implements RecipeService {
         RecipeRequestDTO request = new RecipeRequestDTO();
         request.setItems(inventory.stream().map(this::mapToInventoryItemDTO).collect(Collectors.toList()));
         request.setServings(servings);
+        
+        // Add category if provided
+        if (category != null && !category.trim().isEmpty()) {
+            System.out.println("🏷️ [BACKEND] Adding category filter: " + category);
+        }
         
         // Log each inventory item in detail
         for (int i = 0; i < inventory.size(); i++) {
@@ -59,15 +75,22 @@ public class RecipeServiceImpl implements RecipeService {
         System.out.println("=" .repeat(60));
         
         try {
-            System.out.println("🤖 [BACKEND] Calling AI service at http://localhost:8001/ai/recipes");
+            String url = "http://localhost:8001/ai/recipes";
+            if (category != null && !category.trim().isEmpty()) {
+                url += "?category=" + category.trim();
+                System.out.println("🎯 [BACKEND] Calling AI service with category at: " + url);
+            } else {
+                System.out.println("🤖 [BACKEND] Calling AI service at: " + url);
+            }
             System.out.println("📤 [BACKEND] Request payload:");
             System.out.println("   Items count: " + request.getItems().size());
             System.out.println("   Servings: " + request.getServings());
+            System.out.println("   Category: " + (category != null ? category : "None"));
             
-            RecipeResponseDTO response = restTemplate.postForObject("http://localhost:8001/ai/recipes", request, RecipeResponseDTO.class);
+            RecipeResponseDTO response = restTemplate.postForObject(url, request, RecipeResponseDTO.class);
             
             if (response != null && response.getRecipes() != null) {
-                System.out.println("✅ [BACKEND] AI service responded successfully!");
+                System.out.println("✅ [BACKEND] AI service responded successfully!" + (category != null ? " for category: " + category : ""));
                 System.out.println("📊 [BACKEND] Generated " + response.getRecipes().size() + " recipes:");
                 
                 for (int i = 0; i < response.getRecipes().size(); i++) {
@@ -85,7 +108,7 @@ public class RecipeServiceImpl implements RecipeService {
             return response;
         } catch (Exception e) {
             System.err.println("❌ [BACKEND] AI service call failed: " + e.getMessage());
-            System.err.println("🔄 [BACKEND] Falling back to default recipes");
+            System.err.println("🔄 [BACKEND] Falling back to default recipes" + (category != null ? " for category: " + category : ""));
             e.printStackTrace();
             return createFallbackRecipes(servings);
         }
@@ -124,42 +147,188 @@ public class RecipeServiceImpl implements RecipeService {
         System.out.println("🔄 [BACKEND] Creating fallback recipes for " + servings + " servings");
         RecipeResponseDTO response = new RecipeResponseDTO();
         
-        // Create 4 fallback recipes
+        // Create 1 fallback recipe
         RecipeResponseDTO.Recipe recipe1 = new RecipeResponseDTO.Recipe();
-        recipe1.setName("Simple Stir Fry");
-        recipe1.setIngredients(List.of("Available vegetables: as needed", "Oil: 30 ml"));
-        recipe1.setMissingItems(List.of("Soy sauce: 15 ml"));
-        recipe1.setSteps(List.of("Heat oil", "Add vegetables", "Stir fry for 5 mins"));
+        recipe1.setName("Simple Basic Recipe");
+        recipe1.setIngredients(List.of("Available ingredients: as needed"));
+        recipe1.setMissingItems(List.of("Basic spices: as needed"));
+        recipe1.setSteps(List.of("Use available ingredients", "Cook as desired", "Season and serve"));
         recipe1.setServings(servings);
         recipe1.setCookingTime("15 mins");
         
-        RecipeResponseDTO.Recipe recipe2 = new RecipeResponseDTO.Recipe();
-        recipe2.setName("Basic Rice Bowl");
-        recipe2.setIngredients(List.of("Rice: 200 gm", "Available ingredients: as needed"));
-        recipe2.setMissingItems(List.of("Spices: 5 gm"));
-        recipe2.setSteps(List.of("Cook rice", "Mix with ingredients"));
-        recipe2.setServings(servings);
-        recipe2.setCookingTime("20 mins");
+        response.setRecipes(List.of(recipe1));
         
-        RecipeResponseDTO.Recipe recipe3 = new RecipeResponseDTO.Recipe();
-        recipe3.setName("Quick Soup");
-        recipe3.setIngredients(List.of("Water: 500 ml", "Available vegetables: as needed"));
-        recipe3.setMissingItems(List.of("Stock cubes: 1 pieces"));
-        recipe3.setSteps(List.of("Boil water", "Add vegetables", "Simmer"));
-        recipe3.setServings(servings);
-        recipe3.setCookingTime("25 mins");
-        
-        RecipeResponseDTO.Recipe recipe4 = new RecipeResponseDTO.Recipe();
-        recipe4.setName("Simple Salad");
-        recipe4.setIngredients(List.of("Fresh vegetables: as needed"));
-        recipe4.setMissingItems(List.of("Dressing: 30 ml"));
-        recipe4.setSteps(List.of("Chop vegetables", "Mix together"));
-        recipe4.setServings(servings);
-        recipe4.setCookingTime("10 mins");
-        
-        response.setRecipes(List.of(recipe1, recipe2, recipe3, recipe4));
-        
-        System.out.println("✅ [BACKEND] Created 4 fallback recipes");
+        System.out.println("✅ [BACKEND] Created 1 fallback recipe");
         return response;
+    }
+    
+    @Override
+    public RecipeResponseDTO generateAdvancedRecipes(Long kitchenId, AdvancedRecipeRequestDTO request) {
+        System.out.println("🚀 [BACKEND] Advanced recipe generation started for kitchenId: " + kitchenId);
+        System.out.println("📋 [BACKEND] Recipe type: " + request.getRecipeType());
+        
+        try {
+            // Call specific endpoint based on recipe type
+            String url;
+            if ("QUICK".equals(request.getRecipeType())) {
+                url = "http://localhost:8001/ai/quick-recipes";
+            } else if ("EXPIRY_BASED".equals(request.getRecipeType())) {
+                url = "http://localhost:8001/ai/expiry-recipes";
+            } else {
+                url = "http://localhost:8001/ai/advanced-recipes";
+            }
+            
+            System.out.println("🎯 [BACKEND] Calling Python service at: " + url);
+            System.out.println("📎 [BACKEND] Request data: recipeType=" + request.getRecipeType() + ", maxTime=" + request.getMaxCookingTime());
+            RecipeResponseDTO response = restTemplate.postForObject(url, request, RecipeResponseDTO.class);
+            
+            if (response != null && response.getRecipes() != null) {
+                System.out.println("✅ [BACKEND] Advanced recipes generated successfully!");
+                System.out.println("📊 [BACKEND] Generated " + response.getRecipes().size() + " recipes");
+            }
+            
+            return response;
+        } catch (Exception e) {
+            System.err.println("❌ [BACKEND] Advanced recipe generation failed: " + e.getMessage());
+            return createFallbackRecipes(request.getServings());
+        }
+    }
+    
+    @Override
+    public RecipeResponseDTO generateExpiryBasedRecipes(Long kitchenId, Integer servings, Long userId) {
+        System.out.println("⏰ [BACKEND] Expiry-based recipe generation for kitchenId: " + kitchenId);
+        
+        // Get expiring items (within 3 days)
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, 3);
+        Date threeDaysFromNow = cal.getTime();
+        
+        List<Inventory> expiringInventory = inventoryRepository.findExpiringInventoryByKitchenId(kitchenId, threeDaysFromNow);
+        List<Inventory> allInventory = inventoryRepository.findByKitchenIdAndTotalQuantityGreaterThan(kitchenId, 0L);
+        
+        System.out.println("⚠️ [BACKEND] Found " + expiringInventory.size() + " expiring items");
+        
+        AdvancedRecipeRequestDTO request = new AdvancedRecipeRequestDTO();
+        request.setItems(allInventory.stream().map(this::mapToAdvancedInventoryItemDTO).collect(Collectors.toList()));
+        request.setExpiringItems(expiringInventory.stream().map(this::mapToAdvancedInventoryItemDTO).collect(Collectors.toList()));
+        request.setServings(servings);
+        request.setRecipeType("EXPIRY_BASED");
+        request.setUserId(userId);
+        
+        // Add user preferences if available
+        if (userId != null) {
+            try {
+                UserPreferencesResponseDTO preferences = userPreferencesService.getUserPreferences(userId);
+                request.setMaxCookingTime(preferences.getMaxCookingTime());
+                request.setSkillLevel(preferences.getSkillLevel());
+                request.setDietaryRestrictions(preferences.getDietaryRestrictions());
+                request.setCuisinePreferences(preferences.getCuisinePreferences());
+            } catch (Exception e) {
+                System.out.println("⚠️ [BACKEND] Could not load user preferences: " + e.getMessage());
+            }
+        }
+        
+        return generateAdvancedRecipes(kitchenId, request);
+    }
+    
+    @Override
+    public RecipeResponseDTO generateQuickRecipes(Long kitchenId, Integer maxTime, Integer servings, Long userId) {
+        System.out.println("⚡ [BACKEND] Quick recipe generation for kitchenId: " + kitchenId + ", maxTime: " + maxTime);
+        System.out.println("🔍 [BACKEND] generateQuickRecipes method called - this should be QUICK type");
+        
+        List<Inventory> inventory = inventoryRepository.findByKitchenIdAndTotalQuantityGreaterThan(kitchenId, 0L);
+        
+        AdvancedRecipeRequestDTO request = new AdvancedRecipeRequestDTO();
+        request.setItems(inventory.stream().map(this::mapToAdvancedInventoryItemDTO).collect(Collectors.toList()));
+        request.setServings(servings);
+        request.setRecipeType("QUICK");
+        request.setMaxCookingTime(maxTime);
+        request.setUserId(userId);
+        
+        System.out.println("📋 [BACKEND] Setting recipe type to: QUICK");
+        System.out.println("⏱️ [BACKEND] Setting max cooking time to: " + maxTime);
+        System.out.println("🍽️ [BACKEND] Setting servings to: " + servings);
+        
+        // Add user preferences if available
+        if (userId != null) {
+            try {
+                UserPreferencesResponseDTO preferences = userPreferencesService.getUserPreferences(userId);
+                request.setSkillLevel(preferences.getSkillLevel());
+                request.setDietaryRestrictions(preferences.getDietaryRestrictions());
+            } catch (Exception e) {
+                System.out.println("⚠️ [BACKEND] Could not load user preferences: " + e.getMessage());
+            }
+        }
+        
+        return generateAdvancedRecipes(kitchenId, request);
+    }
+    
+
+    
+    @Override
+    public RecipeResponseDTO generateRecipeByName(Long kitchenId, String recipeName, Integer servings) {
+        System.out.println("🍳 [BACKEND] Recipe by name generation for: " + recipeName);
+        System.out.println("👥 [BACKEND] Servings requested: " + servings);
+        System.out.println("🏠 [BACKEND] Kitchen ID: " + kitchenId);
+        
+        List<Inventory> inventory = inventoryRepository.findByKitchenIdAndTotalQuantityGreaterThan(kitchenId, 0L);
+        
+        if (inventory.isEmpty()) {
+            return createEmptyRecipes();
+        }
+        
+        // Create request for specific recipe
+        Map<String, Object> request = new HashMap<>();
+        request.put("recipeName", recipeName);
+        request.put("servings", servings);
+        request.put("availableItems", inventory.stream().map(this::mapToInventoryItemDTO).collect(Collectors.toList()));
+        
+        System.out.println("🎯 [BACKEND] Requesting specific recipe: " + recipeName);
+        System.out.println("📦 [BACKEND] Available items: " + inventory.size());
+        System.out.println("📝 [BACKEND] Request payload being sent to Python:");
+        System.out.println("   Recipe Name: " + request.get("recipeName"));
+        System.out.println("   Servings: " + request.get("servings"));
+        System.out.println("   Available Items Count: " + ((List<?>) request.get("availableItems")).size());
+        
+        try {
+            RecipeResponseDTO response = restTemplate.postForObject("http://localhost:8001/ai/recipe-by-name", request, RecipeResponseDTO.class);
+            
+            if (response != null && response.getRecipes() != null) {
+                System.out.println("✅ [BACKEND] Recipe generated for: " + recipeName);
+            }
+            
+            return response;
+        } catch (Exception e) {
+            System.err.println("❌ [BACKEND] Recipe by name failed: " + e.getMessage());
+            return createFallbackRecipeByName(recipeName, servings);
+        }
+    }
+    
+    private RecipeResponseDTO createFallbackRecipeByName(String recipeName, Integer servings) {
+        RecipeResponseDTO response = new RecipeResponseDTO();
+        RecipeResponseDTO.Recipe recipe = new RecipeResponseDTO.Recipe();
+        
+        recipe.setName(recipeName);
+        recipe.setIngredients(List.of("Basic ingredients for " + recipeName));
+        recipe.setMissingItems(List.of("Check recipe ingredients online"));
+        recipe.setSteps(List.of("Search for " + recipeName + " recipe online", "Use available ingredients", "Buy missing items"));
+        recipe.setServings(servings);
+        recipe.setCookingTime("30 mins");
+        
+        response.setRecipes(List.of(recipe));
+        return response;
+    }
+    
+    private AdvancedRecipeRequestDTO.InventoryItemDTO mapToAdvancedInventoryItemDTO(Inventory inventory) {
+        AdvancedRecipeRequestDTO.InventoryItemDTO dto = new AdvancedRecipeRequestDTO.InventoryItemDTO();
+        dto.setName(inventory.getName());
+        dto.setQuantity(inventory.getTotalQuantity());
+        dto.setUnit(inventory.getUnit() != null ? inventory.getUnit().getName() : "pieces");
+        
+        // Check if expiring (this is a simplified check)
+        dto.setIsExpiring(false); // Will be set properly by the calling method
+        dto.setIsLowStock(inventory.getTotalQuantity() <= (inventory.getMinStock() != null ? inventory.getMinStock() : 0));
+        
+        return dto;
     }
 }
