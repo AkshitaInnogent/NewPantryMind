@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { ChefHat, Clock, Users, ArrowLeft, CheckCircle, ShoppingCart, Utensils, Timer, AlertCircle, Package } from "lucide-react";
+import { showToast } from "../../utils/toast";
 import { cookRecipe } from "../../features/inventory/inventoryThunks";
 
 export default function RecipeDetail() {
@@ -39,7 +40,7 @@ export default function RecipeDetail() {
       setIsCooked(true);
     } catch (error) {
       console.error('Failed to cook recipe:', error);
-      alert(error.message || 'Failed to cook recipe');
+      showToast.error(error.message || 'Failed to cook recipe');
     } finally {
       setIsLoading(false);
     }

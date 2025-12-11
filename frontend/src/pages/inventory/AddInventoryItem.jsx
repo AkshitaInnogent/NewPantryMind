@@ -39,19 +39,38 @@ export default function AddInventoryItem() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!form.name.trim()) {
+      alert("Please enter item name");
+      return;
+    }
+    if (!form.categoryId) {
+      alert("Please select a category");
+      return;
+    }
+    if (!form.quantity || form.quantity <= 0) {
+      alert("Please enter a valid quantity");
+      return;
+    }
+    if (!form.unitId) {
+      alert("Please select a unit");
+      return;
+    }
+    
     setLoading(true);
 
     try {
       console.log("User kitchen data:", user?.kitchen);
       const itemData = {
-        name: form.name,
+        name: form.name.trim(),
         description: form.description || null,
         kitchenId: user?.kitchenId || null,
         createdBy: user?.id || null,
         quantity: parseInt(form.quantity),
-        categoryId: form.categoryId || null,
-        unitId: form.unitId || null,
-        locationId: form.locationId || null,
+        categoryId: parseInt(form.categoryId),
+        unitId: parseInt(form.unitId),
+        locationId: form.locationId ? parseInt(form.locationId) : null,
         expiryDate: form.expiryDate || null,
         price: form.price ? parseFloat(form.price) : null,
       };
@@ -107,12 +126,13 @@ export default function AddInventoryItem() {
               {/* Category */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
+                  Category *
                 </label>
                 <select
                   name="categoryId"
                   value={form.categoryId}
                   onChange={handleChange}
+                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Select Category</option>
@@ -144,12 +164,13 @@ export default function AddInventoryItem() {
               {/* Unit */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Unit
+                  Unit *
                 </label>
                 <select
                   name="unitId"
                   value={form.unitId}
                   onChange={handleChange}
+                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Select Unit</option>

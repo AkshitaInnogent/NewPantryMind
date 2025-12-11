@@ -5,6 +5,7 @@ import { createInventoryItem } from "../../features/inventory/inventoryThunks";
 import { fetchCategories } from "../../features/categories/categoryThunks";
 import { fetchUnits } from "../../features/units/unitThunks";
 import { fetchLocations } from "../../features/locations/locationThunks";
+import { showToast } from "../../utils/toast";
 
 export default function AddInventoryOCR() {
   const dispatch = useDispatch();
@@ -60,8 +61,7 @@ export default function AddInventoryOCR() {
       }
       setShowCamera(true);
     } catch (error) {
-      // Camera access denied
-      alert('Camera access is required for this feature');
+      showToast.error('Camera access is required for this feature');
     }
   };
 
@@ -148,6 +148,7 @@ export default function AddInventoryOCR() {
         
         if (items.length === 0) {
           setErrorMessage('📷 No items detected. Please try a clearer image with better lighting.');
+          showToast.warning('No items detected in the image');
           return;
         }
         
@@ -168,6 +169,7 @@ export default function AddInventoryOCR() {
         // Editable Items prepared
         setEditingItems(editableItems);
         setActiveMode('edit');
+        showToast.success(`Successfully extracted ${items.length} items from image!`);
       } else if (response.status === 429) {
         setErrorMessage('⏰ Feature not available right now. API rate limit exceeded. Please try again later.');
       } else if (response.status === 400) {
@@ -222,7 +224,7 @@ export default function AddInventoryOCR() {
     // Validate dates
     for (const item of editingItems) {
       if (item.expiryDate && !validateDate(item.expiryDate)) {
-        alert('Please add a correct valid date or greater than today date');
+        showToast.error('Please add a correct valid date or greater than today date');
         return;
       }
     }
@@ -244,12 +246,13 @@ export default function AddInventoryOCR() {
         };
         await dispatch(createInventoryItem(itemData));
       }
+      showToast.success(`Successfully added ${editingItems.length} items to inventory!`);
       navigate("/inventory");
     } catch (error) {
       if (error.message?.includes('Date') || error.message?.includes('date')) {
-        alert('Please add a correct valid date or greater than today date');
+        showToast.error('Please add a correct valid date or greater than today date');
       } else {
-        // Failed to save items
+        showToast.error('Failed to save items. Please try again.');
       }
     } finally {
       setOcrLoading(false);
@@ -293,10 +296,30 @@ export default function AddInventoryOCR() {
   const handleManualSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate required fields for each item
+    for (const item of manualItems) {
+      if (!item.name.trim()) {
+        showToast.error('Please enter item name for all items');
+        return;
+      }
+      if (!item.categoryId) {
+        showToast.error('Please select category for all items');
+        return;
+      }
+      if (!item.quantity || item.quantity <= 0) {
+        showToast.error('Please enter valid quantity for all items');
+        return;
+      }
+      if (!item.unitId) {
+        showToast.error('Please select unit for all items');
+        return;
+      }
+    }
+    
     // Validate dates
     for (const item of manualItems) {
       if (item.expiryDate && !validateDate(item.expiryDate)) {
-        alert('Please add a correct valid date or greater than today date');
+        showToast.error('Please add a correct valid date or greater than today date');
         return;
       }
     }
@@ -304,28 +327,27 @@ export default function AddInventoryOCR() {
     setOcrLoading(true);
     try {
       for (const item of manualItems) {
-        if (item.name.trim()) {
-          const itemData = {
-            name: item.name,
-            description: item.description || null,
-            kitchenId: user?.kitchenId || null,
-            createdBy: user?.id || null,
-            quantity: parseInt(item.quantity) || 1,
-            categoryId: item.categoryId || null,
-            unitId: item.unitId || null,
-            locationId: item.locationId || null,
-            expiryDate: item.expiryDate || null,
-            price: item.price ? parseFloat(item.price) : null,
-          };
-          await dispatch(createInventoryItem(itemData));
-        }
+        const itemData = {
+          name: item.name.trim(),
+          description: item.description || null,
+          kitchenId: user?.kitchenId || null,
+          createdBy: user?.id || null,
+          quantity: parseInt(item.quantity),
+          categoryId: parseInt(item.categoryId),
+          unitId: parseInt(item.unitId),
+          locationId: item.locationId ? parseInt(item.locationId) : null,
+          expiryDate: item.expiryDate || null,
+          price: item.price ? parseFloat(item.price) : null,
+        };
+        await dispatch(createInventoryItem(itemData));
       }
+      showToast.success(`Successfully added ${manualItems.length} items to inventory!`);
       navigate("/inventory");
     } catch (error) {
       if (error.message?.includes('Date') || error.message?.includes('date')) {
-        alert('Please add a correct valid date or greater than today date');
+        showToast.error('Please add a correct valid date or greater than today date');
       } else {
-        // Failed to create items
+        showToast.error('Failed to create items. Please try again.');
       }
     } finally {
       setOcrLoading(false);
@@ -416,9 +438,10 @@ export default function AddInventoryOCR() {
                   <select
                     value={item.categoryId}
                     onChange={(e) => updateManualItem(item.id, 'categoryId', e.target.value)}
+                    required
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="">Select Category</option>
+                    <option value="">Select Category *</option>
                     {categories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
@@ -436,9 +459,10 @@ export default function AddInventoryOCR() {
                   <select
                     value={item.unitId}
                     onChange={(e) => updateManualItem(item.id, 'unitId', e.target.value)}
+                    required
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="">Select Unit</option>
+                    <option value="">Select Unit *</option>
                     {units.map(unit => (
                       <option key={unit.id} value={unit.id}>{unit.name}</option>
                     ))}

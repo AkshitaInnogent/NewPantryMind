@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createKitchenWithAdmin, joinKitchen } from "../../features/kitchen/kitchenThunks";
+import { showToast } from "../../utils/toast";
 
 export default function KitchenSetup() {
   const dispatch = useDispatch();
@@ -34,20 +35,25 @@ export default function KitchenSetup() {
         .unwrap()
         .then(() => {
           console.log(" Kitchen created! You are now ADMIN");
+          showToast.success(`Kitchen "${kitchenName}" created successfully! You are now the admin.`);
           navigate("/admin");
         })
         .catch((error) => {
           console.error(" Kitchen creation failed:", error);
-          console.error(" Full error object:", JSON.stringify(error, null, 2));
+          showToast.error(error.message || "Failed to create kitchen. Please try again.");
         });
     } else if (selectedOption === "join") {
       dispatch(joinKitchen({ invitationCode: kitchenCode }))
         .unwrap()
         .then(() => {
           console.log(" Kitchen joined! You are now MEMBER");
+          showToast.success("Successfully joined the kitchen! You are now a member.");
           navigate("/member");
         })
-        .catch((error) => console.error("Kitchen join failed:", error));
+        .catch((error) => {
+          console.error("Kitchen join failed:", error);
+          showToast.error(error.message || "Failed to join kitchen. Please check the invitation code.");
+        });
     }
   };
 

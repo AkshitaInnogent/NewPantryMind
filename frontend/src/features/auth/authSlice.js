@@ -56,6 +56,9 @@ const authSlice = createSlice({
     clearError(state) {
       state.error = null;
     },
+    clearRegistrationEmail(state) {
+      state.registrationEmail = null;
+    },
     //  ADD: Update user role after kitchen operations
     updateUserRole(state, action) {
       if (state.user) {
@@ -190,5 +193,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { initializeAuth, logout, clearError, updateUserRole, updateUserKitchen } = authSlice.actions;
+export const { initializeAuth, logout, clearError, clearRegistrationEmail, updateUserRole, updateUserKitchen } = authSlice.actions;
 export default authSlice.reducer;

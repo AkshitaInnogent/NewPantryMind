@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { Clock, Bell, Save } from 'lucide-react';
 import { Card } from '../ui';
 import axiosClient from '../../services/api';
+import { showToast } from '../../utils/toast';
 
 const AlertSettings = () => {
   const { user } = useSelector(state => state.auth);
@@ -65,7 +66,7 @@ const AlertSettings = () => {
 
   const saveSettings = async () => {
     if (!kitchenId) {
-      alert('Kitchen not loaded yet, please try again');
+      showToast.error('Kitchen not loaded yet, please try again');
       return;
     }
     
@@ -76,7 +77,7 @@ const AlertSettings = () => {
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
       console.error('Failed to save alert settings:', error);
-      alert('Failed to save settings');
+      showToast.error('Failed to save settings');
     } finally {
       setLoading(false);
     }

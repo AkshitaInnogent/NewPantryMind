@@ -31,6 +31,11 @@ axiosClient.interceptors.response.use(
   (error) => {
     const errorMessage = error.response?.data?.error || error.response?.data || "";
     
+    // Don't redirect on login endpoint failures
+    if (error.config?.url?.includes('/login')) {
+      return Promise.reject(error);
+    }
+    
     if (error.response?.status === 401 || 
         error.response?.status === 403 ||
         (typeof errorMessage === 'string' && errorMessage.includes('User not found'))) {
