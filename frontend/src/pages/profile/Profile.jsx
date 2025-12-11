@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import PageLayout from "../../components/layout/PageLayout";
 import { Button, Card } from "../../components/ui";
 import axiosClient from "../../services/api";
+import { showToast } from "../../utils/toast";
+import { showAlert } from "../../utils/sweetAlert";
 import { updateProfile, changePassword } from "../../features/auth/authThunks";
 import { updateKitchen } from "../../features/kitchen/kitchenThunks";
 import { leaveKitchen } from "../../features/members/memberThunks";
@@ -90,10 +92,10 @@ export default function Profile() {
       }
       
       setIsEditing(false);
-      alert('Profile updated successfully!');
+      showToast.success('Profile updated successfully!');
     } catch (error) {
       console.error("Update failed:", error);
-      alert('Update failed: ' + (error.message || 'Unknown error'));
+      showToast.error('Update failed: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -130,7 +132,7 @@ export default function Profile() {
 
   const handlePasswordAction = async () => {
     if (!actionPassword) {
-      alert('Password is required');
+      showToast.error('Password is required');
       return;
     }
 
@@ -148,7 +150,7 @@ export default function Profile() {
         window.location.href = '/user';
       }
     } catch (error) {
-      alert('Incorrect password or action failed');
+      showToast.error('Incorrect password or action failed');
     }
     
     setShowPasswordPrompt(null);
@@ -162,12 +164,12 @@ export default function Profile() {
 
   const handleSavePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("New passwords do not match");
+      showToast.error("New passwords do not match");
       return;
     }
     
     if (passwordData.newPassword.length < 6) {
-      alert("New password must be at least 6 characters long");
+      showToast.error("New password must be at least 6 characters long");
       return;
     }
 
@@ -183,9 +185,9 @@ export default function Profile() {
         newPassword: "",
         confirmPassword: ""
       });
-      alert("Password changed successfully!");
+      showToast.success("Password changed successfully!");
     } catch (error) {
-      alert("Password change failed: " + error);
+      showToast.error("Password change failed: " + error);
     }
   };
 

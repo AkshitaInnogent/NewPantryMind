@@ -3,7 +3,8 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { getUserPreferences, updateUserPreferences } from "../../features/preferences/preferencesThunks";
 import PageLayout from "../../components/layout/PageLayout";
-import { Button, LoadingSpinner, Alert, Card } from "../../components/ui";
+import { Button, LoadingSpinner, Card } from "../../components/ui";
+import { showToast } from "../../utils/toast";
 import { Settings, ChefHat, Clock, Flame, ArrowLeft } from "lucide-react";
 
 export default function RecipePreferences() {

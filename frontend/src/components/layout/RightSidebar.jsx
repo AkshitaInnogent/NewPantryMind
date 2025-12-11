@@ -139,10 +139,15 @@ export default function RightSidebar() {
 
   return (
     <div className="w-80 p-6">
-      <div className="bg-white rounded-lg shadow p-6 h-full">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Menu</h2>
-
-        <div className="space-y-4">
+      <div className="sticky top-6 bg-white rounded-lg shadow overflow-hidden">
+        <div className="p-6 pb-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Menu
+          </h2>
+        </div>
+        
+        <div className="p-6 pt-4 max-h-[calc(100vh-8rem)] overflow-y-auto">
+          <div className="space-y-4">
           {menuItems.map((item, index) => (
             <div
               key={index}
@@ -158,6 +163,7 @@ export default function RightSidebar() {
               </div>
             </div>
           ))}
+          </div>
         </div>
       </div>
     </div>

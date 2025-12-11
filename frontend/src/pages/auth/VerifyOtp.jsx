@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { verifyRegistrationOtp, sendRegistrationOtp } from "../../features/auth/authThunks";
-import { clearError } from "../../features/auth/authSlice";
-import { Alert } from "../../components/ui";
+import { clearError, clearRegistrationEmail } from "../../features/auth/authSlice";
+
+import { showToast } from "../../utils/toast";
 
 export default function VerifyOtp() {
   const dispatch = useDispatch();
@@ -24,6 +25,7 @@ export default function VerifyOtp() {
       return;
     }
     if (isAuthenticated) {
+      showToast.success("Email verified successfully! Welcome to PantryMind!");
       navigate("/kitchen-setup");
     }
   }, [email, isAuthenticated, navigate]);
@@ -49,9 +51,11 @@ export default function VerifyOtp() {
     try {
       await dispatch(sendRegistrationOtp(email)).unwrap();
       setResendMessage("OTP sent successfully!");
+      showToast.success("New verification code sent to your email!");
       setCountdown(60);
     } catch (err) {
       setResendMessage("Failed to send OTP. Please try again.");
+      showToast.error("Failed to send verification code. Please try again.");
     } finally {
       setResendLoading(false);
     }
@@ -72,22 +76,7 @@ export default function VerifyOtp() {
           We've sent a 6-digit code to <strong>{email}</strong>
         </p>
 
-        {error && (
-          <Alert
-            type="error"
-            title="Verification Failed"
-            message={error.error || error.message || error}
-            className="mb-4"
-          />
-        )}
 
-        {resendMessage && (
-          <Alert
-            type={resendMessage.includes("Failed") ? "error" : "success"}
-            message={resendMessage}
-            className="mb-4"
-          />
-        )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
@@ -133,7 +122,10 @@ export default function VerifyOtp() {
 
         <div className="text-center mt-4">
           <button
-            onClick={() => navigate("/register")}
+            onClick={() => {
+              dispatch(clearRegistrationEmail());
+              navigate("/register", { replace: true });
+            }}
             className="text-gray-500 hover:underline text-sm"
           >
             Back to Registration

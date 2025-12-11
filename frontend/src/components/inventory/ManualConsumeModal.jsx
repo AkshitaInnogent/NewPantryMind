@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { X, Minus } from 'lucide-react';
 import { manualConsumeItem } from '../../features/inventory/inventoryThunks';
+import { showToast } from '../../utils/toast';
+import { showAlert } from '../../utils/sweetAlert';
 
 export default function ManualConsumeModal({ item, isOpen, onClose }) {
   const dispatch = useDispatch();
@@ -13,15 +15,25 @@ export default function ManualConsumeModal({ item, isOpen, onClose }) {
   const handleConsume = async () => {
     if (quantity <= 0 || quantity > item.quantity) return;
     
-    setIsLoading(true);
-    try {
-      await dispatch(manualConsumeItem(item.id, quantity));
-      onClose();
-      setQuantity(1);
-    } catch (error) {
-      console.error('Failed to consume item:', error);
-    } finally {
-      setIsLoading(false);
+    const result = await showAlert.confirm(
+      'Consume Item',
+      `Are you sure you want to consume ${quantity} ${item.unitName} of ${item.name}?`,
+      'Yes, consume it!'
+    );
+
+    if (result.isConfirmed) {
+      setIsLoading(true);
+      try {
+        await dispatch(manualConsumeItem(item.id, quantity));
+        showToast.success(`Successfully consumed ${quantity} ${item.unitName} of ${item.name}`);
+        onClose();
+        setQuantity(1);
+      } catch (error) {
+        showToast.error('Failed to consume item. Please try again.');
+        console.error('Failed to consume item:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 

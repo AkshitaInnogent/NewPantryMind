@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { generateWastagePreventionRecipes } from "../../features/recipes/recipeThunks";
 import { clearRecipe, clearError } from "../../features/recipes/recipeSlice";
 import PageLayout from "../../components/layout/PageLayout";
-import { Button, LoadingSpinner, Alert, Card } from "../../components/ui";
+import { Button, LoadingSpinner, Card } from "../../components/ui";
+import { showToast } from "../../utils/toast";
 import { Recycle, Leaf, Users, Plus, Minus, TrendingDown, Package, ArrowLeft } from "lucide-react";
 
 export default function WastagePreventionRecipes() {
@@ -12,6 +13,13 @@ export default function WastagePreventionRecipes() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { recipe, loading, error } = useSelector((state) => state.recipes);
+
+  // Show error toast when error occurs
+  useEffect(() => {
+    if (error) {
+      showToast.error("Failed to generate wastage prevention recipes. Please try again.");
+    }
+  }, [error]);
   const [generating, setGenerating] = useState(false);
   const [servings, setServings] = useState(4);
 
@@ -169,15 +177,7 @@ export default function WastagePreventionRecipes() {
         />
       )}
 
-      {error && (
-        <Alert
-          type="error"
-          title="Recipe Generation Failed"
-          message={error}
-          onAction={handleGenerateRecipes}
-          actionText="Try Again"
-        />
-      )}
+
 
       {recipe && recipe.recipes && (
         <div className="space-y-8">

@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { generateRecipes } from "../../features/recipes/recipeThunks";
 import { clearRecipe, clearError } from "../../features/recipes/recipeSlice";
 import PageLayout from "../../components/layout/PageLayout";
-import { Button, LoadingSpinner, Alert, Card } from "../../components/ui";
+import { Button, LoadingSpinner, Card } from "../../components/ui";
+import { showToast } from "../../utils/toast";
 import { ChefHat, Clock, Users, Plus, Minus, Package, ShoppingCart, ArrowLeft, Sparkles, Flame, Coffee, Sun, Salad, Moon, Snowflake } from "lucide-react";
 
 const recipeCategories = [

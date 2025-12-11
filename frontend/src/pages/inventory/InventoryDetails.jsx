@@ -4,6 +4,8 @@ import { useDispatch } from "react-redux";
 import { fetchInventoryDetails, deleteInventoryItem } from "../../features/inventory/inventoryThunks";
 import { ChevronLeft, Pencil, Trash2, Package2, Layers3, Scale, Boxes } from "lucide-react";
 import { formatDate } from "../../utils/dateUtils";
+import { showToast } from "../../utils/toast";
+import { showAlert } from "../../utils/sweetAlert";
 
 export default function InventoryDetails() {
   const { id } = useParams();
@@ -31,9 +33,15 @@ export default function InventoryDetails() {
   };
 
   const handleDeleteItem = async (itemId) => {
-    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    const item = inventory.items.find(i => i.id === itemId);
+    const itemName = item?.description || 'this item';
+    
+    const result = await showAlert.delete(itemName);
+    if (!result.isConfirmed) return;
+    
     try {
       await dispatch(deleteInventoryItem(itemId));
+      showToast.success(`Successfully deleted ${itemName}`);
       
       // Check if this was the last item
       if (inventory.items && inventory.items.length === 1) {
@@ -47,9 +55,11 @@ export default function InventoryDetails() {
     } catch (err) {
       // If we get a 404, it means the inventory no longer exists, redirect to list
       if (err?.message?.includes("404") || err?.response?.status === 404) {
+        showToast.info("Item no longer exists. Redirecting to inventory list.");
         navigate("/inventory");
         return;
       }
+      showToast.error(err?.message || "Failed to delete item");
       setError(err?.message || "Failed to delete item");
     }
   };
