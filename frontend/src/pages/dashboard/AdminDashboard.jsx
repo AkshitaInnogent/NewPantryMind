@@ -2,6 +2,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
 import RightSidebar from "../../components/layout/RightSidebar";
 import InventoryStats from "../../components/dashboard/InventoryStats";
+import ExpiredItems from "../../components/dashboard/ExpiredItems";
 import { Button } from "../../components/ui";
 import axiosClient from "../../services/api";
 import { fetchKitchenMembers } from "../../features/members/memberThunks";
@@ -99,6 +100,8 @@ export default function AdminDashboard() {
           </div>
 
           <InventoryStats />
+
+
 
           {/* Notifications */}
           <div className="mt-8">

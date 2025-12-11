@@ -38,6 +38,8 @@ export default function AddInventoryOCR() {
     price: "",
   }]);
 
+
+
   useEffect(() => {
     dispatch(fetchCategories());
     dispatch(fetchUnits());
@@ -256,6 +258,8 @@ export default function AddInventoryOCR() {
     }
   };
 
+
+
   const addManualItem = () => {
     setManualItems([...manualItems, {
       id: Date.now(),
@@ -332,6 +336,8 @@ export default function AddInventoryOCR() {
     }
   };
 
+
+
   useEffect(() => {
     setShowOptions(true);
   }, []);
@@ -366,6 +372,8 @@ export default function AddInventoryOCR() {
       </div>
     );
   }
+
+
 
   if (activeMode === 'manual') {
     return (

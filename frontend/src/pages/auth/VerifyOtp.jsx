@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { verifyRegistrationOtp, sendRegistrationOtp } from "../../features/auth/authThunks";
-import { clearError } from "../../features/auth/authSlice";
+import { clearError, clearRegistrationState } from "../../features/auth/authSlice";
 import { Alert } from "../../components/ui";
 
 export default function VerifyOtp() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated, user } = useSelector((state) => state.auth);
   
   const [otp, setOtp] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
@@ -23,10 +23,10 @@ export default function VerifyOtp() {
       navigate("/register");
       return;
     }
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       navigate("/kitchen-setup");
     }
-  }, [email, isAuthenticated, navigate]);
+  }, [email, isAuthenticated, user, navigate]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -35,11 +35,16 @@ export default function VerifyOtp() {
     }
   }, [countdown]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (otp.length === 6) {
       dispatch(clearError());
-      dispatch(verifyRegistrationOtp({ email, otp }));
+      try {
+        await dispatch(verifyRegistrationOtp({ email, otp })).unwrap();
+        navigate("/kitchen-setup");
+      } catch (err) {
+        // Error handled by Redux
+      }
     }
   };
 
@@ -133,7 +138,10 @@ export default function VerifyOtp() {
 
         <div className="text-center mt-4">
           <button
-            onClick={() => navigate("/register")}
+            onClick={() => {
+              dispatch(clearRegistrationState());
+              navigate("/register");
+            }}
             className="text-gray-500 hover:underline text-sm"
           >
             Back to Registration

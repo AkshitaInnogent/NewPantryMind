@@ -12,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/consumption")
 @RequiredArgsConstructor
+@CrossOrigin
 public class ConsumptionController {
     
     private final ConsumptionEventRepository consumptionRepository;

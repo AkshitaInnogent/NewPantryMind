@@ -13,6 +13,7 @@ import com.innogent.pantry_mind.repository.RoleRepository;
 import com.innogent.pantry_mind.repository.InventoryRepository;
 import com.innogent.pantry_mind.service.KitchenService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ import com.innogent.pantry_mind.service.NotificationService;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class KitchenServiceImpl implements KitchenService {
     
     private final KitchenRepository kitchenRepository;
@@ -106,7 +108,7 @@ public class KitchenServiceImpl implements KitchenService {
         user.setRole(adminRole);
         user.setKitchen(savedKitchen);
         User savedUser = userRepository.save(user);
-        System.out.println("👑 ADMIN user saved: " + savedUser.getUsername() + ", Kitchen: " + (savedUser.getKitchen() != null ? savedUser.getKitchen().getId() : "null"));
+        log.info("Admin user created: {} for kitchen: {}", savedUser.getUsername(), savedUser.getKitchen() != null ? savedUser.getKitchen().getId() : "null");
         
         return kitchenMapper.toResponse(savedKitchen);
     }
@@ -119,7 +121,7 @@ public class KitchenServiceImpl implements KitchenService {
         
         // Find kitchen by invitation code
         Kitchen kitchen = kitchenRepository.findByInvitationCode(invitationCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Kitchen not found with invitation code: " + invitationCode));
+                .orElseThrow(() -> new ResourceNotFoundException("Kitchen not found with code: " + invitationCode));
         
         // Update user role to MEMBER and assign kitchen
         Role memberRole = roleRepository.findByName("MEMBER")
@@ -128,7 +130,7 @@ public class KitchenServiceImpl implements KitchenService {
         user.setRole(memberRole);
         user.setKitchen(kitchen);
         User savedUser = userRepository.save(user);
-        System.out.println("👥 MEMBER user saved: " + savedUser.getUsername() + ", Kitchen: " + (savedUser.getKitchen() != null ? savedUser.getKitchen().getId() : "null"));
+        log.info("Member user joined: {} for kitchen: {}", savedUser.getUsername(), savedUser.getKitchen() != null ? savedUser.getKitchen().getId() : "null");
         
         // Send real-time notification to kitchen members
         notificationService.notifyMemberAdded(kitchen.getId(), user.getName() != null ? user.getName() : user.getEmail());
@@ -138,12 +140,9 @@ public class KitchenServiceImpl implements KitchenService {
 
     @Override
     public List<UserResponseDTO> getKitchenMembers(Long kitchenId) {
-        System.out.println("🔍 Looking for members in kitchen ID: " + kitchenId);
+        log.debug("Looking for members in kitchen ID: {}", kitchenId);
         List<User> users = userRepository.findByKitchen_Id(kitchenId);
-        System.out.println("📊 Found " + users.size() + " users in kitchen");
-        for (User user : users) {
-            System.out.println("👤 User: " + user.getUsername() + ", Kitchen: " + (user.getKitchen() != null ? user.getKitchen().getId() : "null"));
-        }
+        log.debug("Found {} users in kitchen {}", users.size(), kitchenId);
         return users.stream()
                 .map(userMapper::toResponse)
                 .collect(Collectors.toList());
@@ -174,7 +173,7 @@ public class KitchenServiceImpl implements KitchenService {
         }
         notificationService.notifyUserRemoved(memberId);
         
-        System.out.println("🚫 Removed member: " + user.getUsername() + " from kitchen");
+        log.info("Removed member: {} from kitchen", user.getUsername());
     }
 
     @Override

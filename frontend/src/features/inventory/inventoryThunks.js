@@ -1,5 +1,6 @@
 import { setLoading, setItems, addItem, updateItem, removeItem, setError, consumeItems } from "./inventorySlice";
 import axiosClient from "../../services/api";
+import BigNumber from 'bignumber.js';
 
 export const fetchInventoryItems = () => async (dispatch, getState) => {
   dispatch(setLoading(true));
@@ -292,13 +293,84 @@ export const cookRecipe = (recipe) => async (dispatch, getState) => {
     if (itemsToConsume.length === 0) {
       throw new Error(`No matching inventory items found. Please check that you have the required ingredients with compatible units.`);
     }
+    
+    // Check if we have all required ingredients
+    if (itemsToConsume.length < recipe.ingredients.length) {
+      const missingIngredients = recipe.ingredients.filter(ingredient => {
+        const [name] = ingredient.split(':');
+        const cleanName = name.trim().toLowerCase();
+        return !itemsToConsume.some(item => {
+          const matchedItem = flatItems.find(fi => fi.id === item.id);
+          return matchedItem?.name.toLowerCase().includes(cleanName);
+        });
+      });
+      
+      throw new Error(`Missing ingredients: ${missingIngredients.join(', ')}. Please add these to your inventory first.`);
+    }
 
-    // Call backend API to update database
-    await axiosClient.post('/inventory/consume', { items: itemsToConsume });
+    // Call backend API to update database with userId
+    const { user } = getState().auth;
+    console.log('Sending consume request:', { items: itemsToConsume, userId: user?.id });
+    
+    const response = await axiosClient.post('/inventory/consume', { 
+      items: itemsToConsume,
+      userId: user?.id
+    });
+    
+    // Create meal log entry
+    try {
+      // Extract cooking time from recipe
+      const cookingTimeMatch = recipe.cooking_time?.match(/(\d+)/);
+      const cookingMinutes = cookingTimeMatch ? parseInt(cookingTimeMatch[1]) : null;
+      
+      // Create ingredient usage list in the format expected by the backend
+      const ingredientUsage = itemsToConsume.map(item => {
+        const matchedItem = flatItems.find(fi => fi.id === item.id);
+        return {
+          itemId: item.id,
+          name: matchedItem?.name || 'Unknown',
+          quantity: item.consumedQuantity ? new BigNumber(item.consumedQuantity).toNumber() : 0
+        };
+      });
+      
+      // Ensure we have all required fields
+      if (!user?.kitchenId || !user?.id) {
+        throw new Error('User information is missing. Please log in again.');
+      }
+      
+      // Determine meal type based on time of day
+      const hours = new Date().getHours();
+      let mealType = 'DINNER'; // Default to dinner
+      if (hours >= 3 && hours < 11) mealType = 'BREAKFAST';
+      else if (hours >= 11 && hours < 16) mealType = 'LUNCH';
+      
+      const mealLogData = {
+        kitchenId: user.kitchenId,
+        cookedBy: user.id,
+        mealName: recipe.name || 'Unnamed Recipe',
+        mealType: mealType,
+        servings: recipe.servings || 1,
+        ingredients: ingredientUsage,
+        recipeData: JSON.stringify({
+          originalIngredients: recipe.ingredients,
+          actualIngredients: ingredientUsage,
+          cookingTime: recipe.cooking_time
+        })
+      };
+      
+      console.log('Sending meal log data:', mealLogData);
+      
+      const response = await axiosClient.post('/tracking/log-meal', mealLogData);
+      console.log('Meal log created successfully:', response.data);
+    } catch (mealLogError) {
+      console.warn('Failed to create meal log:', mealLogError);
+    }
     
     // Update Redux state
-    // dispatch(consumeItems(itemsToConsume));
     await dispatch(fetchInventoryItems());
+    
+    // Return consumption details for display
+    return response.data;
     
     console.log(`Successfully consumed ${itemsToConsume.length} items`);
   } catch (error) {
@@ -309,20 +381,38 @@ export const cookRecipe = (recipe) => async (dispatch, getState) => {
 };
 
 
-export const manualConsumeItem = (itemId, quantity) => async (dispatch) => {
+export const getConsumptionInfo = (inventoryId) => async (dispatch) => {
   try {
+    const response = await axiosClient.get(`/inventory/${inventoryId}/consumption-info`);
+    return response.data;
+  } catch (error) {
+    dispatch(setError(error.response?.data?.message || "Failed to fetch consumption info"));
+    throw error;
+  }
+};
+
+export const manualConsumeItem = (itemId, quantity) => async (dispatch, getState) => {
+  try {
+    const { user } = getState().auth;
     const itemsToConsume = [{ id: itemId, consumedQuantity: quantity }];
     
-    // Call backend API to update database
-    await axiosClient.post('/inventory/consume', { items: itemsToConsume });
+    // Call backend API with userId for tracking
+    const response = await axiosClient.post('/inventory/consume', { 
+      items: itemsToConsume,
+      userId: user?.id
+    });
     
-    // Refresh inventory data from server instead of just updating Redux state
+    // Refresh inventory data from server
     await dispatch(fetchInventoryItems());
     
+    // Dispatch custom event for any components listening
+    window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+    
     console.log(`Successfully consumed ${quantity} from item ${itemId}`);
+    return response;
   } catch (error) {
     console.error('Failed to consume item manually:', error);
-    dispatch(setError(error.message || 'Failed to consume item'));
+    dispatch(setError(error.response?.data?.message || 'Failed to consume item'));
     throw error;
   }
 };

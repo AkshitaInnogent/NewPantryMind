@@ -6,7 +6,9 @@ import com.innogent.pantry_mind.dto.request.UpdateInventoryAlertsRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
-import com.innogent.pantry_mind.service.impl.InventoryServiceImpl;
+import com.innogent.pantry_mind.dto.response.ConsumeItemsResponseDTO;
+import com.innogent.pantry_mind.dto.response.InventoryConsumptionInfoDTO;
+import com.innogent.pantry_mind.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,7 +24,7 @@ import java.util.List;
 @Tag(name = "Inventory", description = "Inventory management APIs")
 public class InventoryItemController {
 
-    private final InventoryServiceImpl inventoryService;
+    private final InventoryService inventoryService;
 
     @PostMapping
     @Operation(summary = "Add a new inventory item")
@@ -41,9 +43,9 @@ public class InventoryItemController {
 
     @PostMapping("/consume")
     @Operation(summary = "Consume inventory items for cooking")
-    public ResponseEntity<String> consumeItems(@Valid @RequestBody ConsumeItemsRequestDTO dto) {
-        inventoryService.consumeItems(dto);
-        return ResponseEntity.ok("Items consumed successfully");
+    public ResponseEntity<ConsumeItemsResponseDTO> consumeItems(@Valid @RequestBody ConsumeItemsRequestDTO dto) {
+        ConsumeItemsResponseDTO response = inventoryService.consumeItems(dto);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -75,5 +77,17 @@ public class InventoryItemController {
     @Operation(summary = "Get individual inventory item by ID")
     public ResponseEntity<InventoryItemResponseDTO> getItemById(@PathVariable Long id) {
         return ResponseEntity.ok(inventoryService.getInventoryItemByItemId(id));
+    }
+    
+    @GetMapping("/expired")
+    @Operation(summary = "Get expired inventory items for kitchen")
+    public ResponseEntity<List<InventoryItemResponseDTO>> getExpiredItems(@RequestParam Long kitchenId) {
+        return ResponseEntity.ok(inventoryService.getExpiredItems(kitchenId));
+    }
+    
+    @GetMapping("/{id}/consumption-info")
+    @Operation(summary = "Get consumption info for inventory item")
+    public ResponseEntity<InventoryConsumptionInfoDTO> getConsumptionInfo(@PathVariable Long id) {
+        return ResponseEntity.ok(inventoryService.getConsumptionInfo(id));
     }
 }

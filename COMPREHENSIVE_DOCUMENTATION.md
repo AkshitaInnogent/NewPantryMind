@@ -1,937 +1,731 @@
 # PantryMind - Comprehensive Technical Documentation
 
-## 🏗️ System Overview
+## 🏗️ System Architecture Overview
 
-PantryMind is a full-stack smart pantry management system built with modern technologies:
+PantryMind is a microservices-based application with three core components:
 
-### Core Architecture
-- **Backend**: Spring Boot 3.5.7 with PostgreSQL database
-- **Frontend**: React 19.2.0 with Redux Toolkit and Material-UI
-- **OCR Service**: FastAPI with Google Generative AI integration
-- **Authentication**: JWT-based stateless authentication with Spring Security
-- **Real-time Features**: WebSocket integration for live notifications
-- **Cloud Storage**: Cloudinary for image/document storage
-- **Build Tools**: Maven (Backend), Vite (Frontend)
+### Backend Services
+- **Spring Boot API** (Port 8080): Main business logic and data management
+- **FastAPI OCR Service** (Port 8000): Receipt processing and AI integration
+- **PostgreSQL Database** (Port 5432): Primary data storage
 
-### Key Features
-- Multi-user kitchen management with role-based access
-- Smart inventory tracking with expiration alerts
-- OCR-powered receipt scanning and item extraction
-- Real-time notifications and dashboard updates
-- Recipe suggestions based on available inventory
-- Comprehensive reporting and analytics
+### Frontend
+- **React.js Application** (Port 5173): User interface with Redux state management
 
----
+## 🔧 Current Technology Stack
 
-## 🗄️ Database Schema & Entity Relationships
+### Backend
+- **Framework**: Spring Boot 3.5.7
+- **Database**: PostgreSQL with JPA/Hibernate
+- **Security**: Spring Security with JWT (jjwt 0.12.3)
+- **Documentation**: SpringDoc OpenAPI 2.7.0
+- **Mapping**: MapStruct 1.5.5
+- **WebSocket**: Spring WebSocket with STOMP
+- **Email**: Spring Boot Mail
+- **Environment**: Spring DotEnv 4.0.0
+- **Build Tool**: Maven
 
-### Core Entities Overview
+### Frontend
+- **Framework**: React 19 with Vite 7.2.4
+- **State Management**: Redux Toolkit 2.11.0
+- **UI Library**: Material-UI 7.3.5 + Tailwind CSS 4.1.17
+- **Routing**: React Router DOM 7.9.6
+- **HTTP Client**: Axios 1.13.2
+- **Icons**: Lucide React + React Icons
+- **WebSocket**: STOMP.js 7.2.1 + SockJS
+- **Build Tool**: Vite
 
-The system consists of 11 main entities with specific relationships and purposes:
+### OCR Service
+- **Framework**: FastAPI
+- **OCR Engine**: Tesseract/EasyOCR
+- **AI Integration**: OpenAI/Anthropic APIs
+- **Image Processing**: PIL/OpenCV
 
-### 1. **User Entity**
-**Purpose**: Manages user accounts, authentication, and kitchen membership
+## 🔧 Configuration Management
 
-```java
-@Entity
-@Table(name = "users")
-public class User {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private String username;        // Display name
-    private String name;           // Full name
-    private String email;          // Login identifier (unique)
-    private String passwordHash;   // BCrypt hashed password
-    private String googleId;       // OAuth integration
-    private Boolean isActive;      // Account status
-    private LocalDateTime createdAt; // Account creation timestamp
-    
-    // Relationships
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "kitchen_id")
-    private Kitchen kitchen;       // User belongs to one kitchen
-    
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "role_id")
-    private Role role;            // User has one role
-}
-```
+### Backend Configuration (application.properties)
 
-**Why Created**: Central entity for authentication, authorization, and user management within kitchen contexts.
-
-**How Created**: 
-- Registration via `/api/user/register` endpoint
-- Password hashed using BCryptPasswordEncoder
-- Default role assigned as "USER"
-- Can join kitchens via invitation codes
-
-### 2. **Role Entity**
-**Purpose**: Defines user permissions and access levels
-
-```java
-@Entity
-@Table(name = "roles")
-public class Role {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(unique = true, nullable = false)
-    private String name;          // USER, ADMIN, MEMBER
-}
-```
-
-**Why Created**: Implements role-based access control (RBAC) for different permission levels.
-
-**How Created**: 
-- Pre-initialized via DataInitializer
-- Three default roles: USER, ADMIN, MEMBER
-- ADMIN: Full kitchen management rights
-- MEMBER: Standard kitchen access
-- USER: Basic user without kitchen
-
-### 3. **Kitchen Entity**
-**Purpose**: Represents household/shared pantry spaces
-
-```java
-@Entity
-@Table(name = "kitchens")
-public class Kitchen {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(nullable = false)
-    private String name;                    // Kitchen display name
-    
-    @Column(unique = true)
-    private String invitationCode;          // Unique join code
-    
-    // Relationships
-    @OneToMany(mappedBy = "kitchen", cascade = CascadeType.ALL)
-    private List<User> users;               // Kitchen members
-}
-```
-
-**Why Created**: Enables multi-user pantry management with invitation-based access.
-
-**How Created**:
-- Created via `/api/kitchens/create-with-admin` endpoint
-- Auto-generates unique invitation code
-- Creator becomes ADMIN automatically
-- Others join via `/api/kitchens/join-by-code`
-
-### 4. **Category Entity**
-**Purpose**: Organizes inventory items by type
-
-```java
-@Entity
-@Table(name = "category")
-public class Category {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private String name;          // Dairy, Vegetables, Fruits, etc.
-    private String description;   // Category description
-}
-```
-
-**Why Created**: Provides logical grouping for inventory items, enabling better organization and filtering.
-
-**How Created**:
-- Pre-initialized with 10 default categories
-- Extensible via `/api/categories` endpoint
-- Categories: Dairy, Vegetables, Fruits, Meat, Grains, Beverages, Snacks, Frozen, Spices, Condiments
-
-### 5. **Unit Entity**
-**Purpose**: Defines measurement units for inventory quantities
-
-```java
-@Entity
-@Table(name = "units")
-public class Unit {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private String name;          // Kg, Liter, Piece, etc.
-    private String type;          // Weight, Volume, Count
-}
-```
-
-**Why Created**: Standardizes quantity measurements across different item types.
-
-**How Created**:
-- Pre-initialized with 12 common units
-- Grouped by type (Weight, Volume, Count)
-- Extensible via `/api/units` endpoint
-
-### 6. **InventoryItem Entity**
-**Purpose**: Core pantry item with expiration tracking
-
-```java
-@Entity
-public class InventoryItem {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private String name;                    // Item name
-    private String description;             // Item description
-    private Long kitchenId;                // Kitchen association
-    private Long createdBy;                // User who added item
-    private Long quantity;                 // Item quantity
-    private String location;               // Storage location
-    private Date expiryDate;              // Expiration date
-    private Date createdAt;               // Creation timestamp
-    
-    // Relationships
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;             // Item category
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unit_id")
-    private Unit unit;                     // Measurement unit
-}
-```
-
-**Why Created**: Central inventory management with categorization, quantification, and expiration tracking.
-
-**How Created**:
-- Manual entry via `/api/inventory` endpoint
-- Auto-creation from OCR-extracted items
-- Linked to kitchen and creator for access control
-
-### 7. **OcrUpload Entity**
-**Purpose**: Tracks receipt/document processing workflow
-
-```java
-@Entity
-@Table(name = "ocr_uploads")
-public class OcrUpload {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private Long kitchenId;                     // Kitchen context
-    private Long uploadedBy;                    // Uploader user
-    private String originalFilename;            // Original file name
-    private String cloudinaryUrl;               // Cloud storage URL
-    private String cloudinaryPublicId;          // Cloud storage ID
-    private String rawOcrText;                  // Extracted text
-    private String pythonRequestId;             // OCR service request ID
-    private Double confidenceSummary;           // OCR confidence score
-    private Integer processingTimeMs;           // Processing duration
-    private LocalDateTime createdAt;            // Upload timestamp
-    private LocalDateTime updatedAt;            // Last update
-    
-    // Enums
-    private DocumentType documentType;          // BILL, LABEL, PRODUCT
-    private ProcessingStatus status;            // PENDING, PROCESSING, COMPLETED, CONFIRMED, FAILED
-}
-```
-
-**Why Created**: Manages the complete OCR workflow from upload to item extraction.
-
-**How Created**:
-- Initiated via `/api/ocr/upload` endpoint
-- Files stored in Cloudinary
-- Processed by Python FastAPI service
-- Status tracked through processing pipeline
-
-### 8. **Notification Entity**
-**Purpose**: Manages system notifications for users and kitchens
-
-```java
-@Entity
-@Table(name = "notifications")
-public class Notification {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(nullable = false)
-    private Long kitchenId;                     // Kitchen context
-    
-    private Long userId;                        // Target user (null for all)
-    
-    @Column(nullable = false)
-    private String type;                        // Notification type
-    
-    private String title;                       // Notification title
-    
-    @Column(nullable = false)
-    private String message;                     // Notification content
-    
-    @Enumerated(EnumType.STRING)
-    private NotificationSeverity severity;      // INFO, WARNING, CRITICAL
-    
-    private Long relatedItemId;                 // Related inventory item
-    
-    @Column(nullable = false)
-    private boolean isRead = false;             // Read status
-    
-    @CreationTimestamp
-    private LocalDateTime createdAt;            // Creation timestamp
-}
-```
-
-**Why Created**: Provides real-time communication system for expiration alerts, low stock warnings, and system updates.
-
-**How Created**:
-- Auto-generated by InventoryAlertService for expiring items
-- Created via NotificationService for system events
-- Delivered via WebSocket for real-time updates
-
-### 9. **Location Entity**
-**Purpose**: Defines storage locations within kitchens
-
-```java
-@Entity
-@Table(name = "locations")
-public class Location {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private String name;                        // Refrigerator, Pantry, Freezer
-    private String description;                 // Location description
-    private Long kitchenId;                     // Kitchen association
-}
-```
-
-**Why Created**: Enables precise tracking of where items are stored within a kitchen.
-
-**How Created**:
-- Created via LocationController endpoints
-- Kitchen-scoped for multi-tenant support
-
-### 10. **Inventory Entity**
-**Purpose**: Groups and manages collections of inventory items
-
-```java
-@Entity
-@Table(name = "inventory")
-public class Inventory {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private String name;                        // Inventory collection name
-    private String description;                 // Collection description
-    private Long kitchenId;                     // Kitchen association
-    private LocalDateTime createdAt;            // Creation timestamp
-}
-```
-
-**Why Created**: Provides organizational structure for grouping related inventory items.
-
-### 11. **AiExtractedItems Entity**
-**Purpose**: Stores AI-processed items from receipts before confirmation
-
-```java
-@Entity
-@Table(name = "ai_extracted_items")
-public class AiExtractedItems {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private Long ocrUploadId;              // Source OCR upload
-    private String rawName;                // Original extracted name
-    private String canonicalName;          // Cleaned/standardized name
-    private String categoryName;           // Suggested category
-    private String brand;                  // Product brand
-    private Double quantity;               // Extracted quantity
-    private String unitName;               // Suggested unit
-    private Double price;                  // Item price
-    private LocalDate expiryDate;          // Extracted/estimated expiry
-    private String expirySource;           // How expiry was determined
-    private String storageType;            // Storage recommendation
-    private Boolean isFood;                // Food classification
-    private Double confidence;             // AI confidence score
-    private Boolean isConfirmed;           // User confirmation status
-    private String rawAiJson;              // Original AI response
-    private LocalDateTime createdAt;       // Extraction timestamp
-}
-```
-
-**Why Created**: Bridges OCR processing and inventory creation with user confirmation workflow.
-
-**How Created**:
-- Generated by AI processing of OCR text
-- Requires user confirmation before becoming InventoryItems
-- Maintains audit trail of AI decisions
-
----
-
-### Table Statistics and Sizes
-
-| Table Name | Estimated Rows | Primary Use | Growth Rate |
-|------------|----------------|-------------|-------------|
-| users | 1K-10K | User accounts | Low |
-| roles | 3-10 | System roles | Very Low |
-| kitchens | 100-1K | Household groups | Low |
-| category | 10-50 | Item categories | Very Low |
-| units | 10-30 | Measurement units | Very Low |
-| inventory_item | 10K-100K | Main inventory | High |
-| inventory | 100-1K | Inventory collections | Low |
-| locations | 50-500 | Storage locations | Low |
-| notifications | 10K-100K | System notifications | High |
-| ocr_uploads | 1K-10K | Receipt uploads | Medium |
-| ai_extracted_items | 10K-100K | OCR processing | High |
-
-## 🔐 JWT Authentication System
-
-### JWT Configuration
-
-**JWT Utility Class** (`JwtUtil.java`):
-```java
-@Component
-public class JwtUtil {
-    @Value("${jwt.secret}")
-    private String secret;                  // HMAC signing key
-    
-    @Value("${jwt.expiration}")
-    private Long expiration;                // Token validity (24 hours)
-    
-    // Methods:
-    // - generateToken(String username): Creates JWT
-    // - extractUsername(String token): Gets subject from token
-    // - isTokenValid(String token, String username): Validates token
-    // - isTokenExpired(String token): Checks expiration
-}
-```
-
-**Configuration Properties**:
 ```properties
-jwt.secret=your-secret-keyfewgrsdfhgjregdfhmefdasrsdssfgsdfsbs2143534654
-jwt.expiration=86400000  # 24 hours in milliseconds
+# Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/PantryMind
+spring.datasource.username=postgres
+spring.datasource.password=root
+
+# JPA Settings
+spring.jpa.hibernate.ddl-auto=create-drop  # Use 'update' for production
+spring.jpa.show-sql=false                  # Set to true for debugging
+
+# Security
+jwt.secret=your-secret-key
+jwt.expiration=86400000  # 24 hours
+
+# AI Service Integration
+python.backend.url=http://127.0.0.1:8001
+ai.service.timeout=30000
+ai.service.retry.attempts=3
 ```
 
-### Authentication Filter
+### Environment Variables Setup
 
-**JWT Authentication Filter** (`JwtAuthenticationFilter.java`):
-```java
-@Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    
-    protected void doFilterInternal(HttpServletRequest request, 
-                                  HttpServletResponse response, 
-                                  FilterChain filterChain) {
-        
-        // 1. Extract Authorization header
-        String authHeader = request.getHeader("Authorization");
-        
-        // 2. Validate Bearer token format
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-        
-        // 3. Extract JWT token
-        String jwt = authHeader.substring(7);
-        String username = jwtUtil.extractUsername(jwt);
-        
-        // 4. Validate token and set authentication
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            
-            if (jwtUtil.isTokenValid(jwt, username)) {
-                UsernamePasswordAuthenticationToken authToken = 
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-        }
-        
-        filterChain.doFilter(request, response);
-    }
-}
+Create `.env` files in respective directories:
+
+**Backend (.env)**
+```env
+DATABASE_URL=jdbc:postgresql://localhost:5432/PantryMind
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=root
+JWT_SECRET=your-jwt-secret-key
+PYTHON_BACKEND_URL=http://127.0.0.1:8001
 ```
 
-### Security Configuration
+**Frontend (.env)**
+```env
+VITE_API_BASE_URL=http://localhost:8080/api
+VITE_OCR_SERVICE_URL=http://localhost:8000
+```
 
-**Security Config** (`SecurityConfig.java`):
+## 🗄️ Database Schema Details
+
+### Core Entities and Relationships
+
+```sql
+-- Users and Authentication
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- User Profiles
+CREATE TABLE user_profiles (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    avatar_url VARCHAR(255),
+    preferences JSONB
+);
+
+-- Kitchen Management
+CREATE TABLE kitchens (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    invitation_code VARCHAR(10) UNIQUE,
+    created_by BIGINT REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Kitchen Memberships
+CREATE TABLE kitchen_members (
+    id BIGSERIAL PRIMARY KEY,
+    kitchen_id BIGINT REFERENCES kitchens(id),
+    user_id BIGINT REFERENCES users(id),
+    role VARCHAR(20) DEFAULT 'MEMBER',
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Categories and Units
+CREATE TABLE categories (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description TEXT,
+    color VARCHAR(7) -- Hex color code
+);
+
+CREATE TABLE units (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(20) NOT NULL,
+    abbreviation VARCHAR(10),
+    type VARCHAR(20) -- WEIGHT, VOLUME, COUNT
+);
+
+-- Inventory Management
+CREATE TABLE inventory_items (
+    id BIGSERIAL PRIMARY KEY,
+    kitchen_id BIGINT REFERENCES kitchens(id),
+    name VARCHAR(100) NOT NULL,
+    quantity DECIMAL(10,2),
+    unit_id BIGINT REFERENCES units(id),
+    category_id BIGINT REFERENCES categories(id),
+    expiration_date DATE,
+    purchase_date DATE,
+    notes TEXT,
+    created_by BIGINT REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Analytics Tables for Admin Reports
+CREATE TABLE purchase_logs (
+    id BIGSERIAL PRIMARY KEY,
+    kitchen_id BIGINT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    quantity DECIMAL(10,2) NOT NULL,
+    unit_id BIGINT REFERENCES units(id),
+    category_id BIGINT REFERENCES categories(id),
+    purchase_date DATE NOT NULL,
+    cost DECIMAL(10,2),
+    purchased_by BIGINT REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE consumption_logs (
+    id BIGSERIAL PRIMARY KEY,
+    kitchen_id BIGINT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    quantity_consumed DECIMAL(10,2) NOT NULL,
+    unit_id BIGINT REFERENCES units(id),
+    consumed_date DATE NOT NULL,
+    consumed_by BIGINT REFERENCES users(id),
+    meal_id BIGINT REFERENCES meal_logs(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE waste_logs (
+    id BIGSERIAL PRIMARY KEY,
+    kitchen_id BIGINT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    quantity_wasted DECIMAL(10,2) NOT NULL,
+    unit_id BIGINT REFERENCES units(id),
+    expiry_date DATE NOT NULL,
+    waste_reason VARCHAR(50) DEFAULT 'EXPIRED',
+    detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE meal_logs (
+    id BIGSERIAL PRIMARY KEY,
+    kitchen_id BIGINT NOT NULL,
+    meal_name VARCHAR(100) NOT NULL,
+    meal_date DATE NOT NULL,
+    logged_by BIGINT REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE meal_ingredients (
+    id BIGSERIAL PRIMARY KEY,
+    meal_log_id BIGINT REFERENCES meal_logs(id),
+    ingredient_name VARCHAR(100) NOT NULL,
+    quantity_used DECIMAL(10,2) NOT NULL,
+    unit_id BIGINT REFERENCES units(id)
+);
+```
+
+## 🚨 Common Issues & Solutions
+
+### Frontend Issues
+
+#### 1. React Textarea Null Value Warning
+**Error**: `value` prop on `textarea` should not be null
+
+**Solution**:
+```javascript
+// ❌ Incorrect
+<textarea value={formData.description} />
+
+// ✅ Correct
+<textarea value={formData.description || ""} />
+<textarea value={formData.description ?? ""} />
+```
+
+#### 2. API 400 Bad Request Errors
+**Causes**:
+- Missing required fields
+- Invalid data types
+- Malformed JSON payload
+
+**Debugging Steps**:
+1. Open Browser DevTools → Network tab
+2. Check the failed request payload
+3. Compare with backend DTO requirements
+4. Verify all required fields are present
+
+**Example Fix**:
+```javascript
+// Ensure proper data structure
+const inventoryItem = {
+  name: name?.trim() || "",
+  quantity: parseFloat(quantity) || 0,
+  categoryId: categoryId ? parseInt(categoryId) : null,
+  unitId: unitId ? parseInt(unitId) : null,
+  expirationDate: expirationDate || null,
+  notes: notes?.trim() || ""
+};
+```
+
+#### 3. Redux State Management Issues
+**Common Problems**:
+- State not updating after API calls
+- Stale data in components
+- Race conditions
+
+**Solutions**:
+```javascript
+// Use Redux Toolkit Query for better caching
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+export const inventoryApi = createApi({
+  reducerPath: 'inventoryApi',
+  baseQuery: fetchBaseQuery({
+    baseUrl: '/api/inventory',
+    prepareHeaders: (headers, { getState }) => {
+      const token = getState().auth.token;
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
+  tagTypes: ['InventoryItem'],
+  endpoints: (builder) => ({
+    getInventoryItems: builder.query({
+      query: () => '',
+      providesTags: ['InventoryItem'],
+    }),
+    createInventoryItem: builder.mutation({
+      query: (item) => ({
+        url: '',
+        method: 'POST',
+        body: item,
+      }),
+      invalidatesTags: ['InventoryItem'],
+    }),
+  }),
+});
+```
+
+### Backend Issues
+
+#### 1. Database Connection Problems
+**Error**: Connection refused to PostgreSQL
+
+**Solutions**:
+```bash
+# Check if PostgreSQL is running
+sudo systemctl status postgresql  # Linux
+brew services list | grep postgresql  # macOS
+net start postgresql-x64-14  # Windows
+
+# Verify database exists
+psql -U postgres -l
+```
+
+#### 2. JWT Token Issues
+**Problems**:
+- Token expiration
+- Invalid signatures
+- Missing authorization headers
+
+**Configuration**:
 ```java
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
     
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
-            .csrf(csrf -> csrf.disable())                    // Disable CSRF for stateless API
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/user/register", 
-                               "/api/user/login", "/api/user/logout").permitAll()  // Public endpoints
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()   // Documentation
-                .anyRequest().authenticated()                                        // All others require auth
-            )
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))    // No sessions
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
-    }
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+    
+    @Value("${jwt.expiration}")
+    private long jwtExpiration;
     
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();              // Password hashing
+    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
+        return new JwtAuthenticationEntryPoint();
     }
 }
 ```
 
-### Custom User Details Service
+#### 3. CORS Configuration
+**Error**: Cross-origin requests blocked
 
-**User Details Service** (`CustomUserDetailsService.java`):
-```java
-@Service
-public class CustomUserDetailsService implements UserDetailsService {
-    
-    @Override
-    @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
-        
-        String roleName = user.getRole() != null ? user.getRole().getName() : "USER";
-        
-        return User.builder()
-                .username(user.getEmail())              // Email as username
-                .password(user.getPasswordHash())       // BCrypt hash
-                .authorities(roleName)                  // Single role authority
-                .build();
-    }
-}
-```
-
-### Authentication Flow
-
-1. **Registration** (`POST /api/user/register`):
-   - User provides email, password, name
-   - Password hashed with BCrypt
-   - User saved with default "USER" role
-   - JWT token generated and returned
-
-2. **Login** (`POST /api/user/login`):
-   - Credentials validated via AuthenticationManager
-   - JWT token generated for valid user
-   - Token and user details returned
-
-3. **Request Authentication**:
-   - Client sends JWT in Authorization header: `Bearer <token>`
-   - JwtAuthenticationFilter validates token
-   - SecurityContext populated with user details
-   - Request proceeds with authenticated context
-
-4. **Token Validation**:
-   - Token signature verified with secret key
-   - Expiration checked
-   - Username extracted and validated
-
----
-
-## 📚 API Endpoints Documentation
-
-### Authentication Endpoints
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| POST | `/api/user/register` | Register new user | `{email, password, name, username}` | `{token, user}` |
-| POST | `/api/user/login` | User login | `{email, password}` | `{token, user}` |
-| POST | `/api/user/logout` | User logout | None | `{message}` |
-| GET | `/api/user/me` | Get current user | None | `UserResponseDTO` |
-| POST | `/api/user/forgot-password` | Request password reset | `{email}` | `{message}` |
-| POST | `/api/user/reset-password` | Reset password | `{token, newPassword}` | `{message}` |
-
-### Kitchen Management
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| POST | `/api/kitchens/create-with-admin` | Create kitchen and become admin | `{name}` | `KitchenResponseDTO` |
-| POST | `/api/kitchens/join-by-code` | Join kitchen by invitation code | `{invitationCode}` | `KitchenResponseDTO` |
-| GET | `/api/kitchens/{id}` | Get kitchen details | None | `KitchenResponseDTO` |
-
-### Inventory Management
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| GET | `/api/inventory` | Get all inventory items | None | `List<InventoryItemResponseDTO>` |
-| POST | `/api/inventory` | Create new inventory item | `CreateInventoryItemRequestDTO` | `InventoryItemResponseDTO` |
-| GET | `/api/inventory/{id}` | Get inventory item by ID | None | `InventoryItemResponseDTO` |
-| PUT | `/api/inventory/{id}` | Update inventory item | `UpdateInventoryItemRequestDTO` | `InventoryItemResponseDTO` |
-| DELETE | `/api/inventory/{id}` | Delete inventory item | None | `204 No Content` |
-
-### Categories & Units
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| GET | `/api/categories` | Get all categories | None | `List<CategoryResponseDTO>` |
-| POST | `/api/categories` | Create new category | `{name, description}` | `CategoryResponseDTO` |
-| GET | `/api/units` | Get all units | None | `List<UnitResponseDTO>` |
-| POST | `/api/units` | Create new unit | `{name, type}` | `UnitResponseDTO` |
-
-### User Profile
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| GET | `/api/user/profile` | Get user profile | None | `UserResponseDTO` |
-| PUT | `/api/user/profile` | Update user profile | `UpdateUserRequestDTO` | `UserResponseDTO` |
-| POST | `/api/user/change-password` | Change password | `ChangePasswordRequestDTO` | `{message}` |
-| POST | `/api/user/verify-password` | Verify current password | `VerifyPasswordRequestDTO` | `{valid: boolean}` |
-
-### Dashboard Endpoints
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| GET | `/api/dashboard/stats` | Get dashboard statistics | None | `DashboardStatsDTO` |
-| GET | `/api/dashboard/expiring-items` | Get items expiring soon | None | `List<InventoryItemResponseDTO>` |
-| GET | `/api/dashboard/low-stock-items` | Get low stock items | None | `List<InventoryItemResponseDTO>` |
-
-### Notification Endpoints
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| GET | `/api/notifications` | Get user notifications | None | `List<NotificationDTO>` |
-| PUT | `/api/notifications/{id}/read` | Mark notification as read | None | `NotificationDTO` |
-| DELETE | `/api/notifications/{id}` | Delete notification | None | `204 No Content` |
-| GET | `/api/notifications/unread-count` | Get unread notification count | None | `{count: number}` |
-
-### Recipe Endpoints
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| GET | `/api/recipes/suggestions` | Get recipe suggestions | None | `List<RecipeResponseDTO>` |
-| POST | `/api/recipes/generate` | Generate recipe from inventory | `RecipeRequestDTO` | `RecipeResponseDTO` |
-
-### Location Endpoints
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| GET | `/api/locations` | Get all locations | None | `List<LocationDTO>` |
-| POST | `/api/locations` | Create new location | `{name, description}` | `LocationDTO` |
-| PUT | `/api/locations/{id}` | Update location | `{name, description}` | `LocationDTO` |
-| DELETE | `/api/locations/{id}` | Delete location | None | `204 No Content` |
-
-### OCR Service
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| POST | `/api/ocr/upload` | Upload receipt for processing | `MultipartFile` | `OCRResponseDto` |
-| GET | `/api/ocr/status/{id}` | Check processing status | None | `{status, items}` |
-| POST | `/api/ocr/confirm-items` | Confirm extracted items | `{ocrUploadId, confirmedItems}` | `{message}` |
-
----
-
-## 🔒 Security Implementation
-
-### Password Security
-- **Hashing**: BCryptPasswordEncoder with default strength (10 rounds)
-- **Storage**: Only password hashes stored, never plain text
-- **Validation**: Spring Security handles authentication
-
-### JWT Security
-- **Algorithm**: HMAC-SHA256 for token signing
-- **Secret**: 256-bit secret key from configuration
-- **Expiration**: 24-hour token validity
-- **Stateless**: No server-side session storage
-
-### Authorization Levels
-- **Public Endpoints**: Registration, login, documentation
-- **Authenticated Endpoints**: All inventory and kitchen operations
-- **Role-Based Access**: ADMIN vs MEMBER vs USER permissions
-
-### CORS Configuration
+**Solution**:
 ```java
 @Configuration
 public class CorsConfig {
+    
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 }
 ```
 
----
+## 🔍 API Testing & Validation
 
-## 🏗️ Service Layer Architecture
+### Using Postman/Insomnia
 
-### Service Interfaces and Implementations
+#### Authentication Flow
+```http
+POST /api/user/login
+Content-Type: application/json
 
-**User Service** (`UserService.java` / `UserServiceImpl.java`):
-- User registration and authentication
-- Profile management
-- Password reset functionality
-- Kitchen membership management
+{
+  "username": "testuser",
+  "password": "password123"
+}
 
-**Kitchen Service** (`KitchenService.java` / `KitchenServiceImpl.java`):
-- Kitchen creation and management
-- Invitation code generation
-- Member management
-- Access control
-
-**Inventory Service** (`InventoryService.java` / `InventoryServiceImpl.java`):
-- CRUD operations for inventory items
-- Kitchen-scoped item access
-- Expiration tracking
-- Category and unit associations
-
-**OCR Service** (`OCRService.java`):
-- File upload to Cloudinary
-- Integration with Python OCR service
-- Processing status tracking
-- Item extraction workflow
-
-### Data Transfer Objects (DTOs)
-
-**Request DTOs**:
-- `RegisterRequestDTO`: User registration data
-- `LoginRequestDTO`: Login credentials
-- `CreateInventoryItemRequestDTO`: New inventory item data
-- `KitchenRequestDTO`: Kitchen creation data
-
-**Response DTOs**:
-- `UserResponseDTO`: User information (no sensitive data)
-- `InventoryItemResponseDTO`: Complete item details
-- `KitchenResponseDTO`: Kitchen details with members
-- `OCRResponseDto`: OCR processing results
-
-### Repository Layer
-
-All repositories extend `JpaRepository<Entity, Long>`:
-- `UserRepository`: Custom query `findByEmail(String email)`
-- `KitchenRepository`: Custom query `findByInvitationCode(String code)`
-- `InventoryItemRepository`: Kitchen-scoped queries
-- `CategoryRepository`, `UnitRepository`, `RoleRepository`: Basic CRUD
-- `OcrUploadRepository`, `AiExtractedItemsRepository`: OCR workflow
-
----
-
-## ⚙️ Configuration Details
-
-### Database Configuration
-```properties
-# PostgreSQL Configuration
-spring.datasource.url=jdbc:postgresql://localhost:5432/PantryMind
-spring.datasource.username=postgres
-spring.datasource.password=root
-spring.datasource.driver-class-name=org.postgresql.Driver
-
-# JPA Configuration
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+Response:
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "username": "testuser",
+    "email": "test@example.com"
+  }
+}
 ```
 
-### JWT Configuration
-```properties
-# JWT Configuration
-jwt.secret=your-secret-keyfewgrsdfhgjregdfhmefdasrsdssfgsdfsbs2143534654
-jwt.expiration=86400000  # 24 hours
+#### Inventory Operations
+```http
+GET /api/inventory
+Authorization: Bearer {token}
+
+POST /api/inventory
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "name": "Milk",
+  "quantity": 2.5,
+  "unitId": 1,
+  "categoryId": 2,
+  "expirationDate": "2024-01-15",
+  "notes": "Organic whole milk"
+}
 ```
 
-### WebSocket Configuration
-```properties
-# WebSocket Configuration
-spring.websocket.allowed-origins=http://localhost:5173
+#### Admin Reports & Analytics
+```http
+GET /api/admin/reports/summary/{kitchenId}?startDate=2024-01-01&endDate=2024-01-31
+Authorization: Bearer {token}
 
-# Scheduling Configuration
-spring.task.scheduling.enabled=true
-```
+GET /api/admin/reports/waste-analysis/{kitchenId}
+Authorization: Bearer {token}
 
-### WebSocket Implementation
+POST /api/admin/reports/log-consumption/{kitchenId}
+Authorization: Bearer {token}
+Content-Type: application/json
 
-**WebSocket Config** (`WebSocketConfig.java`):
-```java
-@Configuration
-@EnableWebSocketMessageBroker
-public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    
-    @Override
-    public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");           // Broadcast destinations
-        config.setApplicationDestinationPrefixes("/app"); // Client message prefix
+{
+  "itemName": "Milk",
+  "quantity": 1.0,
+  "unitId": 1
+}
+
+POST /api/admin/reports/log-meal/{kitchenId}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "mealName": "Breakfast",
+  "mealDate": "2024-01-15",
+  "ingredients": [
+    {
+      "ingredientName": "Milk",
+      "quantityUsed": 0.5,
+      "unitId": 1
     }
+  ]
+}
+```
+
+## 🧪 Testing Strategies
+
+### Backend Unit Tests
+```java
+@SpringBootTest
+@TestPropertySource(locations = "classpath:application-test.properties")
+class InventoryServiceTest {
     
-    @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")                     // WebSocket endpoint
-                .setAllowedOrigins("http://localhost:5173") // CORS for frontend
-                .withSockJS();                           // SockJS fallback
+    @Autowired
+    private InventoryService inventoryService;
+    
+    @MockBean
+    private InventoryRepository inventoryRepository;
+    
+    @Test
+    void shouldCreateInventoryItem() {
+        // Given
+        InventoryItemDto itemDto = new InventoryItemDto();
+        itemDto.setName("Test Item");
+        itemDto.setQuantity(BigDecimal.valueOf(5.0));
+        
+        // When
+        InventoryItemDto result = inventoryService.createItem(itemDto);
+        
+        // Then
+        assertThat(result.getName()).isEqualTo("Test Item");
     }
 }
 ```
 
-**Real-time Features**:
-- **Inventory Updates**: `/topic/kitchen/{kitchenId}/inventory`
-- **Notifications**: `/topic/kitchen/{kitchenId}/notifications`
-- **Member Updates**: `/topic/kitchen/{kitchenId}/members`
+### Frontend Component Tests
+```javascript
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { store } from '../store';
+import InventoryForm from './InventoryForm';
 
-### Data Initialization
-
-**DataInitializer** automatically creates:
-- **Roles**: USER, ADMIN, MEMBER
-- **Categories**: Dairy, Vegetables, Fruits, Meat, Grains, Beverages, Snacks, Frozen, Spices, Condiments
-- **Units**: Piece, Kg, Gram, Liter, ml, Cup, Tablespoon, Teaspoon, Dozen, Pack, Bottle, Can
-
-### Cloud Storage Configuration
-- **Cloudinary**: Used for receipt/document storage
-- **Configuration**: Via environment variables
-- **Integration**: CloudinaryService handles uploads
-
----
-
-## 🔧 Technology Stack
-
-### Backend (Spring Boot)
-- **Framework**: Spring Boot 3.5.7 with Java 17
-- **Database**: PostgreSQL with JPA/Hibernate
-- **Security**: Spring Security 6.x with JWT (JJWT 0.12.3)
-- **Documentation**: SpringDoc OpenAPI 2.7.0
-- **Mapping**: MapStruct 1.5.5.Final
-- **Real-time**: WebSocket with STOMP messaging
-- **Validation**: Spring Boot Validation
-- **Environment**: Spring DotEnv 4.0.0
-- **Build Tool**: Maven with Spring Boot Plugin
-
-### Frontend (React)
-- **Framework**: React 19.2.0 with Vite 7.2.4
-- **State Management**: Redux Toolkit 2.11.0
-- **UI Library**: Material-UI 7.3.5 + Tailwind CSS 4.1.17
-- **Routing**: React Router DOM 7.9.6
-- **HTTP Client**: Axios 1.13.2
-- **Icons**: Lucide React 0.555.0 + React Icons 5.5.0
-- **WebSocket**: STOMP.js 7.2.1 + SockJS Client 1.6.1
-- **Development**: ESLint 9.39.1 + TypeScript support
-
-### OCR Service (Python)
-- **Framework**: FastAPI 0.123.5
-- **Server**: Uvicorn 0.38.0 with standard extras
-- **AI Integration**: Google Generative AI 0.8.3 + Groq
-- **OCR Engine**: Tesseract 0.3.13
-- **Image Processing**: OpenCV 4.12.0.88 + Pillow 12.0.0
-- **HTTP Client**: HTTPX 0.28.1
-- **Validation**: Pydantic 2.12.5
-- **Environment**: Python-dotenv 1.2.1
-- **Testing**: Pytest 9.0.1 + Pytest-asyncio 1.3.0
-
----
-
-## 🔄 Entity Relationships Summary
-
-```
-User ──────────┐
-│              │
-│ ManyToOne    │ ManyToOne
-│              │
-▼              ▼
-Kitchen        Role
-│
-│ OneToMany
-│
-├── InventoryItem ──┐
-│   │               │
-│   │ ManyToOne     │ ManyToOne
-│   │               │
-│   ▼               ▼
-│   Category        Unit
-│
-├── Inventory
-│
-├── Location
-│
-├── Notification
-│
-└── OcrUpload ──────┐
-    │               │
-    │ OneToMany     │
-    │               │
-    ▼               │
-    AiExtractedItems│
-                    │
-                    └── (Converts to InventoryItem after confirmation)
+test('should submit inventory form with valid data', async () => {
+  render(
+    <Provider store={store}>
+      <InventoryForm />
+    </Provider>
+  );
+  
+  fireEvent.change(screen.getByLabelText(/name/i), {
+    target: { value: 'Test Item' }
+  });
+  
+  fireEvent.click(screen.getByRole('button', { name: /save/i }));
+  
+  expect(screen.getByText(/item saved/i)).toBeInTheDocument();
+});
 ```
 
-### Relationship Details:
-- **User-Kitchen**: Many users can belong to one kitchen (ManyToOne)
-- **User-Role**: Each user has one role (ManyToOne)
-- **Kitchen-InventoryItem**: One kitchen has many inventory items (OneToMany via kitchenId)
-- **Kitchen-Inventory**: One kitchen has many inventory collections (OneToMany via kitchenId)
-- **Kitchen-Location**: One kitchen has many storage locations (OneToMany via kitchenId)
-- **Kitchen-Notification**: One kitchen has many notifications (OneToMany via kitchenId)
-- **Kitchen-OcrUpload**: One kitchen has many OCR uploads (OneToMany via kitchenId)
-- **InventoryItem-Category**: Each item belongs to one category (ManyToOne)
-- **InventoryItem-Unit**: Each item has one measurement unit (ManyToOne)
-- **OcrUpload-AiExtractedItems**: One upload can generate multiple extracted items (OneToMany)
-- **Notification-User**: Notifications can target specific users or all kitchen members
+## 🚀 Deployment Guidelines
 
----
+### Production Configuration
 
-## 🚀 Deployment & Production Considerations
+#### Backend (application-prod.properties)
+```properties
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+logging.level.com.innogent.pantry_mind=INFO
+server.port=${PORT:8080}
 
-### Backend Deployment
-- **Environment Variables**: Use production database credentials
-- **JWT Secret**: Generate secure 256-bit secret for production
-- **CORS**: Configure specific allowed origins
-- **Logging**: Configure appropriate log levels
-- **Health Checks**: Implement actuator endpoints
+# Use environment variables for sensitive data
+spring.datasource.url=${DATABASE_URL}
+spring.datasource.username=${DATABASE_USERNAME}
+spring.datasource.password=${DATABASE_PASSWORD}
+jwt.secret=${JWT_SECRET}
+```
 
-### Frontend Deployment
-- **Build Optimization**: Use `npm run build` for production bundle
-- **Environment Configuration**: Set production API base URLs
-- **CDN**: Consider CDN for static assets
-- **PWA**: Progressive Web App capabilities
+#### Frontend Build
+```bash
+# Build for production
+npm run build
+
+# Environment variables for production
+VITE_API_BASE_URL=https://your-api-domain.com/api
+VITE_OCR_SERVICE_URL=https://your-ocr-service.com
+```
+
+### Docker Configuration
+
+#### Backend Dockerfile
+```dockerfile
+FROM openjdk:17-jdk-slim
+COPY target/pantry-mind-*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+
+#### Frontend Dockerfile
+```dockerfile
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
+```
+
+#### Docker Compose
+```yaml
+version: '3.8'
+services:
+  database:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: PantryMind
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+    environment:
+      DATABASE_URL: jdbc:postgresql://database:5432/PantryMind
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: root
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+```
+
+## 📊 Performance Optimization
 
 ### Database Optimization
-- **Indexing**: Add indexes on frequently queried columns
-- **Connection Pooling**: Configure HikariCP for production
-- **Backup Strategy**: Implement automated backups
-- **Monitoring**: Set up database performance monitoring
+```sql
+-- Add indexes for frequently queried columns
+CREATE INDEX idx_inventory_kitchen_id ON inventory_items(kitchen_id);
+CREATE INDEX idx_inventory_category_id ON inventory_items(category_id);
+CREATE INDEX idx_inventory_expiration ON inventory_items(expiration_date);
+```
 
-### Security Hardening
-- **HTTPS**: Enforce SSL/TLS in production
-- **Rate Limiting**: Implement API rate limiting
-- **Input Validation**: Comprehensive input sanitization
-- **Audit Logging**: Track security-relevant events
+### Frontend Optimization
+```javascript
+// Lazy loading for routes
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Inventory = lazy(() => import('./pages/Inventory'));
 
----
+// Memoization for expensive components
+const InventoryList = memo(({ items, onUpdate }) => {
+  return (
+    <div>
+      {items.map(item => (
+        <InventoryItem key={item.id} item={item} onUpdate={onUpdate} />
+      ))}
+    </div>
+  );
+});
+```
 
-## 📊 Performance & Monitoring
+## 🔐 Security Best Practices
 
-### Key Metrics to Monitor
-- **Response Times**: API endpoint performance
-- **Database Queries**: Query execution times
-- **Memory Usage**: JVM heap and application memory
-- **WebSocket Connections**: Real-time connection health
-- **OCR Processing**: Document processing success rates
+### Backend Security
+```java
+// Input validation
+@Valid
+@RequestBody
+public ResponseEntity<InventoryItemDto> createItem(
+    @Valid @RequestBody CreateInventoryItemRequest request) {
+    // Implementation
+}
 
-### Optimization Strategies
-- **Caching**: Implement Redis for frequently accessed data
-- **Database Optimization**: Query optimization and indexing
-- **Lazy Loading**: Optimize JPA fetch strategies
-- **Connection Pooling**: Tune database connection pools
-- **CDN**: Use CDN for static assets and images
+// SQL injection prevention (JPA automatically handles this)
+@Query("SELECT i FROM InventoryItem i WHERE i.kitchen.id = :kitchenId")
+List<InventoryItem> findByKitchenId(@Param("kitchenId") Long kitchenId);
+```
 
----
+### Frontend Security
+```javascript
+// XSS prevention
+const sanitizeInput = (input) => {
+  return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+};
 
-## 🧪 Testing Strategy
+// Secure token storage
+const tokenStorage = {
+  set: (token) => localStorage.setItem('auth_token', token),
+  get: () => localStorage.getItem('auth_token'),
+  remove: () => localStorage.removeItem('auth_token')
+};
+```
 
-### Backend Testing
-- **Unit Tests**: Service layer and utility classes
-- **Integration Tests**: Repository and controller layers
-- **Security Tests**: Authentication and authorization
-- **Performance Tests**: Load testing for critical endpoints
+## 📈 Monitoring & Logging
 
-### Frontend Testing
-- **Component Tests**: React component testing
-- **Integration Tests**: Redux store and API integration
-- **E2E Tests**: User workflow testing
-- **Accessibility Tests**: WCAG compliance testing
+### Backend Logging
+```java
+@Slf4j
+@Service
+public class InventoryService {
+    
+    public InventoryItemDto createItem(InventoryItemDto itemDto) {
+        log.info("Creating inventory item: {}", itemDto.getName());
+        try {
+            // Implementation
+            log.info("Successfully created inventory item with ID: {}", result.getId());
+            return result;
+        } catch (Exception e) {
+            log.error("Failed to create inventory item: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+}
+```
 
-### OCR Service Testing
-- **Unit Tests**: Individual service functions
-- **Integration Tests**: AI service integration
-- **Performance Tests**: Document processing benchmarks
-- **Accuracy Tests**: OCR extraction quality metrics
+### Frontend Error Tracking
+```javascript
+// Global error boundary
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
----
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
 
-This comprehensive documentation provides a complete technical overview of the PantryMind system, covering architecture, implementation details, and operational considerations for development and production deployment.
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+    // Send to error tracking service
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <h1>Something went wrong.</h1>;
+    }
+    return this.props.children;
+  }
+}
+```
+
+## 🔄 Development Workflow
+
+### Git Workflow
+```bash
+# Feature development
+git checkout -b feature/inventory-management
+git add .
+git commit -m "feat: add inventory CRUD operations"
+git push origin feature/inventory-management
+
+# Code review and merge
+git checkout main
+git pull origin main
+git merge feature/inventory-management
+```
+
+### Code Quality Tools
+```json
+// package.json
+{
+  "scripts": {
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write src/**/*.{js,jsx,ts,tsx,json,css,md}"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"]
+  }
+}
+```
+
+This comprehensive documentation covers all major aspects of the PantryMind application, from troubleshooting common issues to deployment and security best practices.

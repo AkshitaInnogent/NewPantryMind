@@ -13,7 +13,7 @@ import { ProtectedRoute, RoleBasedRoute } from './guards'
 import Header from './components/layout/Header'
 import InventoryList from './pages/inventory/InventoryList'
 import InventoryDetails from './pages/inventory/InventoryDetails'
-import AddInventoryItem from './pages/inventory/AddInventoryItem'
+
 import AddInventoryOCR from './pages/inventory/AddInventoryOCR'
 import EditInventoryItem from './pages/inventory/EditInventoryItem'
 import MemberList from './pages/members/MemberList'
@@ -30,7 +30,8 @@ import SpecificRecipes from './pages/recipes/SpecificRecipes'
 
 import RecipePreferences from './pages/preferences/RecipePreferences'
 import ShoppingList from './pages/shopping/ShoppingList'
-import AuthDebug from './components/AuthDebug'
+import ExpiryPage from './pages/expiry/ExpiryPage'
+
 import Logout from './pages/Logout'
 
 // Component to redirect based on role
@@ -151,11 +152,7 @@ function App() {
             <InventoryList />
           </RoleBasedRoute>
         } />
-        <Route path="/inventory/add" element={
-          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
-            <AddInventoryItem />
-          </RoleBasedRoute>
-        } />
+
         <Route path="/inventory/add-ocr" element={
           <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
             <AddInventoryOCR />
@@ -181,9 +178,9 @@ function App() {
           </RoleBasedRoute>
         } />
         
-        {/* Reports Route */}
+        {/* Reports Route - ADMIN only */}
         <Route path="/reports" element={
-          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+          <RoleBasedRoute allowedRoles={["ADMIN"]}>
             <Reports />
           </RoleBasedRoute>
         } />
@@ -257,6 +254,13 @@ function App() {
         <Route path="/shopping" element={
           <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
             <ShoppingList />
+          </RoleBasedRoute>
+        } />
+        
+        {/* Expiry Page Route */}
+        <Route path="/expiry" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <ExpiryPage />
           </RoleBasedRoute>
         } />
         

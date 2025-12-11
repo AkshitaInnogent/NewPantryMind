@@ -7,6 +7,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,7 +37,22 @@ public class InventoryItem {
     private Inventory inventory;
     
     private String description;
-    private Long quantity;
+    
+    @Column(name = "original_quantity", nullable = false)
+    private BigDecimal originalQuantity; // Never changes after creation
+    
+    @Column(name = "current_quantity", nullable = false)
+    private BigDecimal currentQuantity; // Gets reduced with usage
+    
+    @Column(name = "is_active")
+    @Builder.Default
+    private Boolean isActive = true;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    @Builder.Default
+    private ItemStatus status = ItemStatus.FRESH;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;
@@ -55,4 +72,24 @@ public class InventoryItem {
     @CreationTimestamp
     @Column(name = "created_at")
     private Date createdAt;
+    
+    // Legacy support - keep old quantity field for backward compatibility
+    @Deprecated
+    public Long getQuantity() {
+        return currentQuantity != null ? currentQuantity.longValue() : 0L;
+    }
+    
+    @Deprecated
+    public void setQuantity(Long quantity) {
+        if (quantity != null) {
+            this.currentQuantity = new BigDecimal(quantity);
+            if (this.originalQuantity == null) {
+                this.originalQuantity = new BigDecimal(quantity);
+            }
+        }
+    }
+    
+    public enum ItemStatus {
+        FRESH, EXPIRING_SOON, EXPIRED, CONSUMED, WASTED
+    }
 }

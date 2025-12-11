@@ -516,7 +516,10 @@ public class ShoppingListServiceImpl implements ShoppingListService {
         
         InventoryItem inventoryItem = InventoryItem.builder()
             .inventory(inventory)
-            .quantity(request.getQuantity().longValue())
+            .originalQuantity(request.getQuantity())
+            .currentQuantity(request.getQuantity())
+            .isActive(true)
+            .status(InventoryItem.ItemStatus.FRESH)
             .expiryDate(request.getExpiryDate() != null ? 
                 java.sql.Date.valueOf(request.getExpiryDate()) : null)
             .price(request.getPrice())

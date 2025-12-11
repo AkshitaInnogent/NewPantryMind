@@ -37,7 +37,7 @@ export default function InventoryStats() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
       <div 
         className="bg-green-600 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-green-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
         onClick={() => navigate('/inventory')}
@@ -87,6 +87,19 @@ export default function InventoryStats() {
             <p className="text-3xl font-bold">{stats.expiryCount || 0}</p>
           </div>
           <AlertTriangle className="h-12 w-12 text-red-200" />
+        </div>
+      </div>
+
+      <div 
+        className="bg-red-600 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-red-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
+        onClick={() => window.location.href = '/expiry'}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-red-100 text-sm font-medium">View All Expired</p>
+            <p className="text-3xl font-bold">Items</p>
+          </div>
+          <Package className="h-12 w-12 text-red-200" />
         </div>
       </div>
     </div>

@@ -32,6 +32,7 @@ public class OcrUpload {
     private DocumentType documentType;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private ProcessingStatus status = ProcessingStatus.PENDING;
 
     @Column(name = "raw_ocr_text", columnDefinition = "TEXT")
@@ -47,6 +48,7 @@ public class OcrUpload {
     private Integer processingTimeMs;
 
     @Column(name = "created_at")
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at")

@@ -6,6 +6,8 @@ import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryAlertsRequestDTO;
 import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
+import com.innogent.pantry_mind.dto.response.ConsumeItemsResponseDTO;
+import com.innogent.pantry_mind.dto.response.InventoryConsumptionInfoDTO;
 import com.innogent.pantry_mind.mapper.InventoryItemMapper;
 import com.innogent.pantry_mind.mapper.InventoryMapper;
 import com.innogent.pantry_mind.entity.*;
@@ -16,15 +18,20 @@ import com.innogent.pantry_mind.service.InventoryService;
 import com.innogent.pantry_mind.exception.ItemNotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepository;
@@ -35,6 +42,8 @@ public class InventoryServiceImpl implements InventoryService {
     private final UserRepository userRepository;
     private final KitchenRepository kitchenRepository;
     private final ConsumptionEventRepository consumptionEventRepository;
+    private final PurchaseLogRepository purchaseLogRepository;
+    private final UsageLogRepository usageLogRepository;
     private final InventoryItemMapper inventoryItemMapper;
     private final InventoryMapper inventoryMapper;
 
@@ -55,11 +64,18 @@ public class InventoryServiceImpl implements InventoryService {
         Inventory inventory = findOrCreateInventory(dto.getName(), dto.getCategoryId(), 
                                                    baseUnit.getId(), dto.getKitchenId());
         
-        // Create inventory item
+        // Create inventory item with new tracking fields
         InventoryItem item = new InventoryItem();
         item.setInventory(inventory);
         item.setDescription(dto.getDescription());
-        item.setQuantity(convertedQuantity);
+        
+        // Set both original and current quantity
+        BigDecimal quantityBD = new BigDecimal(convertedQuantity);
+        item.setOriginalQuantity(quantityBD);
+        item.setCurrentQuantity(quantityBD);
+        item.setIsActive(true);
+        item.setStatus(InventoryItem.ItemStatus.FRESH);
+        
         if (dto.getLocationId() != null) {
             Location location = locationRepository.findById(dto.getLocationId()).orElse(null);
             item.setLocation(location);
@@ -70,22 +86,51 @@ public class InventoryServiceImpl implements InventoryService {
         
         InventoryItem saved = inventoryItemRepository.save(item);
         
+        // AUTO-CREATE PURCHASE LOG
+        createPurchaseLogForInventoryItem(saved, dto);
+        
         // Update total quantity and item count
         updateInventoryTotalQuantity(inventory.getId());
-        inventory.setItemCount(inventory.getItemCount() + 1);
-        inventoryRepository.save(inventory);
         
         return inventoryItemMapper.toResponseDTO(saved);
+    }
+    
+    private void createPurchaseLogForInventoryItem(InventoryItem item, CreateInventoryItemRequestDTO dto) {
+        try {
+            LocalDate expiryLocalDate = null;
+            if (dto.getExpiryDate() != null) {
+                expiryLocalDate = dto.getExpiryDate().toInstant()
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate();
+            }
+            
+            PurchaseLog purchaseLog = PurchaseLog.builder()
+                .kitchenId(dto.getKitchenId())
+                .purchasedBy(dto.getCreatedBy())
+                .itemName(item.getInventory().getName())
+                .quantity(item.getOriginalQuantity())
+                .unit(item.getInventory().getUnit())
+                .pricePaid(item.getPrice())
+                .purchaseSource(PurchaseLog.PurchaseSource.GROCERY_STORE)
+                .receiptReference("MANUAL_" + System.currentTimeMillis())
+                .expiryDate(expiryLocalDate)
+                .inventoryItemId(item.getId())
+                .build();
+            purchaseLogRepository.save(purchaseLog);
+        } catch (Exception e) {
+            log.warn("Failed to create purchase log for item: {}", item.getId(), e);
+        }
     }
 
     @Override
     public List<InventoryResponseDTO> getAllInventoryItems() {
-        // Update existing records with correct itemCount
+        // Update existing records with correct itemCount (only active items)
         List<Inventory> inventories = inventoryRepository.findAll();
         for (Inventory inventory : inventories) {
-            if (inventory.getItemCount() == 0) {
-                Long count = inventoryItemRepository.countByInventoryId(inventory.getId());
-                inventory.setItemCount(count != null ? count.intValue() : 1);
+            Long activeCount = inventoryItemRepository.countByInventoryIdAndIsActiveTrue(inventory.getId());
+            int newItemCount = activeCount != null ? activeCount.intValue() : 0;
+            if (inventory.getItemCount() != newItemCount) {
+                inventory.setItemCount(newItemCount);
                 inventoryRepository.save(inventory);
             }
         }
@@ -99,111 +144,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .toList();
     }
 
-    // COMMENTED OUT - DUPLICATE METHOD (keeping the better version below)
-    /*
-    @Override
-    public InventoryResponseDTO getInventoryItemById(Long id) {
-        Inventory inventory = inventoryRepository.findById(id)
-                .orElseThrow(() -> new ItemNotFoundException(id));
-        
-        InventoryResponseDTO response = inventoryMapper.toResponseDTO(inventory);
-        
-        // Manually set user names for items
-        if (response.getItems() != null) {
-            response.getItems().forEach(item -> {
-                if (item.getCreatedBy() != null) {
-                    userRepository.findById(item.getCreatedBy())
-                        .ifPresentOrElse(
-                            user -> item.setCreatedByName(user.getName()),
-                            () -> item.setCreatedByName("Unknown User")
-                        );
-                }
-            });
-        }
-        
-        // Set item count and earliest expiry
-        response.setItemCount(response.getItems() != null ? response.getItems().size() : 0);
-        response.setEarliestExpiry(inventoryItemRepository.findEarliestExpiryByInventoryId(id));
-        
-        return response;
-    }
-    */
 
-    // COMMENTED OUT - DUPLICATE METHOD (keeping the better version below)
-    /*
-    @Override
-    @Transactional
-    public void deleteInventoryItem(Long id) {
-        InventoryItem item = inventoryItemRepository.findById(id)
-                .orElseThrow(() -> new ItemNotFoundException(id));
-        
-        Inventory inventory = item.getInventory();
-        inventoryItemRepository.deleteById(id);
-        
-        // Update item count
-        inventory.setItemCount(inventory.getItemCount() - 1);
-        
-        // Update total quantity or delete inventory if no items left
-        if (inventory.getItemCount() <= 0) {
-            inventoryRepository.deleteById(inventory.getId());
-        } else {
-            updateInventoryTotalQuantity(inventory.getId());
-            inventoryRepository.save(inventory);
-        }
-    }
-    */
-
-    // COMMENTED OUT - DUPLICATE METHOD (keeping the better version below)
-    /*
-    public List<InventoryResponseDTO> getInventoryItemsByKitchen(Long kitchenId) {
-        return inventoryRepository.findByKitchenId(kitchenId).stream()
-                .map(inventory -> {
-                    InventoryResponseDTO dto = inventoryMapper.toResponseDTO(inventory);
-                    dto.setEarliestExpiry(inventoryItemRepository.findEarliestExpiryByInventoryId(inventory.getId()));
-                    return dto;
-                })
-                .toList();
-    }
-    */
-    
-    // COMMENTED OUT - DUPLICATE METHOD (keeping the better version below)
-    /*
-    @Transactional
-    public InventoryItemResponseDTO updateInventoryItem(Long itemId, UpdateInventoryItemRequestDTO dto) {
-        InventoryItem item = inventoryItemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException(itemId));
-        
-        if (dto.getDescription() != null) item.setDescription(dto.getDescription());
-        if (dto.getQuantity() != null) {
-            // Convert quantity if needed (assuming same unit as existing item)
-            String currentUnitName = item.getInventory().getUnit().getName();
-            Long convertedQuantity = UnitConversionUtil.convertToBaseUnit(dto.getQuantity(), currentUnitName);
-            item.setQuantity(convertedQuantity);
-        }
-        if (dto.getLocationId() != null) {
-            Location location = locationRepository.findById(dto.getLocationId()).orElse(null);
-            item.setLocation(location);
-        }
-        if (dto.getExpiryDate() != null) item.setExpiryDate(dto.getExpiryDate());
-        if (dto.getPrice() != null) item.setPrice(dto.getPrice());
-        
-        InventoryItem saved = inventoryItemRepository.save(item);
-        
-        // Update total quantity
-        updateInventoryTotalQuantity(item.getInventory().getId());
-        
-        return inventoryItemMapper.toResponseDTO(saved);
-    }
-    */
-
-    // COMMENTED OUT - DUPLICATE METHOD (keeping the better version below)
-    /*
-    public InventoryItemResponseDTO getInventoryItemByItemId(Long itemId) {
-        InventoryItem item = inventoryItemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException(itemId));
-        return inventoryItemMapper.toResponseDTO(item);
-    }
-    */
     
     @Override
     @Transactional
@@ -222,81 +163,7 @@ public class InventoryServiceImpl implements InventoryService {
         return inventoryMapper.toResponseDTO(saved);
     }
     
-    // COMMENTED OUT - DUPLICATE METHOD (keeping the better version below)
-    /*
-    private Inventory findOrCreateInventory(String name, Long categoryId, Long unitId, Long kitchenId) {
-        String normalizedName = NameNormalizationUtil.normalizeName(name);
-        
-        // First try exact normalized match
-        Optional<Inventory> existing = inventoryRepository
-                .findByNormalizedNameAndCategoryIdAndUnitIdAndKitchenId(normalizedName, categoryId, unitId, kitchenId);
-        
-        if (existing.isPresent()) {
-            return existing.get();
-        }
-        
-        // Check if there's an existing inventory with same normalized name but different display name
-        List<String> existingNames = inventoryRepository
-                .findExistingNamesByKitchenAndCategoryAndUnit(kitchenId, categoryId, unitId);
-        
-        for (String existingName : existingNames) {
-            if (NameNormalizationUtil.normalizeName(existingName).equals(normalizedName)) {
-                return inventoryRepository
-                        .findByNormalizedNameAndCategoryIdAndUnitIdAndKitchenId(normalizedName, categoryId, unitId, kitchenId)
-                        .orElse(null);
-            }
-        }
-        
-        // Try fuzzy matching with existing names
-        try {
-            String bestMatch = NameNormalizationUtil.findBestMatch(name, existingNames);
-            if (bestMatch != null) {
-                String bestMatchNormalized = NameNormalizationUtil.normalizeName(bestMatch);
-                Optional<Inventory> fuzzyMatch = inventoryRepository
-                        .findByNormalizedNameAndCategoryIdAndUnitIdAndKitchenId(bestMatchNormalized, categoryId, unitId, kitchenId);
-                if (fuzzyMatch.isPresent()) {
-                    return fuzzyMatch.get();
-                }
-            }
-        } catch (Exception e) {
-            // Continue to create new inventory if fuzzy matching fails
-        }
-        
-        // Create new inventory
-        try {
-            Inventory inventory = new Inventory();
-            inventory.setName(NameNormalizationUtil.capitalizeDisplayName(name));
-            inventory.setKitchenId(kitchenId);
-            
-            Category category = categoryRepository.findById(categoryId)
-                    .orElseThrow(() -> new ItemNotFoundException("Category not found: " + categoryId));
-            Unit unit = unitRepository.findById(unitId)
-                    .orElseThrow(() -> new ItemNotFoundException("Unit not found: " + unitId));
-            
-            inventory.setCategory(category);
-            inventory.setUnit(unit);
-            inventory.setTotalQuantity(0L);
-            
-            return inventoryRepository.save(inventory);
-        } catch (Exception e) {
-            // If save fails due to constraint, try to find existing again
-            return inventoryRepository
-                    .findByNormalizedNameAndCategoryIdAndUnitIdAndKitchenId(normalizedName, categoryId, unitId, kitchenId)
-                    .orElseThrow(() -> new RuntimeException("Failed to create or find inventory: " + e.getMessage()));
-        }
-    }
-    */
-    
-    // COMMENTED OUT - DUPLICATE METHOD (keeping the better version below)
-    /*
-    private void updateInventoryTotalQuantity(Long inventoryId) {
-        Long totalQuantity = inventoryItemRepository.sumQuantityByInventoryId(inventoryId);
-        Inventory inventory = inventoryRepository.findById(inventoryId)
-                .orElseThrow(() -> new ItemNotFoundException(inventoryId));
-        inventory.setTotalQuantity(totalQuantity != null ? totalQuantity : 0L);
-        inventoryRepository.save(inventory);
-    }
-    */
+
 
     // KEEPING THIS VERSION - Better implementation with improved user handling
     @Override
@@ -316,8 +183,14 @@ public class InventoryServiceImpl implements InventoryService {
             });
         }
         
-        // Set item count and earliest expiry
-        response.setItemCount(response.getItems() != null ? response.getItems().size() : 0);
+        // Set item count to only active items and earliest expiry
+        int activeItemCount = 0;
+        if (response.getItems() != null) {
+            activeItemCount = (int) response.getItems().stream()
+                .filter(item -> item.getQuantity() != null && item.getQuantity() > 0)
+                .count();
+        }
+        response.setItemCount(activeItemCount);
         response.setEarliestExpiry(inventoryItemRepository.findEarliestExpiryByInventoryId(id));
         
         return response;
@@ -368,7 +241,12 @@ public class InventoryServiceImpl implements InventoryService {
             // Convert quantity if needed (assuming same unit as existing item)
             String currentUnitName = item.getInventory().getUnit().getName();
             Long convertedQuantity = UnitConversionUtil.convertToBaseUnit(dto.getQuantity(), currentUnitName);
-            item.setQuantity(convertedQuantity);
+            // Legacy support - convert to new fields
+        BigDecimal quantityBD = new BigDecimal(convertedQuantity);
+        if (item.getOriginalQuantity() == null) {
+            item.setOriginalQuantity(quantityBD);
+        }
+        item.setCurrentQuantity(quantityBD);
         }
         if (dto.getLocationId() != null) {
             Location location = locationRepository.findById(dto.getLocationId()).orElse(null);
@@ -475,99 +353,226 @@ public class InventoryServiceImpl implements InventoryService {
     }
     
     private void updateInventoryTotalQuantity(Long inventoryId) {
-        Long totalQuantity = inventoryItemRepository.sumQuantityByInventoryId(inventoryId);
+        BigDecimal totalQuantity = inventoryItemRepository.sumCurrentQuantityByInventoryId(inventoryId);
         Inventory inventory = inventoryRepository.findById(inventoryId)
                 .orElseThrow(() -> new ItemNotFoundException(inventoryId));
-        inventory.setTotalQuantity(totalQuantity != null ? totalQuantity : 0L);
+        inventory.setTotalQuantity(totalQuantity != null ? totalQuantity.longValue() : 0L);
+        
+        // Update item count to only active items
+        Long activeItemCount = inventoryItemRepository.countByInventoryIdAndIsActiveTrue(inventoryId);
+        inventory.setItemCount(activeItemCount != null ? activeItemCount.intValue() : 0);
+        
         inventoryRepository.save(inventory);
     }
+    
+    // New method to support OCR integration
+    public InventoryItem addItemFromOcr(AiExtractedItems aiItem, Long userId) {
+        // Find or create category
+        Category category = categoryRepository.findByName(aiItem.getCategoryName())
+            .orElseGet(() -> {
+                Category newCategory = new Category();
+                newCategory.setName(aiItem.getCategoryName());
+                newCategory.setDescription("Auto-created from OCR");
+                return categoryRepository.save(newCategory);
+            });
+        
+        // Find or create unit
+        Unit unit = unitRepository.findByName(aiItem.getUnitName())
+            .orElseGet(() -> {
+                Unit newUnit = new Unit();
+                newUnit.setName(aiItem.getUnitName());
+                newUnit.setType("weight");
+                return unitRepository.save(newUnit);
+            });
+        
+        // Find kitchen ID from OCR upload
+        Long kitchenId = getKitchenIdFromOcrUpload(aiItem.getOcrUploadId());
+        
+        // Find or create inventory
+        Inventory inventory = findOrCreateInventory(
+            aiItem.getCanonicalName(), 
+            category.getId(), 
+            unit.getId(), 
+            kitchenId
+        );
+        
+        // Create inventory item
+        InventoryItem item = InventoryItem.builder()
+            .inventory(inventory)
+            .description(aiItem.getRawName())
+            .originalQuantity(BigDecimal.valueOf(aiItem.getQuantity()))
+            .currentQuantity(BigDecimal.valueOf(aiItem.getQuantity()))
+            .isActive(true)
+            .status(InventoryItem.ItemStatus.FRESH)
+            .expiryDate(aiItem.getExpiryDate() != null ? 
+                       java.sql.Date.valueOf(aiItem.getExpiryDate()) : null)
+            .price(aiItem.getPrice() != null ? BigDecimal.valueOf(aiItem.getPrice()) : null)
+            .createdBy(userId)
+            .build();
+        
+        InventoryItem saved = inventoryItemRepository.save(item);
+        
+        // Update inventory totals
+        updateInventoryTotalQuantity(inventory.getId());
+        
+        return saved;
+    }
+    
+    private Long getKitchenIdFromOcrUpload(Long ocrUploadId) {
+        // For now returning a default value - this should be implemented properly
+        return 1L;
+    }
 
-    // Add this method to your InventoryServiceImpl class
+    @Override
     @Transactional
-    public void consumeItems(ConsumeItemsRequestDTO dto) {
-        System.out.println("🔥 [BACKEND] Starting to consume " + dto.getItems().size() + " items");
+    public ConsumeItemsResponseDTO consumeItems(ConsumeItemsRequestDTO dto) {
+        List<ConsumeItemsResponseDTO.ConsumedItemDetail> consumedDetails = new ArrayList<>();
         
         for (ConsumeItemsRequestDTO.ConsumeItemDTO consumeItem : dto.getItems()) {
-            System.out.println("🔥 [BACKEND] Processing item ID: " + consumeItem.getId() + ", quantity: " + consumeItem.getConsumedQuantity());
+            // Always treat as inventory group for FIFO consumption
+            Optional<Inventory> inventory = inventoryRepository.findById(consumeItem.getId());
             
-            // First try to find as inventory item (individual item)
-            Optional<InventoryItem> inventoryItem = inventoryItemRepository.findById(consumeItem.getId());
-            
-            if (inventoryItem.isPresent()) {
-                System.out.println("✅ [BACKEND] Found individual inventory item: " + inventoryItem.get().getInventory().getName());
-                // Handle individual inventory item
-                InventoryItem item = inventoryItem.get();
-                Long consumedQuantityLong = consumeItem.getConsumedQuantity().longValue();
+            if (inventory.isPresent()) {
+                Inventory inv = inventory.get();
+                BigDecimal requestedQuantity = consumeItem.getConsumedQuantity();
                 
-                if (item.getQuantity() >= consumedQuantityLong) {
-                    item.setQuantity(item.getQuantity() - consumedQuantityLong);
-                    
-                    if (item.getQuantity() == 0) {
-                        recordConsumptionEvent(item, ConsumptionEvent.EventReason.CONSUMED);
-                        Inventory inventory = item.getInventory();
-                        inventoryItemRepository.delete(item);
-                        
-                        inventory.setItemCount(inventory.getItemCount() - 1);
-                        if (inventory.getItemCount() <= 0) {
-                            inventoryRepository.delete(inventory);
-                        } else {
-                            updateInventoryTotalQuantity(inventory.getId());
-                            inventoryRepository.save(inventory);
-                        }
-                    } else {
-                        inventoryItemRepository.save(item);
-                        updateInventoryTotalQuantity(item.getInventory().getId());
-                    }
+                // Get active items ordered by expiry date (FIFO)
+                List<InventoryItem> items = inventoryItemRepository
+                    .findByInventoryIdAndIsActiveTrueOrderByExpiryDateAsc(inv.getId());
+                
+                // Check if sufficient quantity available
+                BigDecimal totalAvailable = items.stream()
+                    .map(InventoryItem::getCurrentQuantity)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                
+                if (requestedQuantity.compareTo(totalAvailable) > 0) {
+                    throw new RuntimeException("Insufficient quantity. Requested: " + requestedQuantity + 
+                                             ", Available: " + totalAvailable);
                 }
+                
+                BigDecimal remainingToConsume = requestedQuantity;
+                List<ConsumeItemsResponseDTO.ItemConsumptionDetail> itemDetails = new ArrayList<>();
+                
+                for (InventoryItem item : items) {
+                    if (remainingToConsume.compareTo(BigDecimal.ZERO) <= 0) break;
+                    
+                    BigDecimal toConsumeFromThisItem = remainingToConsume.min(item.getCurrentQuantity());
+                    
+                    // CREATE USAGE LOG for each item
+                    createUsageLogForConsumption(item, toConsumeFromThisItem, dto.getUserId());
+                    
+                    // Update item quantity
+                    BigDecimal newQuantity = item.getCurrentQuantity().subtract(toConsumeFromThisItem);
+                    remainingToConsume = remainingToConsume.subtract(toConsumeFromThisItem);
+                    
+                    // Create consumption detail
+                    ConsumeItemsResponseDTO.ItemConsumptionDetail detail = 
+                        ConsumeItemsResponseDTO.ItemConsumptionDetail.builder()
+                            .itemId(item.getId())
+                            .expiryDate(item.getExpiryDate())
+                            .addedBy(item.getCreatedBy())
+                            .addedByName(getUserName(item.getCreatedBy()))
+                            .quantityConsumed(toConsumeFromThisItem)
+                            .remainingQuantity(newQuantity)
+                            .build();
+                    itemDetails.add(detail);
+                    
+                    if (newQuantity.compareTo(BigDecimal.ZERO) <= 0) {
+                        item.setCurrentQuantity(BigDecimal.ZERO);
+                        item.setIsActive(false);
+                        item.setStatus(InventoryItem.ItemStatus.CONSUMED);
+                    } else {
+                        item.setCurrentQuantity(newQuantity);
+                    }
+                    
+                    inventoryItemRepository.save(item);
+                }
+                
+                updateInventoryTotalQuantity(inv.getId());
+                
+                ConsumeItemsResponseDTO.ConsumedItemDetail consumedDetail = 
+                    ConsumeItemsResponseDTO.ConsumedItemDetail.builder()
+                        .inventoryId(inv.getId())
+                        .itemName(inv.getName())
+                        .totalConsumed(requestedQuantity)
+                        .unit(inv.getUnit().getName())
+                        .itemDetails(itemDetails)
+                        .build();
+                consumedDetails.add(consumedDetail);
             } else {
-                System.out.println("🔍 [BACKEND] Not found as individual item, trying as inventory group...");
-                // Try to find as inventory group and consume from its items
-                Optional<Inventory> inventory = inventoryRepository.findById(consumeItem.getId());
-                
-                if (inventory.isPresent()) {
-                    System.out.println("✅ [BACKEND] Found inventory group: " + inventory.get().getName());
-                    Inventory inv = inventory.get();
-                    Long consumedQuantityLong = consumeItem.getConsumedQuantity().longValue();
-                    
-                    // Get all items for this inventory group
-                    List<InventoryItem> items = inventoryItemRepository.findByInventoryIdOrderByExpiryDateAsc(inv.getId());
-                    System.out.println("📦 [BACKEND] Found " + items.size() + " items in group");
-                    
-                    Long remainingToConsume = consumedQuantityLong;
-                    
-                    for (InventoryItem item : items) {
-                        if (remainingToConsume <= 0) break;
-                        
-                        Long toConsumeFromThisItem = Math.min(remainingToConsume, item.getQuantity());
-                        System.out.println("🍽️ [BACKEND] Consuming " + toConsumeFromThisItem + " from item " + item.getId());
-                        
-                        item.setQuantity(item.getQuantity() - toConsumeFromThisItem);
-                        remainingToConsume -= toConsumeFromThisItem;
-                        
-                        if (item.getQuantity() == 0) {
-                            recordConsumptionEvent(item, ConsumptionEvent.EventReason.CONSUMED);
-                            inventoryItemRepository.delete(item);
-                            inv.setItemCount(inv.getItemCount() - 1);
-                        } else {
-                            inventoryItemRepository.save(item);
-                        }
-                    }
-                    
-                    // Update inventory totals
-                    if (inv.getItemCount() <= 0) {
-                        inventoryRepository.delete(inv);
-                    } else {
-                        updateInventoryTotalQuantity(inv.getId());
-                        inventoryRepository.save(inv);
-                    }
-                } else {
-                    System.err.println("❌ [BACKEND] Inventory item not found with ID: " + consumeItem.getId());
-                    throw new RuntimeException("Inventory item not found with ID: " + consumeItem.getId());
-                }
+                throw new RuntimeException("Inventory not found with ID: " + consumeItem.getId());
             }
         }
         
-        System.out.println("✅ [BACKEND] Successfully consumed all items");
+        return ConsumeItemsResponseDTO.builder()
+            .consumedItems(consumedDetails)
+            .totalItemsConsumed(consumedDetails.size())
+            .build();
+    }
+    
+    private String getUserName(Long userId) {
+        if (userId == null) return "Unknown";
+        return userRepository.findById(userId)
+            .map(User::getName)
+            .orElse("Unknown");
+    }
+    
+    @Override
+    public InventoryConsumptionInfoDTO getConsumptionInfo(Long inventoryId) {
+        Inventory inventory = inventoryRepository.findById(inventoryId)
+            .orElseThrow(() -> new ItemNotFoundException(inventoryId));
+        
+        List<InventoryItem> activeItems = inventoryItemRepository
+            .findByInventoryIdAndIsActiveTrueOrderByExpiryDateAsc(inventoryId);
+        
+        BigDecimal totalAvailable = activeItems.stream()
+            .map(InventoryItem::getCurrentQuantity)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        List<InventoryConsumptionInfoDTO.AvailableItemDetail> itemDetails = activeItems.stream()
+            .map(item -> InventoryConsumptionInfoDTO.AvailableItemDetail.builder()
+                .itemId(item.getId())
+                .quantity(item.getCurrentQuantity())
+                .expiryDate(item.getExpiryDate())
+                .addedByName(getUserName(item.getCreatedBy()))
+                .addedDate(item.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+        
+        return InventoryConsumptionInfoDTO.builder()
+            .inventoryId(inventoryId)
+            .itemName(inventory.getName())
+            .totalAvailable(totalAvailable)
+            .unit(inventory.getUnit().getName())
+            .availableItems(itemDetails)
+            .build();
+    }
+    
+    private void createUsageLogForConsumption(InventoryItem item, BigDecimal quantity, Long userId) {
+        try {
+            UsageLog usageLog = UsageLog.builder()
+                .inventoryItemId(item.getId())
+                .kitchenId(item.getInventory().getKitchenId())
+                .userId(userId)
+                .quantityUsed(quantity)
+                .unit(item.getInventory().getUnit())
+                .usageType(UsageLog.UsageType.DIRECT_CONSUMPTION)
+                .notes("Manual consumption")
+                .build();
+            usageLogRepository.save(usageLog);
+        } catch (Exception e) {
+            log.warn("Failed to create usage log for item: {}", item.getId(), e);
+        }
+    }
+    
+    @Override
+    public List<InventoryItemResponseDTO> getExpiredItems(Long kitchenId) {
+        List<InventoryItem> expiredItems = inventoryItemRepository
+            .findExpiredActiveItems(kitchenId);
+        
+        return expiredItems.stream()
+            .map(inventoryItemMapper::toResponseDTO)
+            .collect(Collectors.toList());
     }
 
 }

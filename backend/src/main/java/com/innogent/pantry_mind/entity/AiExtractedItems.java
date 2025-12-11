@@ -54,11 +54,13 @@ public class AiExtractedItems {
     private Double confidence;
 
     @Column(name = "is_confirmed")
+    @Builder.Default
     private Boolean isConfirmed = false;
 
     @Column(name = "raw_ai_json", columnDefinition = "TEXT")
     private String rawAiJson;
 
     @Column(name = "created_at")
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

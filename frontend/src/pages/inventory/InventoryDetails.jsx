@@ -180,7 +180,7 @@ export default function InventoryDetails() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Individual Items</div>
-              <div className="font-semibold text-gray-900">{inventory.items?.length || 0}</div>
+              <div className="font-semibold text-gray-900">{inventory.items?.filter(item => item.quantity > 0)?.length || 0}</div>
             </div>
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function InventoryDetails() {
 
       {/* Items table */}
       <h2 className="text-lg font-semibold text-gray-900 mb-3">Individual Items</h2>
-      {inventory.items?.length ? (
+      {inventory.items?.filter(item => item.quantity > 0)?.length ? (
         <div className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -204,7 +204,7 @@ export default function InventoryDetails() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {inventory.items.map((item, idx) => {
+                {inventory.items.filter(item => item.quantity > 0).map((item, idx) => {
                   const status = getExpiryStatus(item.expiryDate);
                   return (
                     <tr key={item.id} className="hover:bg-gray-50/60">

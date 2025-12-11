@@ -7,6 +7,7 @@ import com.innogent.pantry_mind.dto.request.UpdateUserRequestDTO;
 import com.innogent.pantry_mind.exception.InvalidPasswordException;
 import com.innogent.pantry_mind.service.OtpService;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import com.innogent.pantry_mind.dto.response.UserResponseDTO;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
@@ -35,11 +37,11 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO register(RegisterRequestDTO request){
         // Check if email exists
         userRepository.findByEmail(request.getEmail()).ifPresent(u -> {
-            throw new RuntimeException("Email already registered");
+            throw new RuntimeException("User already exists with email: " + request.getEmail());
         });
 
         userRepository.findByUsername(request.getUsername()).ifPresent(u -> {
-            throw new RuntimeException("Username already registered");
+            throw new RuntimeException("User already exists with username: " + request.getUsername());
         });
 
         User user = userMapper.toUser(request);
@@ -114,14 +116,12 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         // TODO: Generate reset token and send email
-        // For now, just log the action
-        System.out.println("Password reset requested for: " + email);
+        log.info("Password reset requested for user: {}", email);
     }
 
     @Override
     public void resetPassword(String token, String newPassword) {
-        
-        System.out.println("Password reset with token: " + token);
+        log.info("Password reset attempted with token: {}", token);
     }
 
     @Override

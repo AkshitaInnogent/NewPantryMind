@@ -6,26 +6,42 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
 @Repository
 public interface InventoryItemRepository extends JpaRepository<InventoryItem, Long> {
+    
+    // NEW QUERIES FOR TRACKING SYSTEM
+    List<InventoryItem> findByInventoryIdAndIsActiveTrue(Long inventoryId);
+    
+    @Query("SELECT i FROM InventoryItem i WHERE i.inventory.id = :inventoryId AND i.isActive = true ORDER BY i.expiryDate ASC")
+    List<InventoryItem> findByInventoryIdAndIsActiveTrueOrderByExpiryDateAsc(@Param("inventoryId") Long inventoryId);
+    
+    @Query("SELECT i FROM InventoryItem i WHERE i.inventory.kitchenId = :kitchenId AND i.isActive = true AND i.expiryDate < CURRENT_DATE")
+    List<InventoryItem> findExpiredActiveItems(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT SUM(i.currentQuantity) FROM InventoryItem i WHERE i.inventory.id = :inventoryId AND i.isActive = true")
+    BigDecimal sumCurrentQuantityByInventoryId(@Param("inventoryId") Long inventoryId);
     @Query("SELECT i FROM InventoryItem i LEFT JOIN FETCH i.createdByUser WHERE i.inventory.id = :inventoryId")
     List<InventoryItem> findByInventoryId(@Param("inventoryId") Long inventoryId);
     
     @Query("SELECT i FROM InventoryItem i WHERE i.inventory.id = :inventoryId ORDER BY i.expiryDate ASC")
     List<InventoryItem> findByInventoryIdOrderByExpiryDateAsc(@Param("inventoryId") Long inventoryId);
     
-    @Query("SELECT SUM(i.quantity) FROM InventoryItem i WHERE i.inventory.id = :inventoryId")
-    Long sumQuantityByInventoryId(@Param("inventoryId") Long inventoryId);
+    @Query("SELECT SUM(i.currentQuantity) FROM InventoryItem i WHERE i.inventory.id = :inventoryId AND i.isActive = true")
+    BigDecimal sumQuantityByInventoryId(@Param("inventoryId") Long inventoryId);
     
     @Query("SELECT MIN(i.expiryDate) FROM InventoryItem i WHERE i.inventory.id = :inventoryId AND i.expiryDate >= CURRENT_DATE")
     Date findEarliestExpiryByInventoryId(@Param("inventoryId") Long inventoryId);
     
     @Query("SELECT COUNT(i) FROM InventoryItem i WHERE i.inventory.id = :inventoryId")
     Long countByInventoryId(@Param("inventoryId") Long inventoryId);
+    
+    @Query("SELECT COUNT(i) FROM InventoryItem i WHERE i.inventory.id = :inventoryId AND (i.isActive = true OR (i.isActive IS NULL AND i.currentQuantity > 0))")
+    Long countByInventoryIdAndIsActiveTrue(@Param("inventoryId") Long inventoryId);
     
     @Query(value = "SELECT COALESCE(SUM(ii.price), 0) FROM inventory_item ii JOIN inventory i ON ii.inventory_id = i.id WHERE i.kitchen_id = :kitchenId", nativeQuery = true)
     Double calculateTotalValueByKitchen(@Param("kitchenId") Long kitchenId);
@@ -53,4 +69,10 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     
     @Query(value = "SELECT COUNT(*) FROM inventory_item WHERE expiry_date <= CURRENT_DATE + INTERVAL '7 days'", nativeQuery = true)
     Long countExpiringItems();
+    
+    @Query("SELECT c.name, COUNT(inv) FROM Inventory inv JOIN inv.category c WHERE inv.kitchenId = :kitchenId GROUP BY c.name")
+    List<Object[]> findCategoryDistribution(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT i FROM InventoryItem i JOIN i.inventory inv WHERE inv.kitchenId = :kitchenId")
+    List<InventoryItem> findByKitchenId(@Param("kitchenId") Long kitchenId);
 }
