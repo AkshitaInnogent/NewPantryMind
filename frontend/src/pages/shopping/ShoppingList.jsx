@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Card, Button, Input, LoadingSpinner, Alert } from '../../components/ui';
+import { Card, Button, Input, LoadingSpinner } from '../../components/ui';
+import { showToast } from '../../utils/toast';
+import { showAlert } from '../../utils/sweetAlert';
 import { fetchShoppingLists, addItemToList, updateItem, deleteItem } from '../../features/shopping/shoppingThunks';
 import { fetchUnits } from '../../features/units/unitThunks';
 import PageLayout from '../../components/layout/PageLayout';
@@ -58,7 +60,13 @@ const ShoppingList = () => {
     };
 
     const handleDeleteItem = async (itemId) => {
-        if (window.confirm('Remove this item from the list?')) {
+        const result = await showAlert.confirm(
+            'Remove Item',
+            'Are you sure you want to remove this item from the shopping list?',
+            'Yes, remove'
+        );
+        
+        if (result.isConfirmed) {
             await dispatch(deleteItem(itemId));
         }
     };
@@ -138,8 +146,13 @@ const ShoppingList = () => {
         return descriptions[type] || '';
     };
 
+    useEffect(() => {
+        if (error) {
+            showToast.error("Failed to load shopping lists");
+        }
+    }, [error]);
+
     if (loading) return <PageLayout><LoadingSpinner /></PageLayout>;
-    if (error) return <PageLayout><Alert type="error" message={error} /></PageLayout>;
 
     return (
         <PageLayout

@@ -4,16 +4,27 @@ import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../features/auth/authThunks";
 import { clearError } from "../../features/auth/authSlice";
 import { Input } from "../../components/ui";
+import { showToast } from "../../utils/toast";
 
 export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, user, error } = useSelector((state) => state.auth);
+  const { loading, user, error, isAuthenticated } = useSelector((state) => state.auth);
 
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+
+  // Handle success notification
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      showToast.success(`Welcome back, ${user.firstName || user.email}!`);
+    }
+  }, [isAuthenticated, user]);
+
+  // Handle error notification - removed toast for login page
+  // Error will only show in the login card
 
   // Role-based redirect after login
   useEffect(() => {
@@ -57,8 +68,16 @@ export default function Login() {
 
         {/* Error display */}
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm">
-            {typeof error === 'string' ? error : error.error || error.message || "Login failed. Please check your credentials."}
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-6 text-sm flex items-center gap-3 animate-pulse">
+            <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-red-600 text-xs">⚠️</span>
+            </div>
+            <div>
+              <p className="font-medium">Login Failed</p>
+              <p className="text-red-600 mt-1">
+                {typeof error === 'string' ? error : error.error || error.message || "Please check your email and password and try again."}
+              </p>
+            </div>
           </div>
         )}
 
@@ -67,6 +86,7 @@ export default function Login() {
             label="Email"
             value={form.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
+            className={error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
           />
 
           <Input
@@ -74,6 +94,7 @@ export default function Login() {
             type="password"
             value={form.password}
             onChange={(e) => handleInputChange('password', e.target.value)}
+            className={error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
           />
         </div>
 

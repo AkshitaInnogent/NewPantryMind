@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { generateExpiryRecipes } from "../../features/recipes/recipeThunks";
 import { clearRecipe, clearError } from "../../features/recipes/recipeSlice";
 import PageLayout from "../../components/layout/PageLayout";
-import { Button, LoadingSpinner, Alert, Card } from "../../components/ui";
+import { Button, LoadingSpinner, Card } from "../../components/ui";
+import { showToast } from "../../utils/toast";
 import { Clock, AlertTriangle, Users, Plus, Minus, Leaf, ArrowLeft } from "lucide-react";
 
 export default function ExpiryRecipes() {

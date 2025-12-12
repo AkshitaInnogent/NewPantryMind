@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { verifyRegistrationOtp, sendRegistrationOtp } from "../../features/auth/authThunks";
-import { clearError, clearRegistrationState } from "../../features/auth/authSlice";
+import { clearError } from "../../features/auth/authSlice";
 import { Alert } from "../../components/ui";
 
 export default function VerifyOtp() {
@@ -23,7 +23,7 @@ export default function VerifyOtp() {
       navigate("/register");
       return;
     }
-    if (isAuthenticated && user) {
+    if (isAuthenticated) {
       navigate("/kitchen-setup");
     }
   }, [email, isAuthenticated, user, navigate]);
@@ -77,22 +77,7 @@ export default function VerifyOtp() {
           We've sent a 6-digit code to <strong>{email}</strong>
         </p>
 
-        {error && (
-          <Alert
-            type="error"
-            title="Verification Failed"
-            message={error.error || error.message || error}
-            className="mb-4"
-          />
-        )}
 
-        {resendMessage && (
-          <Alert
-            type={resendMessage.includes("Failed") ? "error" : "success"}
-            message={resendMessage}
-            className="mb-4"
-          />
-        )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-6">

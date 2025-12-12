@@ -5,6 +5,8 @@ import InventoryStats from "../../components/dashboard/InventoryStats";
 import ExpiredItems from "../../components/dashboard/ExpiredItems";
 import { Button } from "../../components/ui";
 import axiosClient from "../../services/api";
+import { showToast } from "../../utils/toast";
+import { showAlert } from "../../utils/sweetAlert";
 import { fetchKitchenMembers } from "../../features/members/memberThunks";
 import { notificationApi } from "../../services/notificationApi";
 import websocketService from "../../services/websocketService";
@@ -66,14 +68,21 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteKitchen = async () => {
-    if (window.confirm("Are you sure you want to delete this kitchen? This action cannot be undone and will remove all members and inventory.")) {
+    const result = await showAlert.confirm(
+      'Delete Kitchen',
+      'Are you sure you want to delete this kitchen? This action cannot be undone and will remove all members and inventory.',
+      'Yes, delete kitchen'
+    );
+    
+    if (result.isConfirmed) {
       try {
         await axiosClient.delete(`/kitchens/${user.kitchenId}`);
         const updatedUser = { ...user, role: 'USER', kitchenId: null };
         localStorage.setItem('user', JSON.stringify(updatedUser));
+        showToast.success('Kitchen deleted successfully');
         window.location.href = '/user';
       } catch (error) {
-        alert('Failed to delete kitchen');
+        showToast.error('Failed to delete kitchen');
       }
     }
   };

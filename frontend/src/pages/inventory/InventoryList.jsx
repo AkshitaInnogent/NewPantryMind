@@ -12,13 +12,23 @@ export default function InventoryList() {
   const navigate = useNavigate();
   const { items, loading, error } = useSelector((state) => state.inventory);
 
+  // Show error toast when error occurs
+  useEffect(() => {
+    if (error) {
+      showToast.error("Failed to load inventory items");
+    }
+  }, [error]);
+
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [consumeModal, setConsumeModal] = useState({ isOpen: false, item: null });
+  const [consumeModal, setConsumeModal] = useState({
+    isOpen: false,
+    item: null,
+  });
 
   useEffect(() => {
     dispatch(fetchInventoryItems());
-    
+
     // Listen for inventory updates
     const handleInventoryUpdate = () => {
       dispatch(fetchInventoryItems());
@@ -44,30 +54,34 @@ export default function InventoryList() {
     const date = new Date(expiryDate);
     const today = new Date();
     const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays <= 3) {
-      return `⚠️ ${diffDays === 0 ? 'Today' : `${diffDays} day${diffDays > 1 ? 's' : ''}`}`;
+      return `⚠️ ${
+        diffDays === 0 ? "Today" : `${diffDays} day${diffDays > 1 ? "s" : ""}`
+      }`;
     }
     return date.toLocaleDateString();
   };
-  
+
   const filteredItems = useMemo(() => {
     let filtered = items;
 
     // Filter by category
     if (selectedCategory !== "All") {
-      filtered = filtered.filter(item => 
-        item.categoryName?.toLowerCase() === selectedCategory.toLowerCase()
+      filtered = filtered.filter(
+        (item) =>
+          item.categoryName?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
     // Filter by search term
     if (searchTerm.trim()) {
-      filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.categoryName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.location?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.categoryName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.location?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -76,13 +90,15 @@ export default function InventoryList() {
 
   const getUniqueCategories = () => {
     const categories = ["All"];
-    const uniqueCategories = [...new Set(items.map(item => item.categoryName).filter(Boolean))];
+    const uniqueCategories = [
+      ...new Set(items.map((item) => item.categoryName).filter(Boolean)),
+    ];
     return categories.concat(uniqueCategories.sort());
   };
 
   const getCategoryIcon = (categoryName) => {
     const category = categoryName?.toLowerCase() || "";
-    
+
     if (category.includes("dairy") || category.includes("milk")) {
       return (
         <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -90,7 +106,7 @@ export default function InventoryList() {
         </div>
       );
     }
-    
+
     if (category.includes("vegetable") || category.includes("veggie")) {
       return (
         <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -114,8 +130,12 @@ export default function InventoryList() {
         </div>
       );
     }
-    
-    if (category.includes("grain") || category.includes("cereal") || category.includes("bread")) {
+
+    if (
+      category.includes("grain") ||
+      category.includes("cereal") ||
+      category.includes("bread")
+    ) {
       return (
         <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
           <span className="text-yellow-600 text-2xl">🍞</span>
@@ -173,17 +193,25 @@ export default function InventoryList() {
 
   const getCategoryTabIcon = (categoryName) => {
     const category = categoryName?.toLowerCase() || "";
-    
+
     if (categoryName === "All") return "🏠";
     if (category.includes("dairy") || category.includes("milk")) return "🥛";
-    if (category.includes("vegetable") || category.includes("veggie")) return "🥬";
+    if (category.includes("vegetable") || category.includes("veggie"))
+      return "🥬";
     if (category.includes("fruit")) return "🍎";
     if (category.includes("meat") || category.includes("protein")) return "🥩";
-    if (category.includes("grain") || category.includes("cereal") || category.includes("bread")) return "🍞";
-    if (category.includes("beverage") || category.includes("drink")) return "🥤";
+    if (
+      category.includes("grain") ||
+      category.includes("cereal") ||
+      category.includes("bread")
+    )
+      return "🍞";
+    if (category.includes("beverage") || category.includes("drink"))
+      return "🥤";
     if (category.includes("snack") || category.includes("candy")) return "🍪";
     if (category.includes("frozen")) return "🧊";
-    if (category.includes("spice") || category.includes("seasoning")) return "🧂";
+    if (category.includes("spice") || category.includes("seasoning"))
+      return "🧂";
     if (category.includes("oil") || category.includes("condiment")) return "🫒";
     return "📦";
   };
@@ -238,29 +266,23 @@ export default function InventoryList() {
               <span className="text-lg">{getCategoryTabIcon(category)}</span>
               {category}
               <span className="text-xs opacity-75">
-                ({category === "All" ? items.filter(item => item.itemCount > 0).length : items.filter(item => item.categoryName === category && item.itemCount > 0).length})
+                ({category === "All" ? items.length : items.filter(item => item.categoryName === category).length})
               </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Error */}
-      {error && (
-        <Alert
-          type="error"
-          title="Error Loading Inventory"
-          message={error}
-          className="mb-6"
-        />
-      )}
-
       {/* Items Grid */}
       {filteredItems.length === 0 ? (
         <EmptyState
           icon={<Package className="w-16 h-16 text-gray-400" />}
           title="No inventory items found"
-          description={searchTerm ? "Try adjusting your search terms" : "Start by adding some items to your inventory"}
+          description={
+            searchTerm
+              ? "Try adjusting your search terms"
+              : "Start by adding some items to your inventory"
+          }
           action={
             <Button onClick={() => navigate("/inventory/add-ocr")}>
               Add First Item
@@ -285,38 +307,73 @@ export default function InventoryList() {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.name}</h3>
-                  <p className="text-sm text-gray-600">{item.categoryName}</p>
+                  {/* Quantity Display */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-600">Quantity</span>
+                      <span className={`text-2xl font-bold ${
+                        isLowStock ? 'text-orange-600' : 'text-gray-900'
+                      }`}>
+                        {item.quantity || item.totalQuantity}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm text-gray-500 font-medium">{item.unitName}</span>
+                    </div>
+                  </div>
+
+                  {/* Location */}
+                  {item.locationName && (
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">📍</span>
+                        <span className="font-medium text-gray-700">{item.locationName}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expiry Date */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-600">Expires</span>
+                      <span className={`text-sm font-bold px-2 py-1 rounded-full ${
+                        isExpiringSoon
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {formatExpiryDate(item.expiryDate || item.earliestExpiry)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/inventory/details/${item.id}`);
+                      }}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openConsumeModal(item);
+                      }}
+                      className="flex-1 border border-green-600 text-green-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-green-50 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
+                    >
+                      Use
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Quantity:</span>
-                    <span className="font-medium">{item.totalQuantity} {item.unitName}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Items:</span>
-                    <span className="font-medium">{item.itemCount}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Expires:</span>
-                    <span className="text-sm font-medium">{formatExpiryDate(item.earliestExpiry)}</span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  // onClick={() => navigate(`/inventory/${item.id}`)}
-                  onClick={() => navigate(`/inventory/details/${item.id}`)}
-                  className="w-full"
-                >
-                  View Details
-                </Button>
+                {/* Hover Effect Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-green-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
-            </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

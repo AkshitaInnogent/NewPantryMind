@@ -1,38 +1,42 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { useEffect, useState } from "react";
-import { initializeAuth, logout } from './features/auth/authSlice';
-import { validateUser } from './features/auth/authThunks';
+import { useEffect, useState, Suspense, lazy } from "react";
+import { initializeAuth } from './features/auth/authSlice';
 import websocketService from './services/websocketService';
 import './App.css'
-import LandingPage from './pages/LandingPage'
-import { Login, Register, ForgotPassword, ResetPassword, VerifyOtp } from './pages/auth'
-import KitchenSetup from './pages/kitchen/KitchenSetup'
-import { AdminDashboard, MemberDashboard, UserDashboard } from './pages/dashboard'
 import { ProtectedRoute, RoleBasedRoute } from './guards'
 import Header from './components/layout/Header'
-import InventoryList from './pages/inventory/InventoryList'
-import InventoryDetails from './pages/inventory/InventoryDetails'
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-import AddInventoryOCR from './pages/inventory/AddInventoryOCR'
-import EditInventoryItem from './pages/inventory/EditInventoryItem'
-import MemberList from './pages/members/MemberList'
-import Reports from './pages/reports/Reports'
-import Settings from './pages/settings/Settings'
-import Profile from './pages/profile/Profile'
-import LowStockAlerts from './pages/alerts/LowStockAlerts'
-import ExpiryAlerts from './pages/alerts/ExpiryAlerts'
-import SmartRecipes from './pages/recipes/SmartRecipes'
-import RecipeDetail from './pages/recipes/RecipeDetail'
-import ExpiryRecipes from './pages/recipes/ExpiryRecipes'
-import QuickRecipes from './pages/recipes/QuickRecipes'
-import SpecificRecipes from './pages/recipes/SpecificRecipes'
-
-import RecipePreferences from './pages/preferences/RecipePreferences'
-import ShoppingList from './pages/shopping/ShoppingList'
-import ExpiryPage from './pages/expiry/ExpiryPage'
-
+// Immediate load components (auth & landing)
+import LandingPage from './pages/LandingPage'
+import { Login, Register, ForgotPassword, ResetPassword, VerifyOtp } from './pages/auth'
 import Logout from './pages/Logout'
+
+// Lazy load heavy components
+const KitchenSetup = lazy(() => import('./pages/kitchen/KitchenSetup'));
+const AdminDashboard = lazy(() => import('./pages/dashboard/AdminDashboard'));
+const MemberDashboard = lazy(() => import('./pages/dashboard/MemberDashboard'));
+const UserDashboard = lazy(() => import('./pages/dashboard/UserDashboard'));
+const InventoryList = lazy(() => import('./pages/inventory/InventoryList'));
+const InventoryDetails = lazy(() => import('./pages/inventory/InventoryDetails'));
+const AddInventoryItem = lazy(() => import('./pages/inventory/AddInventoryItem'));
+const AddInventoryOCR = lazy(() => import('./pages/inventory/AddInventoryOCR'));
+const EditInventoryItem = lazy(() => import('./pages/inventory/EditInventoryItem'));
+const MemberList = lazy(() => import('./pages/members/MemberList'));
+const Reports = lazy(() => import('./pages/reports/Reports'));
+const Settings = lazy(() => import('./pages/settings/Settings'));
+const Profile = lazy(() => import('./pages/profile/Profile'));
+const LowStockAlerts = lazy(() => import('./pages/alerts/LowStockAlerts'));
+const ExpiryAlerts = lazy(() => import('./pages/alerts/ExpiryAlerts'));
+const SmartRecipes = lazy(() => import('./pages/recipes/SmartRecipes'));
+const RecipeDetail = lazy(() => import('./pages/recipes/RecipeDetail'));
+const ExpiryRecipes = lazy(() => import('./pages/recipes/ExpiryRecipes'));
+const QuickRecipes = lazy(() => import('./pages/recipes/QuickRecipes'));
+const SpecificRecipes = lazy(() => import('./pages/recipes/SpecificRecipes'));
+const RecipePreferences = lazy(() => import('./pages/preferences/RecipePreferences'));
+const ShoppingList = lazy(() => import('./pages/shopping/ShoppingList'));
 
 // Component to redirect based on role
 function DashboardRedirect() {
@@ -109,8 +113,18 @@ function App() {
   return (
     <BrowserRouter>
       <Header />
-      {/* <AuthDebug /> */}
-      <Routes>
+      <Suspense fallback={
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '50vh',
+          fontSize: '16px'
+        }}>
+          Loading...
+        </div>
+      }>
+        <Routes>
         <Route path="/" element={isAuthenticated ? <DashboardRedirect /> : <LandingPage />} />
         <Route path="/register" element={isAuthenticated ? <DashboardRedirect /> : <Register />} />
         <Route path="/login" element={isAuthenticated ? <DashboardRedirect /> : <Login />} />
@@ -178,9 +192,9 @@ function App() {
           </RoleBasedRoute>
         } />
         
-        {/* Reports Route - ADMIN only */}
+        {/* Reports Route */}
         <Route path="/reports" element={
-          <RoleBasedRoute allowedRoles={["ADMIN"]}>
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
             <Reports />
           </RoleBasedRoute>
         } />
@@ -257,13 +271,6 @@ function App() {
           </RoleBasedRoute>
         } />
         
-        {/* Expiry Page Route */}
-        <Route path="/expiry" element={
-          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
-            <ExpiryPage />
-          </RoleBasedRoute>
-        } />
-        
         {/* Logout Route */}
         <Route path="/logout" element={<Logout />} />
         
@@ -273,7 +280,20 @@ function App() {
             <DashboardRedirect />
           </ProtectedRoute>
         } />
-      </Routes>
+        </Routes>
+      </Suspense>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </BrowserRouter>
   )
 }

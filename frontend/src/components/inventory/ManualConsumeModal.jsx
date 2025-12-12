@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { X, Minus } from 'lucide-react';
+import { manualConsumeItem } from '../../features/inventory/inventoryThunks';
+import { showToast } from '../../utils/toast';
+import { showAlert } from '../../utils/sweetAlert';
 import { X, Minus, Clock, User } from 'lucide-react';
 import { manualConsumeItem, getConsumptionInfo } from '../../features/inventory/inventoryThunks';
 
@@ -26,25 +30,25 @@ export default function ManualConsumeModal({ item, isOpen, onClose }) {
 
   const calculateConsumptionPreview = (requestedQuantity) => {
     if (!consumptionInfo || requestedQuantity <= 0) return [];
-    
+
     let remainingToConsume = requestedQuantity;
     const preview = [];
-    
+
     for (const availableItem of consumptionInfo.availableItems) {
       if (remainingToConsume <= 0) break;
-      
+
       const toConsumeFromThis = Math.min(remainingToConsume, availableItem.quantity);
       const remainingAfter = availableItem.quantity - toConsumeFromThis;
-      
+
       preview.push({
         ...availableItem,
         willConsume: toConsumeFromThis,
         willRemain: remainingAfter
       });
-      
+
       remainingToConsume -= toConsumeFromThis;
     }
-    
+
     return preview;
   };
 
@@ -77,14 +81,25 @@ export default function ManualConsumeModal({ item, isOpen, onClose }) {
     const numQuantity = Number(quantity);
     if (numQuantity <= 0 || (consumptionInfo && numQuantity > consumptionInfo.totalAvailable)) return;
     
-    setIsLoading(true);
-    try {
-      await dispatch(manualConsumeItem(item.id, numQuantity));
-      handleClose();
-    } catch (error) {
-      console.error('Failed to consume item:', error);
-    } finally {
-      setIsLoading(false);
+    const result = await showAlert.confirm(
+      'Consume Item',
+      `Are you sure you want to consume ${quantity} ${item.unitName} of ${item.name}?`,
+      'Yes, consume it!'
+    );
+
+    if (result.isConfirmed) {
+      setIsLoading(true);
+      try {
+        await dispatch(manualConsumeItem(item.id, quantity));
+        showToast.success(`Successfully consumed ${quantity} ${item.unitName} of ${item.name}`);
+        onClose();
+        setQuantity(1);
+      } catch (error) {
+        showToast.error('Failed to consume item. Please try again.');
+        console.error('Failed to consume item:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 

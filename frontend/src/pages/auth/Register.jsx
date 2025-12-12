@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { registerUser } from "../../features/auth/authThunks";
 import { clearError } from "../../features/auth/authSlice";
-import { Input, Alert } from "../../components/ui";
+import { Input } from "../../components/ui";
 import { useNavigate } from "react-router-dom";
+import { showToast } from "../../utils/toast";
 
 export default function Register() {
   const dispatch = useDispatch();
@@ -17,6 +18,25 @@ export default function Register() {
     password: "",
   });
 
+  const [emailError, setEmailError] = useState("");
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      return "Email is required";
+    }
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
+  const handleEmailChange = (e) => {
+    const email = e.target.value;
+    setForm({ ...form, email });
+    setEmailError(validateEmail(email));
+  };
+
   useEffect(() => {
     if (user) {
       navigate("/kitchen-setup");
@@ -25,17 +45,33 @@ export default function Register() {
 
   useEffect(() => {
     if (registrationEmail) {
+      showToast.success("Registration successful! Please check your email for OTP.");
       navigate("/verify-otp", { state: { email: registrationEmail } });
     }
   }, [registrationEmail, navigate]);
+
+  useEffect(() => {
+    if (error) {
+      const errorMessage = typeof error === 'string' ? error : 
+        error.error || error.message || "Registration failed";
+      showToast.error(errorMessage);
+    }
+  }, [error]);
 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isAuthenticated) {
-      alert("You are already logged in!");
+      showToast.warning("You are already logged in!");
       return;
     }
+    
+    const emailValidationError = validateEmail(form.email);
+    if (emailValidationError) {
+      setEmailError(emailValidationError);
+      return;
+    }
+    
     dispatch(clearError());
     try {
       await dispatch(registerUser(form)).unwrap();
@@ -51,23 +87,7 @@ export default function Register() {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md border border-gray-200"
       >
-        {isAuthenticated && (
-          <Alert
-            type="warning"
-            title="Already Logged In"
-            message="You are already logged in. Please logout first to register a new account."
-            className="mb-4"
-          />
-        )}
 
-        {error && (
-          <Alert
-            type="error"
-            title="Registration Failed"
-            message={typeof error === 'string' ? error : error.error || error.message || "User already exists or registration failed"}
-            className="mb-4"
-          />
-        )}
 
         {/* Green Tag Badge (same style as landing page) */}
         <div className="inline-flex items-center gap-2 bg-[#e8f7ec] text-[#14833b] px-4 py-2 rounded-full text-sm font-medium mx-auto mb-6">
@@ -93,13 +113,19 @@ export default function Register() {
             disabled={isAuthenticated}
           />
 
-          <Input
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            disabled={isAuthenticated}
-          />
+          <div>
+            <Input
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={handleEmailChange}
+              disabled={isAuthenticated}
+              className={emailError ? "border-red-500" : ""}
+            />
+            {emailError && (
+              <p className="text-red-500 text-sm mt-1">{emailError}</p>
+            )}
+          </div>
 
           <Input
             label="Password"
@@ -111,9 +137,9 @@ export default function Register() {
         </div>
 
         <button
-          disabled={loading || isAuthenticated}
+          disabled={loading || isAuthenticated || emailError}
           className={`w-full mt-6 py-3 rounded-xl text-white font-semibold transition-all ${
-            loading || isAuthenticated
+            loading || isAuthenticated || emailError
               ? "bg-[#1fa74a]/40 cursor-not-allowed"
               : "bg-[#1fa74a] hover:bg-[#188a3c] shadow-sm hover:shadow-md"
           }`}

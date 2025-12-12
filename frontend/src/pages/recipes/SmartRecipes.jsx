@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { generateRecipes, generateRecipeByName } from "../../features/recipes/recipeThunks";
 import { clearRecipe, clearError } from "../../features/recipes/recipeSlice";
 import PageLayout from "../../components/layout/PageLayout";
-import { Button, LoadingSpinner, Alert, Card } from "../../components/ui";
+import { Button, LoadingSpinner, Card } from "../../components/ui";
+import { showToast } from "../../utils/toast";
 import { ChefHat, Clock, Users, Plus, Minus, Package, ShoppingCart, Zap, AlertTriangle, Recycle, Settings } from "lucide-react";
 
 export default function SmartRecipes() {
@@ -12,6 +13,13 @@ export default function SmartRecipes() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { recipe, loading, error } = useSelector((state) => state.recipes);
+
+  // Show error toast when error occurs
+  useEffect(() => {
+    if (error) {
+      showToast.error("Failed to generate recipe. Please try again.");
+    }
+  }, [error]);
   const [generating, setGenerating] = useState(false);
   const [servings, setServings] = useState(4);
 
@@ -93,53 +101,61 @@ export default function SmartRecipes() {
         <div className="text-center py-16">
           
           {/* Recipe Type Options */}
-          <div className="bg-gray-50 rounded-xl p-6 mb-12">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Choose Recipe Type</h3>
-            <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-              <Button
-                variant="outline"
+          <div className="bg-green-50 rounded-xl p-8 mb-12">
+            <span className="inline-block bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full mb-4">
+              Recipe Categories
+            </span>
+            <h3 className="text-2xl font-extrabold text-gray-900 mb-6 text-center">
+              Choose Your <span className="text-green-600">Recipe Type</span>
+            </h3>
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <div
                 onClick={() => navigate('/recipes/expiry')}
-                className="flex flex-col items-center gap-2 h-auto py-6 bg-white border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+                className="flex flex-col items-center gap-3 p-6 bg-white rounded-xl shadow-sm cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl border-2 border-orange-200 hover:border-orange-300"
               >
-                <AlertTriangle className="w-8 h-8 text-orange-600" />
+                <div className="w-12 h-12 flex items-center justify-center bg-orange-50 text-orange-600 rounded-lg">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
                 <span className="font-bold text-gray-900">Expiry Recipes</span>
-                <span className="text-xs text-gray-600">Use expiring items first</span>
-              </Button>
+                <span className="text-sm text-gray-600">Use expiring items first</span>
+              </div>
               
-              <Button
-                variant="outline"
+              <div
                 onClick={() => navigate('/recipes/quick')}
-                className="flex flex-col items-center gap-2 h-auto py-6 bg-white border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+                className="flex flex-col items-center gap-3 p-6 bg-white rounded-xl shadow-sm cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl border-2 border-green-200 hover:border-green-300"
               >
-                <Zap className="w-8 h-8 text-blue-600" />
+                <div className="w-12 h-12 flex items-center justify-center bg-green-50 text-green-600 rounded-lg">
+                  <Zap className="w-6 h-6" />
+                </div>
                 <span className="font-bold text-gray-900">Quick Recipes</span>
-                <span className="text-xs text-gray-600">Ready in minutes</span>
-              </Button>
+                <span className="text-sm text-gray-600">Ready in minutes</span>
+              </div>
               
-              <Button
-                variant="outline"
+              <div
                 onClick={() => navigate('/recipes/specific')}
-                className="flex flex-col items-center gap-2 h-auto py-6 bg-white border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+                className="flex flex-col items-center gap-3 p-6 bg-white rounded-xl shadow-sm cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl border-2 border-green-200 hover:border-green-300"
               >
-                <ChefHat className="w-8 h-8 text-purple-600" />
+                <div className="w-12 h-12 flex items-center justify-center bg-green-50 text-green-600 rounded-lg">
+                  <ChefHat className="w-6 h-6" />
+                </div>
                 <span className="font-bold text-gray-900">Specific Recipes</span>
-                <span className="text-xs text-gray-600">Sweet, spicy, seasonal & more</span>
-              </Button>
+                <span className="text-sm text-gray-600">Sweet, spicy, seasonal & more</span>
+              </div>
             </div>
           </div>
           
           {/* Search Recipe Interface */}
           <div>
-              <span className="inline-block bg-blue-100 text-blue-700 text-sm font-medium px-3 py-1 rounded-full mb-4">
+              <span className="inline-block bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full mb-4">
                 Search for specific recipe
               </span>
               
-              <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl">
+              <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-green-50 text-green-600 rounded-xl">
                 <ChefHat className="w-10 h-10" />
               </div>
               
               <h2 className="text-3xl md:text-4xl font-extrabold leading-tight text-gray-900 mb-4">
-                What do you want to <span className="text-blue-600">cook today?</span>
+                What do you want to <span className="text-green-600">cook today?</span>
               </h2>
               
               <p className="text-gray-600 max-w-2xl mx-auto mb-8">
@@ -154,7 +170,7 @@ export default function SmartRecipes() {
                   value={recipeName}
                   onChange={(e) => setRecipeName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearchRecipe()}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg transition-all"
                 />
               </div>
 
@@ -167,35 +183,33 @@ export default function SmartRecipes() {
                   <button
                     onClick={() => adjustServings(-1)}
                     disabled={servings <= 1}
-                    className="w-12 h-12 rounded-full bg-blue-50 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+                    className="w-12 h-12 rounded-full bg-green-50 hover:bg-green-100 disabled:opacity-50 flex items-center justify-center transition-all duration-300 hover:shadow-md"
                   >
-                    <Minus className="w-5 h-5" />
+                    <Minus className="w-5 h-5 text-green-600" />
                   </button>
                   
-                  <div className="flex items-center gap-3 px-6 py-3 bg-blue-50 rounded-xl">
-                    <Users className="w-5 h-5 text-blue-600" />
-                    <span className="text-2xl font-bold text-blue-600">{servings}</span>
+                  <div className="flex items-center gap-3 px-6 py-3 bg-green-50 rounded-xl">
+                    <Users className="w-5 h-5 text-green-600" />
+                    <span className="text-2xl font-bold text-green-600">{servings}</span>
                   </div>
                   
                   <button
                     onClick={() => adjustServings(1)}
                     disabled={servings >= 20}
-                    className="w-12 h-12 rounded-full bg-blue-50 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+                    className="w-12 h-12 rounded-full bg-green-50 hover:bg-green-100 disabled:opacity-50 flex items-center justify-center transition-all duration-300 hover:shadow-md"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-5 h-5 text-green-600" />
                   </button>
                 </div>
               </div>
               
-              <Button
-                size="xl"
+              <button
                 onClick={handleSearchRecipe}
                 disabled={generating || !recipeName.trim() || !user?.kitchenId}
-                loading={generating}
-                className="mb-4"
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-semibold shadow transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mb-4"
               >
                 {generating ? "Searching Recipe..." : "Get Recipe"}
-              </Button>
+              </button>
           </div>
         </div>
       )}
@@ -206,15 +220,7 @@ export default function SmartRecipes() {
         />
       )}
 
-      {error && (
-        <Alert
-          type="error"
-          title="Recipe Generation Failed"
-          message={error}
-          onAction={handleGenerateRecipes}
-          actionText="Try Again"
-        />
-      )}
+
 
       {recipe && recipe.recipes && (
         <div className="space-y-8">

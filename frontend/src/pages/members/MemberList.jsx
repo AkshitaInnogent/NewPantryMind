@@ -3,13 +3,22 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchKitchenMembers, removeMember, leaveKitchen } from "../../features/members/memberThunks";
 import { refreshUser } from "../../features/auth/authThunks";
 import PageLayout from "../../components/layout/PageLayout";
-import { SearchInput, Button, Card, LoadingSpinner, Alert, EmptyState } from "../../components/ui";
+import { SearchInput, Button, Card, LoadingSpinner, EmptyState } from "../../components/ui";
+import { showToast } from "../../utils/toast";
+import { showAlert } from "../../utils/sweetAlert";
 import { Users } from "lucide-react";
 import websocketService from "../../services/websocketService";
 
 export default function MemberList() {
   const dispatch = useDispatch();
   const { members, loading, error } = useSelector((state) => state.members);
+
+  // Show error toast when error occurs
+  useEffect(() => {
+    if (error) {
+      showToast.error("Failed to load members");
+    }
+  }, [error]);
   const { user } = useSelector((state) => state.auth || {});
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -98,7 +107,14 @@ export default function MemberList() {
   };
 
   const handleRemoveMember = async (memberId) => {
-    if (window.confirm("Are you sure you want to remove this member?")) {
+    const member = members.find(m => m.id === memberId);
+    const result = await showAlert.confirm(
+      'Remove Member',
+      `Are you sure you want to remove ${member?.username || 'this member'} from the kitchen?`,
+      'Yes, remove'
+    );
+    
+    if (result.isConfirmed) {
       dispatch(removeMember(memberId)).then(() => {
         dispatch(fetchKitchenMembers());
         // Force refresh current user data if they removed themselves
@@ -110,7 +126,13 @@ export default function MemberList() {
   };
 
   const handleLeaveKitchen = async () => {
-    if (window.confirm("Are you sure you want to leave this kitchen?")) {
+    const result = await showAlert.confirm(
+      'Leave Kitchen',
+      'Are you sure you want to leave this kitchen? You will lose access to all kitchen data.',
+      'Yes, leave kitchen'
+    );
+    
+    if (result.isConfirmed) {
       dispatch(leaveKitchen()).then(() => {
         window.location.href = '/user';
       });
@@ -157,7 +179,7 @@ export default function MemberList() {
                   {kitchen.invitationCode}
                 </span>
               ) : (
-                <div className="flex items-center gap-2">
+                <form onSubmit={(e) => { e.preventDefault(); handleShowInvitationCode(); }} className="flex items-center gap-2">
                   <input
                     type="password"
                     placeholder="Enter password to view"
@@ -165,10 +187,10 @@ export default function MemberList() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
-                  <Button onClick={handleShowInvitationCode}>
+                  <Button type="submit">
                     Show Code
                   </Button>
-                </div>
+                </form>
               )}
               {passwordError && (
                 <p className="text-red-600 text-sm mt-1">{passwordError}</p>
@@ -185,14 +207,7 @@ export default function MemberList() {
         />
       </div>
 
-      {error && (
-        <Alert
-          type="error"
-          title="Error Loading Members"
-          message={error}
-          className="mb-6"
-        />
-      )}
+
 
       {filteredMembers.length === 0 ? (
         <EmptyState
