@@ -231,19 +231,13 @@ export default function InventoryDetails() {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => navigate(`/inventory/edit-item/${item.id}`, { state: { item } })}
+                            onClick={() => navigate(`/inventory/edit-item/${item.id}`, { state: { item: { ...item, inventoryId: inventory.id } } })}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-md"
                             aria-label="Edit"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteItem(item.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-md"
-                            aria-label="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+
                         </div>
                       </td>
                     </tr>

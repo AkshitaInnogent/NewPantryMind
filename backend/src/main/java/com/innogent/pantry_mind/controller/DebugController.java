@@ -68,4 +68,6 @@ public class DebugController {
             return ResponseEntity.internalServerError().body(error);
         }
     }
+    
+
 }

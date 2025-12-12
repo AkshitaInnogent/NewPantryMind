@@ -42,4 +42,22 @@ public interface WasteLogRepository extends JpaRepository<WasteLog, Long> {
     
     @Query("SELECT w FROM WasteLog w WHERE w.kitchenId = :kitchenId")
     List<WasteLog> findAllByKitchenId(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT COUNT(w) FROM WasteLog w WHERE w.kitchenId = :kitchenId AND w.wasteReason = 'EXPIRED'")
+    Long countExpiredItemsByKitchen(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT COALESCE(SUM(w.estimatedValue), 0) FROM WasteLog w WHERE w.kitchenId = :kitchenId AND w.wasteReason = 'EXPIRED'")
+    BigDecimal calculateExpiredWasteValueByKitchen(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT COALESCE(SUM(w.estimatedValue), 0) FROM WasteLog w WHERE w.kitchenId = :kitchenId AND w.wastedAt >= :startDate")
+    BigDecimal calculateWasteValueByKitchenAndPeriod(@Param("kitchenId") Long kitchenId, @Param("startDate") LocalDateTime startDate);
+    
+    @Query("SELECT DATE_TRUNC('month', w.wastedAt) as month, SUM(w.estimatedValue) as waste, COUNT(w) as count " +
+           "FROM WasteLog w WHERE w.kitchenId = :kitchenId " +
+           "GROUP BY DATE_TRUNC('month', w.wastedAt) " +
+           "ORDER BY month DESC LIMIT 6")
+    List<Object[]> findMonthlyWasteStats(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT COUNT(*) FROM WasteLog w WHERE w.kitchenId = :kitchenId AND DATE(w.wastedAt) = :date")
+    Long countWasteByDate(@Param("kitchenId") Long kitchenId, @Param("date") LocalDateTime date);
 }

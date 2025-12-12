@@ -4,10 +4,10 @@ import com.innogent.pantry_mind.dto.request.ConsumeItemsRequestDTO;
 import com.innogent.pantry_mind.dto.request.CreateInventoryItemRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryAlertsRequestDTO;
 import com.innogent.pantry_mind.dto.request.UpdateInventoryItemRequestDTO;
-import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
-import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
 import com.innogent.pantry_mind.dto.response.ConsumeItemsResponseDTO;
 import com.innogent.pantry_mind.dto.response.InventoryConsumptionInfoDTO;
+import com.innogent.pantry_mind.dto.response.InventoryItemResponseDTO;
+import com.innogent.pantry_mind.dto.response.InventoryResponseDTO;
 import com.innogent.pantry_mind.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,8 +41,10 @@ public class InventoryItemController {
         return ResponseEntity.ok(inventoryService.getAllInventoryItems());
     }
 
+
+
     @PostMapping("/consume")
-    @Operation(summary = "Consume inventory items for cooking")
+    @Operation(summary = "Consume inventory items")
     public ResponseEntity<ConsumeItemsResponseDTO> consumeItems(@Valid @RequestBody ConsumeItemsRequestDTO dto) {
         ConsumeItemsResponseDTO response = inventoryService.consumeItems(dto);
         return ResponseEntity.ok(response);
@@ -90,4 +92,6 @@ public class InventoryItemController {
     public ResponseEntity<InventoryConsumptionInfoDTO> getConsumptionInfo(@PathVariable Long id) {
         return ResponseEntity.ok(inventoryService.getConsumptionInfo(id));
     }
+    
+
 }

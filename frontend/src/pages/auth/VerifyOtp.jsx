@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { verifyRegistrationOtp, sendRegistrationOtp } from "../../features/auth/authThunks";
 import { clearError } from "../../features/auth/authSlice";
-import { Alert } from "../../components/ui";
 
 export default function VerifyOtp() {
   const dispatch = useDispatch();
@@ -124,7 +123,7 @@ export default function VerifyOtp() {
         <div className="text-center mt-4">
           <button
             onClick={() => {
-              dispatch(clearRegistrationState());
+              dispatch(clearError());
               navigate("/register");
             }}
             className="text-gray-500 hover:underline text-sm"

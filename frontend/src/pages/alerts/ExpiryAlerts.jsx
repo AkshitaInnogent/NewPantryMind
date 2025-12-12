@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import PageLayout from "../../components/layout/PageLayout";
 import { Card } from "../../components/ui";
 import { Clock, Calendar } from "lucide-react";
-import { fetchInventory } from "../../features/inventory/inventoryThunks";
+import { fetchInventoryItems } from "../../features/inventory/inventoryThunks";
 import { formatDate } from "../../utils/dateUtils";
 
 export default function ExpiryAlerts() {
@@ -14,7 +14,7 @@ export default function ExpiryAlerts() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        await dispatch(fetchInventory());
+        await dispatch(fetchInventoryItems());
       } finally {
         setLoading(false);
       }
@@ -27,7 +27,6 @@ export default function ExpiryAlerts() {
     const expiringItems = [];
     
     inventory.forEach(inv => {
-      // Check if this inventory has an earliest expiry that falls within alert window
       if (inv.earliestExpiry) {
         const expiryDate = new Date(inv.earliestExpiry);
         const alertDays = inv.minExpiryDaysAlert || 3;
@@ -54,8 +53,6 @@ export default function ExpiryAlerts() {
 
   const expiringItems = getExpiringItems();
 
-
-
   const getUrgencyColor = (days) => {
     if (days <= 0) return "text-red-600 bg-red-50 border-red-200";
     if (days <= 2) return "text-orange-600 bg-orange-50 border-orange-200";
@@ -77,7 +74,7 @@ export default function ExpiryAlerts() {
         <div className="space-y-4">
           {expiringItems.length > 0 ? (
             expiringItems.map(item => (
-              <Card key={item.id} className={`p-4 border-l-4 ${getUrgencyColor(item.daysUntilExpiry).includes('red') ? 'border-l-red-500' : item.daysUntilExpiry <= 2 ? 'border-l-orange-500' : 'border-l-yellow-500'}`}>
+              <Card key={item.id} className={`p-4 border-l-4 ${item.daysUntilExpiry <= 0 ? 'border-l-red-500' : item.daysUntilExpiry <= 2 ? 'border-l-orange-500' : 'border-l-yellow-500'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Calendar className={`w-5 h-5 ${item.daysUntilExpiry <= 0 ? 'text-red-500' : item.daysUntilExpiry <= 2 ? 'text-orange-500' : 'text-yellow-500'}`} />

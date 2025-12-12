@@ -16,28 +16,9 @@ public class ScheduledTrackingService {
     private final InventoryTrackingService trackingService;
     private final KitchenRepository kitchenRepository;
     
-    @Scheduled(cron = "0 0 8 * * *") // Every day at 8 AM
-    public void processExpiredItems() {
-        log.info("Starting daily expired items processing");
-        
-        try {
-            List<Long> kitchenIds = kitchenRepository.findAllKitchenIds();
-            
-            for (Long kitchenId : kitchenIds) {
-                try {
-                    trackingService.processExpiredItems(kitchenId);
-                    log.debug("Processed expired items for kitchen: {}", kitchenId);
-                } catch (Exception e) {
-                    log.error("Failed to process expired items for kitchen: {}", kitchenId, e);
-                }
-            }
-            
-            log.info("Completed daily expired items processing for {} kitchens", kitchenIds.size());
-            
-        } catch (Exception e) {
-            log.error("Failed to complete daily expired items processing", e);
-        }
-    }
+    // Disabled - ExpiryWasteService handles expired items processing
+    // @Scheduled(cron = "0 9 0 * * *")
+    // public void processExpiredItems() { ... }
     
     @Scheduled(cron = "0 0 9 * * MON") // Every Monday at 9 AM
     public void generateWeeklyReports() {

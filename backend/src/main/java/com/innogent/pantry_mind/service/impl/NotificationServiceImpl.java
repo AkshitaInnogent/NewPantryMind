@@ -94,7 +94,7 @@ public class NotificationServiceImpl implements NotificationService {
     
     private Notification.NotificationSeverity determineSeverity(String alertType) {
         return switch (alertType) {
-            case "EXPIRY_CRITICAL", "CRITICAL_STOCK" -> Notification.NotificationSeverity.CRITICAL;
+            case "EXPIRY_CRITICAL", "CRITICAL_STOCK", "ITEM_EXPIRED", "ITEMS_EXPIRED" -> Notification.NotificationSeverity.CRITICAL;
             case "EXPIRY_WARNING", "LOW_STOCK" -> Notification.NotificationSeverity.WARNING;
             default -> Notification.NotificationSeverity.INFO;
         };
@@ -106,6 +106,8 @@ public class NotificationServiceImpl implements NotificationService {
             case "EXPIRY_WARNING" -> "Expiry Warning";
             case "LOW_STOCK" -> "Low Stock Alert";
             case "CRITICAL_STOCK" -> "Critical Stock Level";
+            case "ITEM_EXPIRED" -> "Item Expired";
+            case "ITEMS_EXPIRED" -> "Items Expired";
             default -> "Notification";
         };
     }

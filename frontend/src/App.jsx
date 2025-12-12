@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useState, Suspense, lazy } from "react";
 import { initializeAuth } from './features/auth/authSlice';
+import { validateUser } from './features/auth/authThunks';
 import websocketService from './services/websocketService';
 import './App.css'
 import { ProtectedRoute, RoleBasedRoute } from './guards'
@@ -21,7 +22,7 @@ const MemberDashboard = lazy(() => import('./pages/dashboard/MemberDashboard'));
 const UserDashboard = lazy(() => import('./pages/dashboard/UserDashboard'));
 const InventoryList = lazy(() => import('./pages/inventory/InventoryList'));
 const InventoryDetails = lazy(() => import('./pages/inventory/InventoryDetails'));
-const AddInventoryItem = lazy(() => import('./pages/inventory/AddInventoryItem'));
+// const AddInventoryItem = lazy(() => import('./pages/inventory/AddInventoryItem'));
 const AddInventoryOCR = lazy(() => import('./pages/inventory/AddInventoryOCR'));
 const EditInventoryItem = lazy(() => import('./pages/inventory/EditInventoryItem'));
 const MemberList = lazy(() => import('./pages/members/MemberList'));
@@ -30,6 +31,7 @@ const Settings = lazy(() => import('./pages/settings/Settings'));
 const Profile = lazy(() => import('./pages/profile/Profile'));
 const LowStockAlerts = lazy(() => import('./pages/alerts/LowStockAlerts'));
 const ExpiryAlerts = lazy(() => import('./pages/alerts/ExpiryAlerts'));
+const ExpiredProducts = lazy(() => import('./pages/alerts/ExpiredProducts'));
 const SmartRecipes = lazy(() => import('./pages/recipes/SmartRecipes'));
 const RecipeDetail = lazy(() => import('./pages/recipes/RecipeDetail'));
 const ExpiryRecipes = lazy(() => import('./pages/recipes/ExpiryRecipes'));
@@ -177,13 +179,13 @@ function App() {
             <InventoryDetails />
           </RoleBasedRoute>
         } />
-        <Route path="/inventory/edit/:id" element={
+        <Route path="/inventory/edit-item/:id" element={
           <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
             <EditInventoryItem />
           </RoleBasedRoute>
         } />
 
-        <Route path="/shopping" element={<ShoppingList />} />
+
         
         {/* Member Management Routes - ADMIN only */}
         <Route path="/members" element={
@@ -250,7 +252,19 @@ function App() {
           </RoleBasedRoute>
         } />
         
+        {/* Shortcut route for expiry */}
+        <Route path="/expiry" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <ExpiryAlerts />
+          </RoleBasedRoute>
+        } />
         
+        {/* Expired products route */}
+        <Route path="/expired-products" element={
+          <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>
+            <ExpiredProducts />
+          </RoleBasedRoute>
+        } />
         
         <Route path="/preferences/recipe" element={
           <RoleBasedRoute allowedRoles={["ADMIN", "MEMBER"]}>

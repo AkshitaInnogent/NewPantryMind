@@ -92,7 +92,7 @@ export default function InventoryStats() {
 
       <div 
         className="bg-red-600 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-red-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
-        onClick={() => window.location.href = '/expiry'}
+        onClick={() => navigate('/expired-products')}
       >
         <div className="flex items-center justify-between">
           <div>

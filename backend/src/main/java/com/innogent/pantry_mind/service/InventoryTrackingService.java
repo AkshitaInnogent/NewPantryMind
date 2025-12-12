@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Date;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,6 +24,7 @@ public class InventoryTrackingService {
     private final MealLogRepository mealLogRepository;
     private final WasteLogRepository wasteLogRepository;
     private final PurchaseLogRepository purchaseLogRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public void useItem(Long itemId, BigDecimal usedQuantity, UsageLog.UsageType usageType,
@@ -137,6 +139,10 @@ public class InventoryTrackingService {
         inventoryItemRepository.save(item);
         updateInventoryTotals(item.getInventory().getId());
         
+        // Send notification for waste logging
+        String message = String.format("%s is wasted!", item.getInventory().getName());
+        notificationService.sendInventoryAlert(item.getInventory().getKitchenId(), "ITEM_WASTED", message, itemId);
+        
         log.info("Wasted {} of item {} due to {}", wastedQuantity, itemId, reason);
     }
     
@@ -164,19 +170,42 @@ public class InventoryTrackingService {
     
     @Transactional
     public void processExpiredItems(Long kitchenId) {
-        LocalDate today = LocalDate.now();
+        java.util.Date today = new java.util.Date();
+        
+        log.info("=== PROCESSING EXPIRED ITEMS ===");
+        log.info("Kitchen ID: {}", kitchenId);
+        log.info("Current Date: {}", today);
+        
+        // First, let's see all active items in this kitchen
+        List<InventoryItem> allActiveItems = inventoryItemRepository.findByKitchenId(kitchenId)
+            .stream().filter(item -> item.getIsActive() != null && item.getIsActive()).toList();
+        log.info("Total active items in kitchen: {}", allActiveItems.size());
+        
+        for (InventoryItem item : allActiveItems) {
+            log.info("Item: {}, Expiry: {}, Active: {}", 
+                item.getInventory().getName(), item.getExpiryDate(), item.getIsActive());
+        }
         
         List<InventoryItem> expiredItems = inventoryItemRepository
-            .findExpiredActiveItems(kitchenId);
+            .findExpiredActiveItems(kitchenId, today);
+        
+        log.info("Found {} expired items for kitchen {}", expiredItems.size(), kitchenId);
         
         for (InventoryItem item : expiredItems) {
+            log.info("Moving expired item {} to waste_log", item.getInventory().getName());
+            
             wasteItem(item.getId(), item.getCurrentQuantity(), 
                      WasteLog.WasteReason.EXPIRED, 
                      "Auto-detected expired item", 
                      null); // System generated
+            
+            // Send notification for expired item
+            String message = String.format("%s is expired!", 
+                                         item.getInventory().getName());
+            notificationService.sendInventoryAlert(kitchenId, "ITEM_EXPIRED", message, item.getId());
         }
         
-        log.info("Processed {} expired items for kitchen {}", expiredItems.size(), kitchenId);
+        log.info("Successfully processed {} expired items for kitchen {}", expiredItems.size(), kitchenId);
     }
     
     private void updateInventoryTotals(Long inventoryId) {
@@ -232,5 +261,12 @@ public class InventoryTrackingService {
         });
 
         return mealLogs;
+    }
+    
+    public List<InventoryItem> getAllActiveItemsForKitchen(Long kitchenId) {
+        return inventoryItemRepository.findByKitchenId(kitchenId)
+            .stream()
+            .filter(item -> item.getIsActive() != null && item.getIsActive())
+            .collect(java.util.stream.Collectors.toList());
     }
 }

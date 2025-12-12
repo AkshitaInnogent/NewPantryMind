@@ -86,6 +86,27 @@ public class InventoryTrackingController {
         return ResponseEntity.ok("Expired items processed");
     }
     
+    // TEST ENDPOINT - Check items and expiry dates
+    @GetMapping("/check-items/{kitchenId}")
+    public ResponseEntity<String> checkItems(@PathVariable Long kitchenId) {
+        java.util.Date today = new java.util.Date();
+        java.util.List<com.innogent.pantry_mind.entity.InventoryItem> allItems = 
+            trackingService.getAllActiveItemsForKitchen(kitchenId);
+        
+        StringBuilder result = new StringBuilder();
+        result.append("Today: ").append(today).append("\n\n");
+        
+        for (com.innogent.pantry_mind.entity.InventoryItem item : allItems) {
+            result.append("Item: ").append(item.getInventory().getName())
+                  .append(", Expiry: ").append(item.getExpiryDate())
+                  .append(", Active: ").append(item.getIsActive())
+                  .append(", Expired: ").append(item.getExpiryDate() != null && item.getExpiryDate().compareTo(today) <= 0)
+                  .append("\n");
+        }
+        
+        return ResponseEntity.ok(result.toString());
+    }
+    
     // REQUEST DTOs
     public static class UseItemRequest {
         private Long itemId;

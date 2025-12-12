@@ -5,6 +5,7 @@ import { updateInventoryItem, fetchInventoryItemById, fetchInventoryDetails } fr
 import { fetchCategories } from "../../features/categories/categoryThunks";
 import { fetchLocations } from "../../features/locations/locationThunks";
 import { formatDateForInput } from "../../utils/dateUtils";
+import { showToast } from "../../utils/toast";
 
 export default function EditInventoryItem() {
   const dispatch = useDispatch();
@@ -35,17 +36,20 @@ export default function EditInventoryItem() {
         if (stateItem) {
           item = stateItem;
         } else {
-          item = await dispatch(fetchInventoryItemById(id)).unwrap();
+          item = await dispatch(fetchInventoryItemById(id));
         }
         
         const inventory = await dispatch(fetchInventoryDetails(item.inventoryId));
         
+        console.log('Item data:', item);
+        console.log('Inventory data:', inventory);
+        
         setForm({
-          name: inventory.name || "",
+          name: inventory.name || item.name || "",
           description: item.description || "",
-          categoryName: inventory.categoryName || "",
-          unitName: inventory.unitName || "",
-          quantity: item.quantity || "",
+          categoryName: inventory.categoryName || item.categoryName || "",
+          unitName: inventory.unitName || item.unitName || "",
+          quantity: item.quantity || item.currentQuantity || inventory.totalQuantity || "",
           locationId: item.locationId || "",
           expiryDate: formatDateForInput(item.expiryDate),
           price: item.price || "",
@@ -74,9 +78,14 @@ export default function EditInventoryItem() {
       };
       
       await dispatch(updateInventoryItem(id, itemData));
+      showToast.success('Item updated successfully!');
       const stateItem = location.state?.item;
       const inventoryId = stateItem?.inventoryId;
-      navigate(`/inventory/details/${inventoryId}`);
+      if (inventoryId) {
+        navigate(`/inventory/details/${inventoryId}`);
+      } else {
+        navigate('/inventory');
+      }
     } catch (error) {
       console.error("Failed to update item:", error);
     } finally {

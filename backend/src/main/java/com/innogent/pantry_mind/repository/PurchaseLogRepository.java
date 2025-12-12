@@ -48,4 +48,7 @@ public interface PurchaseLogRepository extends JpaRepository<PurchaseLog, Long> 
     List<PurchaseLog> findFirstByKitchenIdOrderByPurchasedAtAsc(
             @Param("kitchenId") Long kitchenId
     );
+    
+    @Query("SELECT COALESCE(SUM(p.pricePaid), 0) FROM PurchaseLog p WHERE p.kitchenId = :kitchenId AND p.purchasedAt >= :startDate")
+    BigDecimal calculateTotalSpentByPeriod(@Param("kitchenId") Long kitchenId, @Param("startDate") LocalDateTime startDate);
 }

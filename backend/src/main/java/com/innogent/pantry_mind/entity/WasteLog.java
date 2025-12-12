@@ -25,7 +25,10 @@ public class WasteLog {
     @Column(name = "kitchen_id", nullable = false)
     private Long kitchenId;
     
-    @Column(name = "reported_by", nullable = false)
+    @Column(name = "item_name")
+    private String itemName;
+    
+    @Column(name = "reported_by")
     private Long reportedBy;
     
     @Column(name = "quantity_wasted", nullable = false)

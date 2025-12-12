@@ -12,6 +12,7 @@ import com.innogent.pantry_mind.mapper.InventoryItemMapper;
 import com.innogent.pantry_mind.mapper.InventoryMapper;
 import com.innogent.pantry_mind.entity.*;
 import com.innogent.pantry_mind.repository.*;
+import com.innogent.pantry_mind.repository.WasteLogRepository;
 import com.innogent.pantry_mind.util.NameNormalizationUtil;
 import com.innogent.pantry_mind.util.UnitConversionUtil;
 import com.innogent.pantry_mind.service.InventoryService;
@@ -44,6 +45,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final ConsumptionEventRepository consumptionEventRepository;
     private final PurchaseLogRepository purchaseLogRepository;
     private final UsageLogRepository usageLogRepository;
+    private final WasteLogRepository wasteLogRepository;
     private final InventoryItemMapper inventoryItemMapper;
     private final InventoryMapper inventoryMapper;
 
@@ -136,6 +138,11 @@ public class InventoryServiceImpl implements InventoryService {
         }
         
         return inventories.stream()
+                .filter(inventory -> {
+                    // Only show inventories with active items or positive total quantity
+                    Long activeCount = inventoryItemRepository.countByInventoryIdAndIsActiveTrue(inventory.getId());
+                    return activeCount != null && activeCount > 0 && inventory.getTotalQuantity() > 0;
+                })
                 .map(inventory -> {
                     InventoryResponseDTO dto = inventoryMapper.toResponseDTO(inventory);
                     dto.setEarliestExpiry(inventoryItemRepository.findEarliestExpiryByInventoryId(inventory.getId()));
@@ -223,6 +230,11 @@ public class InventoryServiceImpl implements InventoryService {
 
     public List<InventoryResponseDTO> getInventoryItemsByKitchen(Long kitchenId) {
         return inventoryRepository.findByKitchenId(kitchenId).stream()
+                .filter(inventory -> {
+                    // Only show inventories with active items or positive total quantity
+                    Long activeCount = inventoryItemRepository.countByInventoryIdAndIsActiveTrue(inventory.getId());
+                    return activeCount != null && activeCount > 0 && inventory.getTotalQuantity() > 0;
+                })
                 .map(inventory -> {
                     InventoryResponseDTO dto = inventoryMapper.toResponseDTO(inventory);
                     dto.setEarliestExpiry(inventoryItemRepository.findEarliestExpiryByInventoryId(inventory.getId()));
@@ -567,11 +579,36 @@ public class InventoryServiceImpl implements InventoryService {
     
     @Override
     public List<InventoryItemResponseDTO> getExpiredItems(Long kitchenId) {
-        List<InventoryItem> expiredItems = inventoryItemRepository
-            .findExpiredActiveItems(kitchenId);
+        System.out.println("=== GET EXPIRED ITEMS CALLED ===");
+        System.out.println("Kitchen ID: " + kitchenId);
         
-        return expiredItems.stream()
-            .map(inventoryItemMapper::toResponseDTO)
+        // Get waste logs for expired items
+        List<com.innogent.pantry_mind.entity.WasteLog> wasteLogs = wasteLogRepository
+            .findByKitchenIdAndWasteReason(kitchenId, com.innogent.pantry_mind.entity.WasteLog.WasteReason.EXPIRED);
+        
+        System.out.println("Found " + wasteLogs.size() + " expired waste logs");
+        
+        // Convert waste logs to InventoryItemResponseDTO
+        return wasteLogs.stream()
+            .map(wasteLog -> {
+                InventoryItemResponseDTO dto = new InventoryItemResponseDTO();
+                dto.setId(wasteLog.getInventoryItemId());
+                dto.setQuantity(wasteLog.getQuantityWasted().longValue());
+                dto.setPrice(wasteLog.getEstimatedValue());
+                dto.setDescription(wasteLog.getNotes());
+                dto.setCreatedAt(java.sql.Date.from(wasteLog.getWastedAt().atZone(java.time.ZoneId.systemDefault()).toInstant()));
+                
+                // Use itemName field if available, otherwise fallback to "Expired Item"
+                if (wasteLog.getItemName() != null && !wasteLog.getItemName().isEmpty()) {
+                    dto.setDescription(wasteLog.getItemName());
+                } else {
+                    dto.setDescription("Expired Item");
+                }
+                
+
+                
+                return dto;
+            })
             .collect(Collectors.toList());
     }
 

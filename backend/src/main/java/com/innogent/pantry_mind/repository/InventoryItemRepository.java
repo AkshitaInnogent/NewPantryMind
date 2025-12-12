@@ -20,8 +20,8 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     @Query("SELECT i FROM InventoryItem i WHERE i.inventory.id = :inventoryId AND i.isActive = true ORDER BY i.expiryDate ASC")
     List<InventoryItem> findByInventoryIdAndIsActiveTrueOrderByExpiryDateAsc(@Param("inventoryId") Long inventoryId);
     
-    @Query("SELECT i FROM InventoryItem i WHERE i.inventory.kitchenId = :kitchenId AND i.isActive = true AND i.expiryDate < CURRENT_DATE")
-    List<InventoryItem> findExpiredActiveItems(@Param("kitchenId") Long kitchenId);
+    @Query("SELECT i FROM InventoryItem i WHERE i.inventory.kitchenId = :kitchenId AND i.isActive = true AND i.expiryDate <= :currentDate")
+    List<InventoryItem> findExpiredActiveItems(@Param("kitchenId") Long kitchenId, @Param("currentDate") Date currentDate);
     
     @Query("SELECT SUM(i.currentQuantity) FROM InventoryItem i WHERE i.inventory.id = :inventoryId AND i.isActive = true")
     BigDecimal sumCurrentQuantityByInventoryId(@Param("inventoryId") Long inventoryId);
@@ -75,4 +75,16 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     
     @Query("SELECT i FROM InventoryItem i JOIN i.inventory inv WHERE inv.kitchenId = :kitchenId")
     List<InventoryItem> findByKitchenId(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT i FROM InventoryItem i WHERE i.isActive = true AND i.expiryDate <= :currentDate")
+    List<InventoryItem> findExpiredItems(@Param("currentDate") LocalDate currentDate);
+    
+    @Query(value = "SELECT * FROM inventory_item WHERE is_active = true AND DATE(expiry_date) <= DATE(:currentDate)", nativeQuery = true)
+    List<InventoryItem> findExpiredItemsByDate(@Param("currentDate") Date currentDate);
+    
+    @Query("SELECT i FROM InventoryItem i JOIN i.inventory inv WHERE inv.kitchenId = :kitchenId AND i.createdAt >= :startDate")
+    List<InventoryItem> findByInventoryKitchenIdAndCreatedAtAfter(@Param("kitchenId") Long kitchenId, @Param("startDate") java.time.LocalDateTime startDate);
+    
+    @Query("SELECT COUNT(i) FROM InventoryItem i JOIN i.inventory inv WHERE inv.kitchenId = :kitchenId")
+    Long countByInventoryKitchenId(@Param("kitchenId") Long kitchenId);
 }

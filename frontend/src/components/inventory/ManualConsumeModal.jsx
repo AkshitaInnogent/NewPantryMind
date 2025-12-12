@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { X, Minus } from 'lucide-react';
-import { manualConsumeItem } from '../../features/inventory/inventoryThunks';
-import { showToast } from '../../utils/toast';
-import { showAlert } from '../../utils/sweetAlert';
 import { X, Minus, Clock, User } from 'lucide-react';
 import { manualConsumeItem, getConsumptionInfo } from '../../features/inventory/inventoryThunks';
+import { showToast } from '../../utils/toast';
+import { showAlert } from '../../utils/sweetAlert';
 
 export default function ManualConsumeModal({ item, isOpen, onClose }) {
   const dispatch = useDispatch();
@@ -71,9 +69,16 @@ export default function ManualConsumeModal({ item, isOpen, onClose }) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
+      console.log('Consumption info:', data);
       setConsumptionInfo(data);
     } catch (error) {
       console.error('Failed to fetch consumption info:', error);
+      // Set fallback data
+      setConsumptionInfo({
+        totalAvailable: item.quantity || item.totalQuantity || 0,
+        unit: item.unitName || 'units',
+        availableItems: []
+      });
     }
   };
 

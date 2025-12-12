@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -45,4 +46,24 @@ public interface UsageLogRepository extends JpaRepository<UsageLog, Long> {
     
     @Query("SELECT u FROM UsageLog u WHERE u.kitchenId = :kitchenId")
     List<UsageLog> findAllByKitchenId(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT inv.name, SUM(u.quantityUsed), unit.name, COUNT(u) FROM UsageLog u " +
+           "JOIN InventoryItem ii ON u.inventoryItemId = ii.id " +
+           "JOIN Inventory inv ON ii.inventory.id = inv.id " +
+           "JOIN Unit unit ON u.unit.id = unit.id " +
+           "WHERE u.kitchenId = :kitchenId " +
+           "GROUP BY inv.name, unit.name " +
+           "ORDER BY SUM(u.quantityUsed) DESC")
+    List<Object[]> findMostUsedItemsByKitchen(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT COALESCE(SUM((ii.price / ii.originalQuantity) * u.quantityUsed), 0) FROM UsageLog u " +
+           "JOIN InventoryItem ii ON u.inventoryItemId = ii.id " +
+           "WHERE u.kitchenId = :kitchenId AND u.usedAt >= :startDate AND ii.originalQuantity > 0")
+    BigDecimal calculateConsumedValueByPeriod(@Param("kitchenId") Long kitchenId, @Param("startDate") LocalDateTime startDate);
+    
+    @Query("SELECT u FROM UsageLog u JOIN InventoryItem ii ON u.inventoryItemId = ii.id " +
+           "WHERE u.kitchenId = :kitchenId " +
+           "AND ii.expiryDate >= u.usedAt " +
+           "ORDER BY u.usedAt DESC")
+    List<UsageLog> findItemsSavedFromExpiry(@Param("kitchenId") Long kitchenId);
 }

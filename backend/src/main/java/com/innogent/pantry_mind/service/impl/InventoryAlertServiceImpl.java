@@ -74,8 +74,8 @@ public class InventoryAlertServiceImpl implements InventoryAlertService {
         }
         
         if (criticalCount > 0) {
-            notificationService.sendInventoryAlert(kitchenId, "EXPIRY_CRITICAL", 
-                criticalCount + " items have expired or expiring today", null);
+            notificationService.sendInventoryAlert(kitchenId, "ITEMS_EXPIRED", 
+                criticalCount + " items have expired", null);
         }
         
         if (warningCount > 0) {

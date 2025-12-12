@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchInventoryItems } from "../../features/inventory/inventoryThunks";
-import { SearchInput, Button, Card, LoadingSpinner, Alert, EmptyState } from "../../components/ui";
+import { SearchInput, Button, Card, LoadingSpinner, EmptyState } from "../../components/ui";
 import PageLayout from "../../components/layout/PageLayout";
 import ManualConsumeModal from "../../components/inventory/ManualConsumeModal";
 import { Package, Minus } from "lucide-react";
@@ -291,21 +291,19 @@ export default function InventoryList() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.filter(item => item.itemCount > 0).map((item) => (
-            <Card key={item.id} className="hover:shadow-lg transition-all duration-300 ease-out hover:-translate-y-1">
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  {getCategoryIcon(item.categoryName)}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openConsumeModal(item)}
-                      className="px-2 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 flex items-center gap-1 text-sm"
-                    >
-                      <Minus className="w-3 h-3" />
-                      Consume
-                    </button>
+          {filteredItems.filter(item => (item.quantity || item.totalQuantity) > 0).map((item) => {
+            const isLowStock = (item.quantity || item.totalQuantity) <= (item.minStock || 0);
+            const isExpiringSoon = item.expiryDate ? 
+              Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24)) <= 3 : false;
+
+            return (
+              <Card key={item.id} className="hover:shadow-lg transition-all duration-300 ease-out hover:-translate-y-1">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    {getCategoryIcon(item.categoryName)}
                   </div>
-                </div>
+
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{item.name}</h3>
 
                   {/* Quantity Display */}
                   <div className="mb-4">
@@ -368,10 +366,7 @@ export default function InventoryList() {
                     </button>
                   </div>
                 </div>
-
-                {/* Hover Effect Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-green-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-              </div>
+              </Card>
             );
           })}
         </div>
