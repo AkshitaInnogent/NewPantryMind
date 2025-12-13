@@ -79,7 +79,9 @@ const ShoppingList = () => {
         
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${config.apiBaseUrl}/shopping-lists/${activeList.id}/ai-suggestions?kitchenId=${user.kitchenId}`, {
+            
+            // Call the new prediction API endpoint
+            const response = await fetch(`${config.apiBaseUrl}/shopping-lists/${activeList.id}/generate-suggestions?kitchenId=${user.kitchenId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -89,14 +91,32 @@ const ShoppingList = () => {
             
             if (response.ok) {
                 const suggestionsData = await response.json();
-                setSuggestions(suggestionsData);
+                console.log('AI Predictions received:', suggestionsData);
+                
+                // Convert backend response to frontend format
+                const formattedSuggestions = suggestionsData.map(item => ({
+                    itemName: item.canonicalName || item.rawName,
+                    suggestedQuantity: item.suggestedQuantity,
+                    unitName: item.unit?.name || 'grams',
+                    unitId: item.unit?.id,
+                    reason: item.suggestionReason || `Based on ${activeTab.toLowerCase()} consumption pattern`,
+                    confidenceScore: item.confidenceScore || 0.8
+                }));
+                
+                setSuggestions(formattedSuggestions);
+                
+                if (formattedSuggestions.length === 0) {
+                    showToast.info(`No predictions available for ${activeTab.toLowerCase()} period. Try adding more consumption data.`);
+                }
             } else {
-                console.error('Failed to get suggestions');
+                console.error('Failed to get predictions');
                 setSuggestions([]);
+                showToast.error('Failed to generate AI predictions');
             }
         } catch (error) {
-            console.error('Error getting suggestions:', error);
+            console.error('Error getting predictions:', error);
             setSuggestions([]);
+            showToast.error('Error connecting to AI service');
         } finally {
             setSuggestionsLoading(false);
         }
@@ -249,7 +269,7 @@ const ShoppingList = () => {
                                     <h3>No items in this list</h3>
                                     <p>Add items manually or generate AI suggestions</p>
                                     <Button onClick={handleGenerateAI} className="ai-button">
-                                        🤖 Generate AI Suggestions
+                                        🤖 Generate AI Suggestions for {activeTab}
                                     </Button>
                                 </div>
                             ) : (

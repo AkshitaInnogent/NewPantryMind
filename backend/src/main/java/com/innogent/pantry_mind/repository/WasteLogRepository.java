@@ -13,10 +13,10 @@ import java.util.List;
 @Repository
 public interface WasteLogRepository extends JpaRepository<WasteLog, Long> {
     
-    @Query("SELECT TO_CHAR(w.wastedAt, 'Mon') as month, COUNT(w) as count FROM WasteLog w " +
+    @Query("SELECT FUNCTION('MONTHNAME', w.wastedAt) as month, COUNT(w) as count FROM WasteLog w " +
            "WHERE w.kitchenId = :kitchenId AND w.wastedAt >= :since " +
-           "GROUP BY TO_CHAR(w.wastedAt, 'Mon') " +
-           "ORDER BY MIN(w.wastedAt)")
+           "GROUP BY FUNCTION('MONTH', w.wastedAt), FUNCTION('MONTHNAME', w.wastedAt) " +
+           "ORDER BY FUNCTION('MONTH', w.wastedAt)")
     List<Object[]> findMonthlyWasteData(
         @Param("kitchenId") Long kitchenId, 
         @Param("since") LocalDateTime since
@@ -60,4 +60,8 @@ public interface WasteLogRepository extends JpaRepository<WasteLog, Long> {
     
     @Query("SELECT COUNT(*) FROM WasteLog w WHERE w.kitchenId = :kitchenId AND DATE(w.wastedAt) = :date")
     Long countWasteByDate(@Param("kitchenId") Long kitchenId, @Param("date") LocalDateTime date);
+    
+    long countByKitchenId(Long kitchenId);
+    
+    long countByKitchenIdAndWasteReason(Long kitchenId, WasteLog.WasteReason wasteReason);
 }

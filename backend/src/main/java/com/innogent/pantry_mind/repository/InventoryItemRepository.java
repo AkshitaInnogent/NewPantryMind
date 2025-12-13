@@ -49,7 +49,7 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     @Query(value = "SELECT COUNT(*) FROM inventory WHERE kitchen_id = :kitchenId AND total_quantity < COALESCE(min_stock, 250)", nativeQuery = true)
     Long countLowStockItemsByKitchen(@Param("kitchenId") Long kitchenId);
     
-    @Query(value = "SELECT COUNT(DISTINCT i.id) FROM inventory i JOIN inventory_item ii ON ii.inventory_id = i.id WHERE i.kitchen_id = :kitchenId AND ii.expiry_date <= CURRENT_DATE + INTERVAL '7 days'", nativeQuery = true)
+    @Query(value = "SELECT COUNT(DISTINCT i.id) FROM inventory i JOIN inventory_item ii ON ii.inventory_id = i.id WHERE i.kitchen_id = :kitchenId AND ii.expiry_date <= CURRENT_DATE + INTERVAL '7 days' AND ii.is_active = true AND i.total_quantity > 0", nativeQuery = true)
     Long countExpiringItemsByKitchen(@Param("kitchenId") Long kitchenId);
     
     @Query(value = "SELECT ii.id, i.name, ii.expiry_date, 7 as alert_days, CURRENT_DATE + INTERVAL '7 days' as alert_date FROM inventory_item ii JOIN inventory i ON ii.inventory_id = i.id WHERE i.kitchen_id = :kitchenId AND ii.expiry_date <= CURRENT_DATE + INTERVAL '7 days'", nativeQuery = true)

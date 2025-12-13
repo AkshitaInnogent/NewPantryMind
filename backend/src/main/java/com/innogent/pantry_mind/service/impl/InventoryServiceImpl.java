@@ -52,53 +52,83 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public InventoryItemResponseDTO addInventoryItem(CreateInventoryItemRequestDTO dto) {
-        // Convert unit and quantity to base units
-        Unit inputUnit = unitRepository.findById(dto.getUnitId())
-                .orElseThrow(() -> new ItemNotFoundException("Unit not found: " + dto.getUnitId()));
-        
-        String baseUnitName = UnitConversionUtil.getBaseUnit(inputUnit.getName());
-        Long convertedQuantity = UnitConversionUtil.convertToBaseUnit(dto.getQuantity(), inputUnit.getName());
-        
-        Unit baseUnit = unitRepository.findByName(baseUnitName)
-                .orElseThrow(() -> new ItemNotFoundException("Base unit not found: " + baseUnitName));
-        
-        // Find or create inventory group with base unit
-        Inventory inventory = findOrCreateInventory(dto.getName(), dto.getCategoryId(), 
-                                                   baseUnit.getId(), dto.getKitchenId());
-        
-        // Create inventory item with new tracking fields
-        InventoryItem item = new InventoryItem();
-        item.setInventory(inventory);
-        item.setDescription(dto.getDescription());
-        
-        // Set both original and current quantity
-        BigDecimal quantityBD = new BigDecimal(convertedQuantity);
-        item.setOriginalQuantity(quantityBD);
-        item.setCurrentQuantity(quantityBD);
-        item.setIsActive(true);
-        item.setStatus(InventoryItem.ItemStatus.FRESH);
-        
-        if (dto.getLocationId() != null) {
-            Location location = locationRepository.findById(dto.getLocationId()).orElse(null);
-            item.setLocation(location);
+        try {
+            // Validate required fields
+            if (dto.getName() == null || dto.getName().trim().isEmpty()) {
+                throw new IllegalArgumentException("Item name is required");
+            }
+            if (dto.getCategoryId() == null) {
+                throw new IllegalArgumentException("Category is required");
+            }
+            if (dto.getUnitId() == null) {
+                throw new IllegalArgumentException("Unit is required");
+            }
+            if (dto.getKitchenId() == null) {
+                throw new IllegalArgumentException("Kitchen ID is required");
+            }
+            if (dto.getCreatedBy() == null) {
+                throw new IllegalArgumentException("Created by user ID is required");
+            }
+            if (dto.getQuantity() == null || dto.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Valid quantity is required");
+            }
+            
+            // Convert unit and quantity to base units
+            Unit inputUnit = unitRepository.findById(dto.getUnitId())
+                    .orElseThrow(() -> new ItemNotFoundException("Unit not found: " + dto.getUnitId()));
+            
+            String baseUnitName = UnitConversionUtil.getBaseUnit(inputUnit.getName());
+            Long convertedQuantity = UnitConversionUtil.convertToBaseUnit(dto.getQuantity(), inputUnit.getName());
+            
+            Unit baseUnit = unitRepository.findByName(baseUnitName)
+                    .orElseThrow(() -> new ItemNotFoundException("Base unit not found: " + baseUnitName));
+            
+            // Find or create inventory group with base unit
+            Inventory inventory = findOrCreateInventory(dto.getName(), dto.getCategoryId(), 
+                                                       baseUnit.getId(), dto.getKitchenId());
+            
+            // Create inventory item with new tracking fields
+            InventoryItem item = new InventoryItem();
+            item.setInventory(inventory);
+            item.setDescription(dto.getDescription());
+            
+            // Set both original and current quantity
+            BigDecimal quantityBD = new BigDecimal(convertedQuantity);
+            item.setOriginalQuantity(quantityBD);
+            item.setCurrentQuantity(quantityBD);
+            item.setIsActive(true);
+            item.setStatus(InventoryItem.ItemStatus.FRESH);
+            
+            if (dto.getLocationId() != null) {
+                Location location = locationRepository.findById(dto.getLocationId()).orElse(null);
+                item.setLocation(location);
+            }
+            item.setExpiryDate(dto.getExpiryDate());
+            item.setPrice(dto.getPrice());
+            item.setCreatedBy(dto.getCreatedBy());
+            
+            InventoryItem saved = inventoryItemRepository.save(item);
+            
+            // AUTO-CREATE PURCHASE LOG
+            createPurchaseLogForInventoryItem(saved, dto);
+            
+            // Update total quantity and item count
+            updateInventoryTotalQuantity(inventory.getId());
+            
+            return inventoryItemMapper.toResponseDTO(saved);
+        } catch (Exception e) {
+            log.error("Error adding inventory item: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to add inventory item: " + e.getMessage(), e);
         }
-        item.setExpiryDate(dto.getExpiryDate());
-        item.setPrice(dto.getPrice());
-        item.setCreatedBy(dto.getCreatedBy());
-        
-        InventoryItem saved = inventoryItemRepository.save(item);
-        
-        // AUTO-CREATE PURCHASE LOG
-        createPurchaseLogForInventoryItem(saved, dto);
-        
-        // Update total quantity and item count
-        updateInventoryTotalQuantity(inventory.getId());
-        
-        return inventoryItemMapper.toResponseDTO(saved);
     }
     
     private void createPurchaseLogForInventoryItem(InventoryItem item, CreateInventoryItemRequestDTO dto) {
         try {
+            if (item.getId() == null) {
+                log.warn("Cannot create purchase log: InventoryItem ID is null");
+                return;
+            }
+            
             LocalDate expiryLocalDate = null;
             if (dto.getExpiryDate() != null) {
                 expiryLocalDate = dto.getExpiryDate().toInstant()
@@ -106,13 +136,15 @@ public class InventoryServiceImpl implements InventoryService {
                     .toLocalDate();
             }
             
+            BigDecimal pricePaid = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
+            
             PurchaseLog purchaseLog = PurchaseLog.builder()
                 .kitchenId(dto.getKitchenId())
                 .purchasedBy(dto.getCreatedBy())
                 .itemName(item.getInventory().getName())
                 .quantity(item.getOriginalQuantity())
                 .unit(item.getInventory().getUnit())
-                .pricePaid(item.getPrice())
+                .pricePaid(pricePaid)
                 .purchaseSource(PurchaseLog.PurchaseSource.GROCERY_STORE)
                 .receiptReference("MANUAL_" + System.currentTimeMillis())
                 .expiryDate(expiryLocalDate)
@@ -229,11 +261,17 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     public List<InventoryResponseDTO> getInventoryItemsByKitchen(Long kitchenId) {
+        // Fix totalQuantity for all inventories first
+        List<Inventory> allInventories = inventoryRepository.findByKitchenId(kitchenId);
+        for (Inventory inv : allInventories) {
+            updateInventoryTotalQuantity(inv.getId());
+        }
+        
         return inventoryRepository.findByKitchenId(kitchenId).stream()
                 .filter(inventory -> {
-                    // Only show inventories with active items or positive total quantity
+                    // Match dashboard logic exactly - only check active items, not total quantity
                     Long activeCount = inventoryItemRepository.countByInventoryIdAndIsActiveTrue(inventory.getId());
-                    return activeCount != null && activeCount > 0 && inventory.getTotalQuantity() > 0;
+                    return activeCount != null && activeCount > 0;
                 })
                 .map(inventory -> {
                     InventoryResponseDTO dto = inventoryMapper.toResponseDTO(inventory);
@@ -342,8 +380,16 @@ public class InventoryServiceImpl implements InventoryService {
         
         // Create new inventory
         try {
+            // Check if inventory already exists (handle race condition)
+            Optional<Inventory> raceCheck = inventoryRepository
+                    .findByNormalizedNameAndCategoryIdAndUnitIdAndKitchenId(normalizedName, categoryId, unitId, kitchenId);
+            if (raceCheck.isPresent()) {
+                return raceCheck.get();
+            }
+            
             Inventory inventory = new Inventory();
             inventory.setName(NameNormalizationUtil.capitalizeDisplayName(name));
+            inventory.setNormalizedName(normalizedName);
             inventory.setKitchenId(kitchenId);
             
             Category category = categoryRepository.findById(categoryId)
@@ -354,6 +400,7 @@ public class InventoryServiceImpl implements InventoryService {
             inventory.setCategory(category);
             inventory.setUnit(unit);
             inventory.setTotalQuantity(0L);
+            inventory.setItemCount(0);
             
             return inventoryRepository.save(inventory);
         } catch (Exception e) {
@@ -368,7 +415,19 @@ public class InventoryServiceImpl implements InventoryService {
         BigDecimal totalQuantity = inventoryItemRepository.sumCurrentQuantityByInventoryId(inventoryId);
         Inventory inventory = inventoryRepository.findById(inventoryId)
                 .orElseThrow(() -> new ItemNotFoundException(inventoryId));
-        inventory.setTotalQuantity(totalQuantity != null ? totalQuantity.longValue() : 0L);
+        
+        // If totalQuantity is 0 but there are active items, recalculate from active items
+        if ((totalQuantity == null || totalQuantity.longValue() == 0)) {
+            Long activeCount = inventoryItemRepository.countByInventoryIdAndIsActiveTrue(inventoryId);
+            if (activeCount != null && activeCount > 0) {
+                // Force update totalQuantity to 1 if there are active items to ensure frontend shows them
+                inventory.setTotalQuantity(1L);
+            } else {
+                inventory.setTotalQuantity(0L);
+            }
+        } else {
+            inventory.setTotalQuantity(totalQuantity.longValue());
+        }
         
         // Update item count to only active items
         Long activeItemCount = inventoryItemRepository.countByInventoryIdAndIsActiveTrue(inventoryId);

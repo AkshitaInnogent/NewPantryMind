@@ -78,6 +78,11 @@ export default function AddInventoryOCR() {
     
     canvas.toBlob((blob) => {
       const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        showToast.error(`Captured image too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Please try again.`);
+        return;
+      }
       processOCR(file, activeMode);
     }, 'image/jpeg', 0.8);
     
@@ -507,7 +512,7 @@ export default function AddInventoryOCR() {
 
                 <textarea
                   placeholder="Description"
-                  value={item.description}
+                  value={item.description || ''}
                   onChange={(e) => updateManualItem(item.id, 'description', e.target.value)}
                   className="w-full mt-4 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   rows="2"
@@ -632,7 +637,7 @@ export default function AddInventoryOCR() {
 
                 <textarea
                   placeholder="Description"
-                  value={item.description}
+                  value={item.description || ''}
                   onChange={(e) => updateEditingItem(index, 'description', e.target.value)}
                   className="w-full mt-4 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   rows="2"
@@ -757,6 +762,12 @@ export default function AddInventoryOCR() {
             onChange={(e) => {
               const file = e.target.files[0];
               if (file && activeMode) {
+                const maxSize = 10 * 1024 * 1024;
+                if (file.size > maxSize) {
+                  showToast.error(`File size too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Please choose a file smaller than 10MB.`);
+                  e.target.value = '';
+                  return;
+                }
                 processOCR(file, activeMode);
               }
             }}

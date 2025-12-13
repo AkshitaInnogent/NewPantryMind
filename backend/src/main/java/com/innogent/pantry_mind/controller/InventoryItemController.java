@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/inventory")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Inventory", description = "Inventory management APIs")
 public class InventoryItemController {
 
@@ -29,7 +31,16 @@ public class InventoryItemController {
     @PostMapping
     @Operation(summary = "Add a new inventory item")
     public ResponseEntity<InventoryItemResponseDTO> addItem(@Valid @RequestBody CreateInventoryItemRequestDTO dto) {
-        return ResponseEntity.ok(inventoryService.addInventoryItem(dto));
+        try {
+            log.info("Adding inventory item: {}", dto);
+            return ResponseEntity.ok(inventoryService.addInventoryItem(dto));
+        } catch (IllegalArgumentException e) {
+            log.error("Validation error: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("Error adding inventory item: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping
@@ -53,7 +64,11 @@ public class InventoryItemController {
     @GetMapping("/{id}")
     @Operation(summary = "Get inventory details with all individual items")
     public ResponseEntity<InventoryResponseDTO> getInventoryById(@PathVariable Long id) {
-        return ResponseEntity.ok(inventoryService.getInventoryItemById(id));
+        try {
+            return ResponseEntity.ok(inventoryService.getInventoryItemById(id));
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid inventory ID: " + id + ". Use format /api/inventory/{id}");
+        }
     }
 
     @PutMapping("/items/{id}")

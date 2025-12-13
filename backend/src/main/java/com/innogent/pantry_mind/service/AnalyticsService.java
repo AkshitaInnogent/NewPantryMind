@@ -2,6 +2,7 @@ package com.innogent.pantry_mind.service;
 
 import com.innogent.pantry_mind.entity.*;
 import com.innogent.pantry_mind.repository.*;
+import com.innogent.pantry_mind.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,8 @@ public class AnalyticsService {
     private final WasteLogRepository wasteLogRepository;
     private final PurchaseLogRepository purchaseLogRepository;
     private final CategoryRepository categoryRepository;
+    private final ConsumptionEventRepository consumptionEventRepository;
+    private final NotificationRepository notificationRepository;
     
     public Map<String, Object> getUsageAnalytics(Long kitchenId) {
         List<Object[]> usageData = usageLogRepository.findTopUsedItemsByKitchen(kitchenId);
@@ -66,8 +69,10 @@ public class AnalyticsService {
         Map<String, Integer> wasteByMonth = new HashMap<>();
         for (Object[] row : wasteData) {
             try {
-                String month = ((String) row[0]).substring(0, 3);
-                int count = ((Number) row[1]).intValue();
+                String monthName = (String) row[0];
+                String month = monthName != null && monthName.length() >= 3 ? 
+                    monthName.substring(0, 3) : monthName;
+                int count = row[1] != null ? ((Number) row[1]).intValue() : 0;
                 wasteByMonth.put(month, count);
                 log.info("Waste - Month: {}, Count: {}", month, count);
             } catch (Exception e) {
@@ -79,8 +84,10 @@ public class AnalyticsService {
         Map<String, Integer> consumptionByMonth = new HashMap<>();
         for (Object[] row : consumptionData) {
             try {
-                String month = ((String) row[0]).substring(0, 3);
-                int count = ((Number) row[1]).intValue();
+                String monthName = (String) row[0];
+                String month = monthName != null && monthName.length() >= 3 ? 
+                    monthName.substring(0, 3) : monthName;
+                int count = row[1] != null ? ((Number) row[1]).intValue() : 0;
                 consumptionByMonth.put(month, count);
                 log.info("Consumption - Month: {}, Count: {}", month, count);
             } catch (Exception e) {
@@ -308,6 +315,41 @@ public class AnalyticsService {
             .collect(Collectors.toList());
             
         return Map.of("categories", categories);
+    }
+    
+    public Map<String, Object> getSummaryAnalytics(Long kitchenId) {
+        log.info("=== DEBUG: Fetching summary analytics for kitchenId: {} ===", kitchenId);
+        
+        // Count items wasted due to expiry from waste_log
+        long itemsWasted = wasteLogRepository.countByKitchenIdAndWasteReason(
+            kitchenId, WasteLog.WasteReason.EXPIRED);
+        log.info("DEBUG: Items wasted (EXPIRED) from waste_log: {}", itemsWasted);
+        
+        // Count items saved (used after alert) from usage_log
+        long itemsSaved = usageLogRepository.countByKitchenId(kitchenId);
+        log.info("DEBUG: Items saved from usage_log: {}", itemsSaved);
+        
+        // Debug: Check total waste logs
+        long totalWaste = wasteLogRepository.countByKitchenId(kitchenId);
+        log.info("DEBUG: Total waste logs: {}", totalWaste);
+        
+        // Total alerts = saved + wasted
+        long totalAlerts = itemsSaved + itemsWasted;
+        log.info("DEBUG: Total alerts calculated: {} (saved: {} + wasted: {})", totalAlerts, itemsSaved, itemsWasted);
+        
+        // Calculate success rate
+        double successRate = totalAlerts > 0 ? (double) itemsSaved / totalAlerts * 100 : 0;
+        log.info("DEBUG: Success rate calculated: {}%", successRate);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalAlerts", totalAlerts);
+        result.put("itemsSaved", itemsSaved);
+        result.put("itemsWasted", itemsWasted);
+        result.put("successRate", Math.round(successRate * 100.0) / 100.0);
+        
+        log.info("=== DEBUG: Final result: {} ===", result);
+        
+        return result;
     }
 
 }

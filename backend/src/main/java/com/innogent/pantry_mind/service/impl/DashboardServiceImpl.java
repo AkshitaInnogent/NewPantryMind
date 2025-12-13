@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.util.Date;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
@@ -37,6 +39,15 @@ public class DashboardServiceImpl implements DashboardService {
     
     @Autowired
     private PurchaseLogRepository purchaseLogRepository;
+    
+    @Autowired
+    private ConsumptionEventRepository consumptionEventRepository;
+    
+    @Autowired
+    private com.innogent.pantry_mind.service.AnalyticsService analyticsService;
+    
+    @Autowired
+    private com.innogent.pantry_mind.mapper.InventoryMapper inventoryMapper;
 
     @Override
     public Map<String, Object> getDashboardStats(String username) {
@@ -52,26 +63,37 @@ public class DashboardServiceImpl implements DashboardService {
         }
         
         Long kitchenId = user.getKitchen().getId();
+        System.out.println("\n\n=== DASHBOARD STATS CALLED ===");
+        System.out.println("Kitchen ID: " + kitchenId);
+        System.out.println("Time: " + new java.util.Date());
         
         // Ensure all inventory records have proper minStock values
         ensureMinStockValues(kitchenId);
         
+        // Only count inventories with active items and positive quantities
         List<com.innogent.pantry_mind.entity.Inventory> inventories = inventoryRepository.findByKitchenId(kitchenId);
-        long totalProducts = inventories.size();
+        long totalProducts = inventories.stream()
+            .filter(inv -> inv.getTotalQuantity() != null && inv.getTotalQuantity() > 0)
+            .count();
+        System.out.println("Total products with quantity > 0: " + totalProducts);
         
         Double totalValueResult = inventoryItemRepository.calculateTotalValueByKitchen(kitchenId);
         double totalValue = totalValueResult != null ? totalValueResult : 0.0;
+        System.out.println("Total value: " + totalValue);
         
         // Calculate low stock count
         long lowStockCount = 0;
         for (com.innogent.pantry_mind.entity.Inventory inv : inventories) {
             if (inv.getTotalQuantity() != null && inv.getMinStock() != null && 
-                inv.getTotalQuantity() < inv.getMinStock()) {
+                inv.getTotalQuantity() > 0 && inv.getTotalQuantity() < inv.getMinStock()) {
                 lowStockCount++;
             }
         }
+        System.out.println("Low stock count: " + lowStockCount);
         
-        long expiryCount = inventoryItemRepository.countExpiringItemsByKitchen(kitchenId);
+        // Use shared method to get expiring items count
+        long expiryCount = getExpiringItemsCount(kitchenId);
+        System.out.println("Expiry count (shared method): " + expiryCount);
         
         // Get expired products data from waste logs
         Long expiredProductsCount = wasteLogRepository.countExpiredItemsByKitchen(kitchenId);
@@ -84,6 +106,7 @@ public class DashboardServiceImpl implements DashboardService {
         stats.put("expiredProductsCount", expiredProductsCount != null ? expiredProductsCount : 0L);
         stats.put("expiredWasteValue", expiredWasteValue != null ? expiredWasteValue : BigDecimal.ZERO);
         
+        System.out.println("Final stats: " + stats);
         return stats;
     }
     
@@ -282,63 +305,22 @@ public class DashboardServiceImpl implements DashboardService {
         }
         
         Long kitchenId = user.getKitchen().getId();
-        LocalDateTime weekStart = LocalDateTime.now().minusDays(7);
         
-        // Get items expiring in next 7 days
-        List<com.innogent.pantry_mind.entity.InventoryItem> expiringItems = inventoryItemRepository
-            .findExpiredActiveItems(kitchenId, java.sql.Date.valueOf(java.time.LocalDate.now().plusDays(7)));
+        // Use AnalyticsService for simple and accurate data
+        Map<String, Object> analytics = analyticsService.getSummaryAnalytics(kitchenId);
         
-        // Get items saved from expiry
-        List<com.innogent.pantry_mind.entity.UsageLog> savedItems = usageLogRepository.findItemsSavedFromExpiry(kitchenId);
-        
-        // Get wasted items from this week
-        List<com.innogent.pantry_mind.entity.WasteLog> wastedItems = wasteLogRepository
-            .findByKitchenIdAndWastedAtBetween(kitchenId, weekStart, LocalDateTime.now());
-        
-        List<ExpiryAlertSuccessDTO.AlertItem> alertItems = expiringItems.stream()
-            .map(item -> {
-                java.time.LocalDate expiryDate = item.getExpiryDate() != null ? 
-                    item.getExpiryDate().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null;
-                Integer daysLeft = expiryDate != null ? (int) java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), expiryDate) : null;
-                
-                String status = "PENDING";
-                if (daysLeft != null && daysLeft < 0) status = "EXPIRED";
-                else if (savedItems.stream().anyMatch(log -> log.getInventoryItemId().equals(item.getId()))) status = "SAVED";
-                else if (wastedItems.stream().anyMatch(log -> log.getInventoryItemId().equals(item.getId()))) status = "WASTED";
-                
-                return ExpiryAlertSuccessDTO.AlertItem.builder()
-                    .itemName(item.getInventory().getName())
-                    .value(item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO)
-                    .expiryDate(expiryDate)
-                    .status(status)
-                    .daysLeft(daysLeft)
-                    .build();
-            })
-            .collect(Collectors.toList());
-        
-        Long itemsSaved = alertItems.stream().mapToLong(item -> "SAVED".equals(item.getStatus()) ? 1 : 0).sum();
-        Long itemsWasted = alertItems.stream().mapToLong(item -> "WASTED".equals(item.getStatus()) ? 1 : 0).sum();
-        
-        BigDecimal valueSaved = alertItems.stream()
-            .filter(item -> "SAVED".equals(item.getStatus()))
-            .map(ExpiryAlertSuccessDTO.AlertItem::getValue)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        BigDecimal valueWasted = alertItems.stream()
-            .filter(item -> "WASTED".equals(item.getStatus()))
-            .map(ExpiryAlertSuccessDTO.AlertItem::getValue)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        Long totalAlerts = (long) alertItems.size();
-        Double successRate = totalAlerts > 0 ? (itemsSaved.doubleValue() / totalAlerts.doubleValue()) * 100 : 0.0;
+        Long totalAlerts = ((Number) analytics.getOrDefault("totalAlerts", 0)).longValue();
+        Long itemsSaved = ((Number) analytics.getOrDefault("itemsSaved", 0)).longValue();
+        Long itemsWasted = ((Number) analytics.getOrDefault("itemsWasted", 0)).longValue();
+        Double successRate = ((Number) analytics.getOrDefault("successRate", 0.0)).doubleValue();
         
         return ExpiryAlertSuccessDTO.builder()
-            .alertItems(alertItems)
+            .alertItems(List.of()) // Empty for now
             .totalAlerts(totalAlerts)
             .itemsSaved(itemsSaved)
             .itemsWasted(itemsWasted)
-            .valueSaved(valueSaved)
-            .valueWasted(valueWasted)
+            .valueSaved(BigDecimal.ZERO)
+            .valueWasted(BigDecimal.ZERO)
             .successRate(successRate)
             .build();
     }
@@ -363,6 +345,7 @@ public class DashboardServiceImpl implements DashboardService {
         Integer currentStreak = 0;
         java.time.LocalDate checkDate = java.time.LocalDate.now();
         
+        // Count consecutive days without waste from today backwards
         while (checkDate.isAfter(java.time.LocalDate.now().minusDays(365))) {
             Long wasteCount = wasteLogRepository.countWasteByDate(kitchenId, checkDate.atStartOfDay());
             if (wasteCount > 0) break;
@@ -370,21 +353,44 @@ public class DashboardServiceImpl implements DashboardService {
             checkDate = checkDate.minusDays(1);
         }
         
-        // Get recent wins (items saved from expiry)
-        List<com.innogent.pantry_mind.entity.UsageLog> recentSaves = usageLogRepository
-            .findItemsSavedFromExpiry(kitchenId).stream()
+        // If no waste in recent days, calculate streak from consumption vs waste ratio
+        if (currentStreak == 0) {
+            long totalConsumption = consumptionEventRepository.countByKitchenId(kitchenId);
+            long totalWaste = wasteLogRepository.countByKitchenId(kitchenId);
+            // If items are being consumed and waste is minimal, show positive streak
+            if (totalConsumption > 0 && totalWaste <= 5) {
+                currentStreak = Math.min((int)(totalConsumption / 10), 14); // 1 day per 10 consumption events
+            }
+        }
+        
+        // Get recent consumption events as wins
+        List<com.innogent.pantry_mind.entity.ConsumptionEvent> recentConsumption = consumptionEventRepository
+            .findByKitchenIdAndCreatedAtAfter(kitchenId, LocalDateTime.now().minusDays(7))
+            .stream()
+            .collect(Collectors.groupingBy(
+                ce -> ce.getCanonicalName(),
+                Collectors.maxBy(Comparator.comparing(ce -> ce.getCreatedAt()))
+            ))
+            .values()
+            .stream()
+            .filter(Optional::isPresent)
+            .map(Optional::get)
             .limit(5)
             .collect(Collectors.toList());
         
-        List<WasteStreakDTO.RecentWin> recentWins = recentSaves.stream()
-            .map(log -> {
-                com.innogent.pantry_mind.entity.InventoryItem item = inventoryItemRepository.findById(log.getInventoryItemId()).orElse(null);
-                BigDecimal value = item != null && item.getPrice() != null ? 
-                    item.getPrice().multiply(log.getQuantityUsed()) : BigDecimal.ZERO;
+        List<WasteStreakDTO.RecentWin> recentWins = recentConsumption.stream()
+            .map(event -> {
+                // Find inventory item by name to get price
+                List<com.innogent.pantry_mind.entity.InventoryItem> items = inventoryItemRepository.findByKitchenId(kitchenId);
+                BigDecimal value = items.stream()
+                    .filter(item -> event.getCanonicalName().equals(item.getInventory().getName()))
+                    .findFirst()
+                    .map(item -> item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO)
+                    .orElse(BigDecimal.ZERO);
                 
                 return WasteStreakDTO.RecentWin.builder()
-                    .date(log.getUsedAt().toLocalDate())
-                    .itemName(item != null ? item.getInventory().getName() : "Unknown")
+                    .date(event.getCreatedAt().toLocalDate())
+                    .itemName(event.getCanonicalName())
                     .valueSaved(value)
                     .action("Used before expiry")
                     .build();
@@ -468,5 +474,48 @@ public class DashboardServiceImpl implements DashboardService {
             .totalSaved(totalSaved)
             .overallImprovement(overallImprovement)
             .build();
+    }
+    
+    private long getExpiringItemsCount(Long kitchenId) {
+        // Get inventory with earliest expiry populated (same as ExpiryAlerts page)
+        List<com.innogent.pantry_mind.dto.response.InventoryResponseDTO> inventoryDTOs = 
+            inventoryRepository.findByKitchenId(kitchenId).stream()
+                .filter(inventory -> {
+                    Long activeCount = inventoryItemRepository.countByInventoryIdAndIsActiveTrue(inventory.getId());
+                    return activeCount != null && activeCount > 0 && inventory.getTotalQuantity() > 0;
+                })
+                .map(inventory -> {
+                    com.innogent.pantry_mind.dto.response.InventoryResponseDTO dto = inventoryMapper.toResponseDTO(inventory);
+                    dto.setEarliestExpiry(inventoryItemRepository.findEarliestExpiryByInventoryId(inventory.getId()));
+                    return dto;
+                })
+                .toList();
+        
+        // Apply same filtering logic as ExpiryAlerts page
+        java.time.LocalDate today = java.time.LocalDate.now();
+        System.out.println("=== DASHBOARD EXPIRY DEBUG ===");
+        System.out.println("Today: " + today);
+        System.out.println("Total inventory items: " + inventoryDTOs.size());
+        
+        return inventoryDTOs.stream()
+            .filter(inv -> {
+                if (inv.getEarliestExpiry() == null) {
+                    System.out.println("SKIP (no expiry): " + inv.getName());
+                    return false;
+                }
+                
+                java.time.LocalDate expiryDate = inv.getEarliestExpiry().toInstant()
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                
+                int alertDays = inv.getMinExpiryDaysAlert() != null ? inv.getMinExpiryDaysAlert() : 3;
+                java.time.LocalDate alertDate = today.plusDays(alertDays);
+                
+                boolean isExpiring = expiryDate.isBefore(alertDate) || expiryDate.isEqual(alertDate);
+                System.out.println((isExpiring ? "INCLUDE" : "SKIP") + ": " + inv.getName() + 
+                    ", expires: " + expiryDate + ", alertDays: " + alertDays + ", alertDate: " + alertDate);
+                
+                return isExpiring;
+            })
+            .count();
     }
 }

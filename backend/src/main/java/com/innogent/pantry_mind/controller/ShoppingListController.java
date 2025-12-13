@@ -158,6 +158,15 @@ public class ShoppingListController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{listId}/generate-suggestions")
+    public ResponseEntity<List<ShoppingListItemResponseDTO>> generateSuggestions(
+            @PathVariable Long listId,
+            @RequestParam Long kitchenId) {
+        Long userId = getCurrentUserId();
+        List<ShoppingListItemResponseDTO> suggestions = shoppingListService.generateAISuggestions(listId, kitchenId, userId);
+        return ResponseEntity.ok(suggestions);
+    }
+
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();

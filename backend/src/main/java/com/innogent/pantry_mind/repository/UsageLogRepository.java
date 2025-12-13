@@ -13,10 +13,10 @@ import java.util.List;
 @Repository
 public interface UsageLogRepository extends JpaRepository<UsageLog, Long> {
     
-    @Query("SELECT TO_CHAR(u.usedAt, 'Mon') as month, COUNT(u) as count FROM UsageLog u " +
+    @Query("SELECT FUNCTION('MONTHNAME', u.usedAt) as month, COUNT(u) as count FROM UsageLog u " +
            "WHERE u.kitchenId = :kitchenId AND u.usedAt >= :since " +
-           "GROUP BY TO_CHAR(u.usedAt, 'Mon') " +
-           "ORDER BY MIN(u.usedAt)")
+           "GROUP BY FUNCTION('MONTH', u.usedAt), FUNCTION('MONTHNAME', u.usedAt) " +
+           "ORDER BY FUNCTION('MONTH', u.usedAt)")
     List<Object[]> findMonthlyConsumptionData(
         @Param("kitchenId") Long kitchenId, 
         @Param("since") LocalDateTime since
@@ -66,4 +66,6 @@ public interface UsageLogRepository extends JpaRepository<UsageLog, Long> {
            "AND ii.expiryDate >= u.usedAt " +
            "ORDER BY u.usedAt DESC")
     List<UsageLog> findItemsSavedFromExpiry(@Param("kitchenId") Long kitchenId);
+    
+    long countByKitchenId(Long kitchenId);
 }

@@ -21,7 +21,7 @@ public class ExpiryWasteService {
     private final WasteLogRepository wasteLogRepository;
     private final NotificationService notificationService;
     
-    @Scheduled(cron = "0 10 2 * * ?") // Run daily at 2:10 AM
+    @Scheduled(cron = "0 10 1 * * ?") // Run daily at 1:10 AM
     @Transactional
     public void processExpiredItems() {
         System.out.println("\n\n=== SCHEDULED TASK RUNNING ===");

@@ -24,4 +24,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     
     @Query("SELECT COUNT(n) FROM Notification n WHERE n.kitchenId = :kitchenId AND (:userId NOT MEMBER OF n.readByUsers OR n.readByUsers IS EMPTY) AND n.type NOT IN :excludedTypes")
     long countUnreadByUserExcludingTypes(@Param("kitchenId") Long kitchenId, @Param("userId") Long userId, @Param("excludedTypes") List<String> excludedTypes);
+    
+    long countByKitchenIdAndTypeIn(Long kitchenId, List<String> types);
 }

@@ -44,4 +44,9 @@ public class AnalyticsController {
     public ResponseEntity<Map<String, Object>> getCategoryAnalytics(@PathVariable Long kitchenId) {
         return ResponseEntity.ok(analyticsService.getCategoryAnalytics(kitchenId));
     }
+    
+    @GetMapping("/summary/{kitchenId}")
+    public ResponseEntity<Map<String, Object>> getSummaryAnalytics(@PathVariable Long kitchenId) {
+        return ResponseEntity.ok(analyticsService.getSummaryAnalytics(kitchenId));
+    }
 }
