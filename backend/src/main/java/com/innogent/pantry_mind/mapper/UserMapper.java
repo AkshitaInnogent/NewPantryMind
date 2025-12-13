@@ -11,7 +11,6 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "kitchen", ignore = true)
     @Mapping(target = "role", ignore = true)
-    @Mapping(target = "googleId", ignore = true)
     @Mapping(target = "isActive", constant = "true")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "passwordHash", source = "password")

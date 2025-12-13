@@ -190,7 +190,7 @@ export default function InventoryDetails() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Individual Items</div>
-              <div className="font-semibold text-gray-900">{inventory.items?.length || 0}</div>
+              <div className="font-semibold text-gray-900">{inventory.items?.filter(item => item.quantity > 0)?.length || 0}</div>
             </div>
           </div>
         </div>
@@ -198,7 +198,7 @@ export default function InventoryDetails() {
 
       {/* Items table */}
       <h2 className="text-lg font-semibold text-gray-900 mb-3">Individual Items</h2>
-      {inventory.items?.length ? (
+      {inventory.items?.filter(item => item.quantity > 0)?.length ? (
         <div className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -214,7 +214,7 @@ export default function InventoryDetails() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {inventory.items.map((item, idx) => {
+                {inventory.items.filter(item => item.quantity > 0).map((item, idx) => {
                   const status = getExpiryStatus(item.expiryDate);
                   return (
                     <tr key={item.id} className="hover:bg-gray-50/60">
@@ -231,19 +231,13 @@ export default function InventoryDetails() {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => navigate(`/inventory/edit-item/${item.id}`, { state: { item } })}
+                            onClick={() => navigate(`/inventory/edit-item/${item.id}`, { state: { item: { ...item, inventoryId: inventory.id } } })}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-md"
                             aria-label="Edit"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteItem(item.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-md"
-                            aria-label="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+
                         </div>
                       </td>
                     </tr>

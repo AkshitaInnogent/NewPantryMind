@@ -11,6 +11,8 @@ public interface AIService {
     
     List<ShoppingListItemResponseDTO> generateAISuggestions(Long kitchenId);
     
+    List<ShoppingListItemResponseDTO> generateAISuggestionsForListType(Long kitchenId, String listType, List<String> existingItems);
+    
     Map<String, Object> analyzeConsumptionPatterns(Long kitchenId);
     
     List<String> generateSmartRecipeRecommendations(Long kitchenId, Integer servings);

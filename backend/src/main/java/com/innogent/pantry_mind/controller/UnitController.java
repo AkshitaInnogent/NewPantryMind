@@ -3,6 +3,7 @@ package com.innogent.pantry_mind.controller;
 import com.innogent.pantry_mind.dto.request.UnitRequestDTO;
 import com.innogent.pantry_mind.dto.response.UnitResponseDTO;
 import com.innogent.pantry_mind.service.UnitService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,12 +12,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/units")
+@RequiredArgsConstructor
+@CrossOrigin
 public class UnitController {
     private final UnitService unitService;
-
-    public UnitController(UnitService unitService) {
-        this.unitService = unitService;
-    }
 
     @PostMapping
     public ResponseEntity<UnitResponseDTO> create(@RequestBody UnitRequestDTO unitRequestDTO) {

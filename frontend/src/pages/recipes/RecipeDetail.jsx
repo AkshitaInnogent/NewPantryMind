@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ChefHat, Clock, Users, ArrowLeft, CheckCircle, ShoppingCart, Utensils, Timer, AlertCircle, Package } from "lucide-react";
 import { showToast } from "../../utils/toast";
 import { cookRecipe } from "../../features/inventory/inventoryThunks";
@@ -9,6 +9,7 @@ export default function RecipeDetail() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const { recipe, servings } = location.state || {};
   
   const [checkedIngredients, setCheckedIngredients] = useState({});
@@ -38,6 +39,8 @@ export default function RecipeDetail() {
     try {
       await dispatch(cookRecipe(recipe));
       setIsCooked(true);
+      // Show success message
+      alert('Recipe cooked! Ingredients consumed and meal logged.');
     } catch (error) {
       console.error('Failed to cook recipe:', error);
       showToast.error(error.message || 'Failed to cook recipe');
@@ -137,38 +140,20 @@ export default function RecipeDetail() {
             {/* Recipe Ingredients */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-                <Package className="w-5 h-5 text-green-600" />
-                Recipe Ingredients
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                Available Ingredients
               </h2>
-              <p className="text-sm text-gray-600 mb-4">Exact quantities needed for this recipe:</p>
+
               
               <div className="space-y-3">
-                {recipe.ingredients?.map((ingredient, index) => {
-                  const displayText = ingredient;
-                  
-                  return (
-                    <div 
-                      key={index}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
-                        checkedIngredients[index] 
-                          ? 'bg-green-50 border-green-200' 
-                          : 'bg-gray-50 border-gray-200 hover:bg-green-50'
-                      }`}
-                      onClick={() => toggleIngredient(index)}
-                    >
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        checkedIngredients[index] 
-                          ? 'bg-green-500 border-green-500' 
-                          : 'border-gray-300'
-                      }`}>
-                        {checkedIngredients[index] && <CheckCircle className="w-3 h-3 text-white" />}
-                      </div>
-                      <span className={`flex-1 text-sm font-medium ${checkedIngredients[index] ? 'line-through text-gray-500' : 'text-gray-700'}`}>
-                        {displayText}
-                      </span>
-                    </div>
-                  );
-                })}
+                {recipe.ingredients?.map((ingredient, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="flex-1 text-sm font-medium text-gray-700">
+                      {ingredient}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -182,35 +167,76 @@ export default function RecipeDetail() {
                 <p className="text-sm text-gray-600 mb-4">Items you need to buy:</p>
                 
                 <div className="space-y-3 mb-4">
-                  {recipe.missing_items.map((item, index) => {
-                    const displayText = item;
-                    
-                    return (
-                      <div 
-                        key={index}
-                        className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
-                          checkedShoppingItems[index] 
-                            ? 'bg-orange-50 border-orange-200' 
-                            : 'bg-orange-50 border-orange-200 hover:bg-orange-100'
-                        }`}
-                        onClick={() => toggleShoppingItem(index)}
-                      >
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          checkedShoppingItems[index] 
-                            ? 'bg-orange-500 border-orange-500' 
-                            : 'border-orange-300'
-                        }`}>
-                          {checkedShoppingItems[index] && <CheckCircle className="w-3 h-3 text-white" />}
-                        </div>
-                        <span className={`flex-1 text-sm font-medium ${checkedShoppingItems[index] ? 'line-through text-gray-500' : 'text-gray-700'}`}>
-                          {displayText}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {recipe.missing_items.map((item, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
+                      <ShoppingCart className="w-4 h-4 text-red-600" />
+                      <span className="flex-1 text-sm font-medium text-gray-700">
+                        {item}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
-                <button className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]">
+                <button 
+                  onClick={async () => {
+                    if (!user?.id) {
+                      alert('Please log in to add items to shopping list');
+                      return;
+                    }
+                    
+                    try {
+                      // First get the shopping lists for the kitchen
+                      const listsResponse = await fetch(`http://localhost:8080/api/shopping-lists/kitchen/${user.kitchenId}`);
+                      const lists = await listsResponse.json();
+                      console.log('Shopping lists:', lists);
+                      
+                      // Use a random shopping list
+                      const randomList = lists[Math.floor(Math.random() * lists.length)];
+                      
+                      if (!randomList) {
+                        alert('No shopping list found');
+                        return;
+                      }
+                      
+                      let addedCount = 0;
+                      
+                      // Add each missing item to a random shopping list
+                      for (const item of recipe.missing_items) {
+                        const [name, quantityUnit] = item.split(':');
+                        const quantityMatch = quantityUnit?.match(/(\d+(?:\.\d+)?)/);
+                        const quantity = quantityMatch ? parseFloat(quantityMatch[1]) : 1;
+                        
+                        // Pick a random list for each item
+                        const randomListForItem = lists[Math.floor(Math.random() * lists.length)];
+                        
+                        const itemData = {
+                          itemName: name.trim(),
+                          quantity: quantity,
+                          unitId: 1 // Default unit ID
+                        };
+                        
+                        const response = await fetch(`http://localhost:8080/api/shopping-lists/${randomListForItem.id}/items?userId=${user.id}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(itemData)
+                        });
+                        
+                        if (response.ok) {
+                          addedCount++;
+                          console.log(`Added ${name.trim()} to ${randomListForItem.listType}`);
+                        } else {
+                          console.error(`Failed to add ${name.trim()}:`, response.status, await response.text());
+                        }
+                      }
+                      
+                      alert(`${addedCount} items added to shopping list!`);
+                    } catch (error) {
+                      console.error('Failed to add items to shopping list:', error);
+                      alert('Failed to add items to shopping list');
+                    }
+                  }}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
+                >
                   Add All to Shopping List
                 </button>
               </div>
@@ -255,8 +281,8 @@ export default function RecipeDetail() {
                 ))}
               </div>
 
-              {/* Cooking Timer */}
-              <div className="mt-8 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
+              {/* Cooking Timer - akshitadidthisfor now */}
+              {/* <div className="mt-8 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
                 <div className="flex items-center gap-3 mb-3">
                   <Timer className="w-5 h-5 text-green-600" />
                   <h3 className="font-semibold text-gray-900">Cooking Timer</h3>
@@ -264,10 +290,16 @@ export default function RecipeDetail() {
                 <p className="text-gray-600 text-sm mb-3">
                   Total cooking time: {recipe.cooking_time || "30 mins"}
                 </p>
-                <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                <button 
+                  onClick={() => {
+                    const time = recipe.cooking_time || "30 mins";
+                    alert(`Timer started for ${time}! (Timer functionality coming soon)`);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
                   Start Timer
                 </button>
-              </div>
+              </div> */}
 
               {/* Tips Section */}
               <div className="mt-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
@@ -300,21 +332,44 @@ export default function RecipeDetail() {
             onClick={handleCookRecipe}
             disabled={isCooked || isLoading}
             className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] ${
-              isCooked || isLoading
-                ? 'bg-gray-400 text-white cursor-not-allowed' 
+              isCooked
+                ? 'bg-green-600 text-white cursor-not-allowed' 
+                : isLoading
+                ? 'bg-gray-400 text-white cursor-not-allowed'
                 : 'bg-orange-600 hover:bg-orange-700 text-white'
             }`}
           >
-            {isLoading ? 'Cooking...' : isCooked ? 'Recipe Cooked!' : 'Cook Recipe'}
+            {isLoading ? 'Cooking...' : isCooked ? 'Cooked ✓' : 'Cook Recipe'}
           </button>
           
-          <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]">
+          {/* Save Recipe - akshitadidthisfor now */}
+          {/* <button 
+            onClick={() => {
+              alert(`Recipe "${recipe.name}" saved to favorites! (Save feature coming soon)`);
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
+          >
             Save Recipe
-          </button>
+          </button> */}
           
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]">
+          {/* Share Recipe - akshitadidthisfor now */}
+          {/* <button 
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: recipe.name,
+                  text: `Check out this recipe: ${recipe.name}`,
+                  url: window.location.href
+                });
+              } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Recipe link copied to clipboard!');
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
+          >
             Share Recipe
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

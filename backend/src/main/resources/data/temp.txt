@@ -1,0 +1,331 @@
+-- =====================================================================
+-- YEARLY DEMO DATA - PANTRY MIND ANALYTICS (FINAL COMPLETE VERSION)
+-- =====================================================================
+
+-- ========== KITCHEN & USERS ==========================================
+INSERT INTO kitchens (name, invitation_code, alerts_enabled, alert_time_hour, alert_time_minute)
+VALUES ('Smith Family Kitchen', 'SMITH2024', true, 8, 0);
+
+INSERT INTO users (username, name, email, password_hash, is_active, email_verified, kitchen_id, role_id)
+VALUES
+('demo1', 'Demo User 1', 'demo1@gmail.com',
+ '$2a$10$ITKDzFjaAtqXw7csi3HaEuKgGSILCCDPpI6Ldvty5OIcHXrBb9sSG',
+ true, true,
+ (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'),
+ (SELECT id FROM roles WHERE name = 'ADMIN')),
+('demo2', 'Demo User 2', 'demo2@gmail.com',
+ '$2a$10$ITKDzFjaAtqXw7csi3HaEuKgGSILCCDPpI6Ldvty5OIcHXrBb9sSG',
+ true, true,
+ (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'),
+ (SELECT id FROM roles WHERE name = 'MEMBER'));
+
+-- ========== INVENTORY ITEMS ==========================================
+INSERT INTO inventory (name, normalized_name, category_id, unit_id, kitchen_id, total_quantity, item_count)
+VALUES
+('Milk', 'milk', (SELECT id FROM category WHERE name='Dairy'),
+ (SELECT id FROM units WHERE name='ml'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'), 3000, 1),
+
+('Yogurt','yogurt',(SELECT id FROM category WHERE name='Dairy'),
+ (SELECT id FROM units WHERE name='piece'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),6,1),
+
+('Cheese','cheese',(SELECT id FROM category WHERE name='Dairy'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),500,1),
+
+('Tomatoes','tomatoes',(SELECT id FROM category WHERE name='Vegetables'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),2000,1),
+
+('Onions','onions',(SELECT id FROM category WHERE name='Vegetables'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),3000,1),
+
+('Potatoes','potatoes',(SELECT id FROM category WHERE name='Vegetables'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),5000,1),
+
+('Carrots','carrots',(SELECT id FROM category WHERE name='Vegetables'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),1000,1),
+
+('Apples','apples',(SELECT id FROM category WHERE name='Fruits'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),2000,1),
+
+('Bananas','bananas',(SELECT id FROM category WHERE name='Fruits'),
+ (SELECT id FROM units WHERE name='piece'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),12,1),
+
+('Rice','rice',(SELECT id FROM category WHERE name='Grains'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),10000,1),
+
+('Wheat Flour','wheat flour',(SELECT id FROM category WHERE name='Grains'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),5000,1),
+
+('Bread','bread',(SELECT id FROM category WHERE name='Grains'),
+ (SELECT id FROM units WHERE name='piece'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),2,1),
+
+('Pasta','pasta',(SELECT id FROM category WHERE name='Grains'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),1000,1),
+
+('Chicken Breast','chicken breast',(SELECT id FROM category WHERE name='Meat'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),2000,1),
+
+('Ground Beef','ground beef',(SELECT id FROM category WHERE name='Meat'),
+ (SELECT id FROM units WHERE name='grams'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),1000,1),
+
+('Olive Oil','olive oil',(SELECT id FROM category WHERE name='Condiments'),
+ (SELECT id FROM units WHERE name='ml'),
+ (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),500,1);
+
+-- ========== INVENTORY ITEM RECORDS ===================================
+
+INSERT INTO inventory_item (
+  inventory_id, description, original_quantity, current_quantity,
+  is_active, location_id, expiry_date, price, created_by
+)
+SELECT
+  (SELECT id FROM inventory WHERE name=item_name),
+  item_name,
+  qty, qty,
+  true,
+  (SELECT id FROM locations WHERE name=loc),
+  CURRENT_DATE + expiry_days * INTERVAL '1 day',
+  price,
+  (SELECT id FROM users WHERE email='demo1@gmail.com')
+FROM (VALUES
+  ('Milk',3000,'Refrigerator',7,650),
+  ('Yogurt',6,'Refrigerator',14,250),
+  ('Cheese',500,'Refrigerator',30,2000),
+  ('Tomatoes',2000,'Refrigerator',5,800),
+  ('Onions',3000,'Pantry',15,600),
+  ('Potatoes',5000,'Pantry',20,400),
+  ('Carrots',1000,'Refrigerator',10,700),
+  ('Apples',2000,'Refrigerator',14,1200),
+  ('Bananas',12,'Pantry',5,600),
+  ('Rice',10000,'Pantry',365,8000),
+  ('Wheat Flour',5000,'Pantry',180,5000),
+  ('Bread',2,'Pantry',3,400),
+  ('Pasta',1000,'Pantry',730,1200),
+  ('Chicken Breast',2000,'Freezer',30,3000),
+  ('Ground Beef',1000,'Freezer',30,4000),
+  ('Olive Oil',500,'Pantry',730,2500)
+) AS t(item_name, qty, loc, expiry_days, price);
+
+-- ============================================================
+-- MONTHLY AGGREGATED CONSUMPTION EVENTS (12 months)
+-- One entry per item per month for AI prediction
+-- ============================================================
+
+INSERT INTO consumption_events (canonical_name, quantity_consumed, unit_id, kitchen_id, reason, triggered_by, created_at)
+VALUES
+-- JANUARY 2024
+('Milk', 2500, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-01-31 23:59:00'),
+('Rice', 1200, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-01-31 23:59:00'),
+('Chicken Breast', 600, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-01-31 23:59:00'),
+('Tomatoes', 800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-01-31 23:59:00'),
+('Onions', 400, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-01-31 23:59:00'),
+('Potatoes', 1000, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-01-31 23:59:00'),
+('Eggs', 18, (SELECT id FROM units WHERE name = 'piece'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-01-31 23:59:00'),
+
+-- FEBRUARY 2024
+('Milk', 2300, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-02-29 23:59:00'),
+('Rice', 1100, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-02-29 23:59:00'),
+('Ground Beef', 800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-02-29 23:59:00'),
+('Cheese', 300, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-02-29 23:59:00'),
+('Bananas', 15, (SELECT id FROM units WHERE name = 'piece'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-02-29 23:59:00'),
+('Pasta', 400, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-02-29 23:59:00'),
+
+-- MARCH 2024
+('Milk', 2400, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-03-31 23:59:00'),
+('Rice', 1300, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-03-31 23:59:00'),
+('Eggs', 24, (SELECT id FROM units WHERE name = 'piece'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-03-31 23:59:00'),
+('Yogurt', 8, (SELECT id FROM units WHERE name = 'piece'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-03-31 23:59:00'),
+('Wheat Flour', 600, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-03-31 23:59:00'),
+('Potatoes', 1200, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-03-31 23:59:00'),
+
+-- APRIL 2024
+('Milk', 2600, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-04-30 23:59:00'),
+('Rice', 1500, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-04-30 23:59:00'),
+('Chicken Breast', 800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-04-30 23:59:00'),
+('Tomatoes', 600, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-04-30 23:59:00'),
+('Coffee', 80, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-04-30 23:59:00'),
+('Onions', 500, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-04-30 23:59:00'),
+
+-- MAY 2024
+('Milk', 2700, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-05-31 23:59:00'),
+('Rice', 1400, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-05-31 23:59:00'),
+('Apples', 800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-05-31 23:59:00'),
+('Orange Juice', 800, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-05-31 23:59:00'),
+('Pasta', 300, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-05-31 23:59:00'),
+('Cheese', 200, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-05-31 23:59:00'),
+
+-- JUNE 2024
+('Milk', 2800, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-06-30 23:59:00'),
+('Rice', 1600, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-06-30 23:59:00'),
+('Bananas', 20, (SELECT id FROM units WHERE name = 'piece'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-06-30 23:59:00'),
+('Salt', 50, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-06-30 23:59:00'),
+('Black Pepper', 15, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-06-30 23:59:00'),
+('Olive Oil', 100, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-06-30 23:59:00'),
+
+-- JULY 2024
+('Milk', 2900, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-07-31 23:59:00'),
+('Rice', 2000, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-07-31 23:59:00'),
+('Tomatoes', 900, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-07-31 23:59:00'),
+('Potatoes', 1800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-07-31 23:59:00'),
+('Chicken Breast', 1200, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-07-31 23:59:00'),
+
+-- AUGUST 2024
+('Milk', 3000, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-08-31 23:59:00'),
+('Rice', 1700, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-08-31 23:59:00'),
+('Eggs', 36, (SELECT id FROM units WHERE name = 'piece'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-08-31 23:59:00'),
+('Wheat Flour', 800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-08-31 23:59:00'),
+('Coffee', 120, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-08-31 23:59:00'),
+('Cheese', 400, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-08-31 23:59:00'),
+
+-- SEPTEMBER 2024
+('Milk', 3100, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-09-30 23:59:00'),
+('Rice', 2500, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-09-30 23:59:00'),
+('Potatoes', 2200, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-09-30 23:59:00'),
+('Onions', 800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-09-30 23:59:00'),
+('Chicken Breast', 1500, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-09-30 23:59:00'),
+
+-- OCTOBER 2024
+('Milk', 3200, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-10-31 23:59:00'),
+('Rice', 1900, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-10-31 23:59:00'),
+('Pasta', 600, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-10-31 23:59:00'),
+('Yogurt', 12, (SELECT id FROM units WHERE name = 'piece'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-10-31 23:59:00'),
+('Apples', 1200, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-10-31 23:59:00'),
+('Olive Oil', 150, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-10-31 23:59:00'),
+
+-- NOVEMBER 2024
+('Milk', 3300, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-11-30 23:59:00'),
+('Rice', 3000, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-11-30 23:59:00'),
+('Chicken Breast', 1800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-11-30 23:59:00'),
+('Cheese', 500, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-11-30 23:59:00'),
+('Eggs', 48, (SELECT id FROM units WHERE name = 'piece'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-11-30 23:59:00'),
+('Tomatoes', 1000, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-11-30 23:59:00'),
+
+-- DECEMBER 2024 (till Dec 10)
+('Milk', 3400, (SELECT id FROM units WHERE name = 'ml'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-12-10 23:59:00'),
+('Rice', 2800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-12-10 23:59:00'),
+('Wheat Flour', 1000, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-12-10 23:59:00'),
+('Coffee', 180, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-12-10 23:59:00'),
+('Potatoes', 2800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo1@gmail.com'), '2024-12-10 23:59:00'),
+('Pasta', 800, (SELECT id FROM units WHERE name = 'grams'), (SELECT id FROM kitchens WHERE invitation_code = 'SMITH2024'), 'CONSUMED', (SELECT id FROM users WHERE email = 'demo2@gmail.com'), '2024-12-10 23:59:00');
+
+
+-- =====================================================================
+-- USAGE LOGS (FULL YEAR)
+-- =====================================================================
+
+-- RICE
+INSERT INTO usage_logs (inventory_item_id, kitchen_id, user_id, quantity_used, unit_id, usage_type, recipe_name, notes)
+SELECT
+    (SELECT id FROM inventory_item WHERE description='Rice'),
+    (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),
+    (SELECT id FROM users WHERE email='demo1@gmail.com'),
+    (180 + random()*120)::int,
+    (SELECT id FROM units WHERE name='grams'),
+    'COOKING',
+    'Recipe ' || gs,
+    'Used Rice'
+FROM generate_series(1,400) gs;
+
+-- ONIONS
+INSERT INTO usage_logs (inventory_item_id, kitchen_id, user_id, quantity_used, unit_id, usage_type, recipe_name, notes)
+SELECT
+    (SELECT id FROM inventory_item WHERE description='Onions'),
+    (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),
+    (SELECT id FROM users WHERE email='demo1@gmail.com'),
+    (150 + random()*100)::int,
+    (SELECT id FROM units WHERE name='grams'),
+    'COOKING',
+    'Recipe ' || gs,
+    'Used Onions'
+FROM generate_series(1,350) gs;
+
+-- TOMATOES
+INSERT INTO usage_logs (inventory_item_id, kitchen_id, user_id, quantity_used, unit_id, usage_type, recipe_name, notes)
+SELECT
+    (SELECT id FROM inventory_item WHERE description='Tomatoes'),
+    (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),
+    (SELECT id FROM users WHERE email='demo1@gmail.com'),
+    (120 + random()*80)::int,
+    (SELECT id FROM units WHERE name='grams'),
+    'COOKING',
+    'Recipe ' || gs,
+    'Used Tomatoes'
+FROM generate_series(1,300) gs;
+
+-- CHICKEN
+INSERT INTO usage_logs (inventory_item_id, kitchen_id, user_id, quantity_used, unit_id, usage_type, recipe_name, notes)
+SELECT
+    (SELECT id FROM inventory_item WHERE description='Chicken Breast'),
+    (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),
+    (SELECT id FROM users WHERE email='demo1@gmail.com'),
+    (200 + random()*100)::int,
+    (SELECT id FROM units WHERE name='grams'),
+    'COOKING',
+    'Recipe ' || gs,
+    'Used Chicken'
+FROM generate_series(1,250) gs;
+
+-- =====================================================================
+-- WASTE LOGS (12 MONTHS)
+-- =====================================================================
+INSERT INTO waste_logs (inventory_item_id, kitchen_id, item_name, reported_by, quantity_wasted, unit_id, waste_reason, estimated_value, notes, wasted_at)
+SELECT
+    (SELECT id FROM inventory_item WHERE description=item),
+    (SELECT id FROM kitchens WHERE invitation_code='SMITH2024'),
+    item,
+    (SELECT id FROM users WHERE email='demo1@gmail.com'),
+    qty,
+    (SELECT id FROM units WHERE name=unit),
+    reason,
+    value,
+    'Expired/spoiled',
+    CURRENT_DATE - month_ago*INTERVAL '1 month' - (random()*28)::int * INTERVAL '1 day'
+FROM (VALUES
+    ('Bread',1,'piece','EXPIRED',40,11),
+    ('Bananas',3,'piece','SPOILED',180,10),
+    ('Milk',500,'ml','EXPIRED',325,9),
+    ('Tomatoes',300,'grams','SPOILED',120,8),
+    ('Bread',1,'piece','EXPIRED',40,7),
+    ('Yogurt',2,'piece','EXPIRED',100,6),
+    ('Carrots',200,'grams','SPOILED',140,5),
+    ('Apples',400,'grams','SPOILED',240,4),
+    ('Bread',1,'piece','EXPIRED',40,3),
+    ('Milk',400,'ml','EXPIRED',260,2),
+    ('Tomatoes',250,'grams','SPOILED',100,1),
+    ('Bananas',2,'piece','SPOILED',120,0)
+) AS w(item, qty, unit, reason, value, month_ago);
+
+-- =====================================================================
+-- USER PREFERENCES
+-- =====================================================================
+INSERT INTO user_preferences (
+    user_id, dietary_restrictions, cuisine_preferences,
+    skill_level, max_cooking_time, spice_level, avoid_ingredients
+)
+VALUES (
+    (SELECT id FROM users WHERE email='demo1@gmail.com'),
+    '["Vegetarian", "Gluten-Free"]',
+    '["Italian", "Indian", "Mexican"]',
+    'INTERMEDIATE',
+    45,
+    'MEDIUM',
+    '["Nuts", "Shellfish"]'
+);
+
+-- =====================================================================
+-- END OF DEMO DATA
+-- =====================================================================

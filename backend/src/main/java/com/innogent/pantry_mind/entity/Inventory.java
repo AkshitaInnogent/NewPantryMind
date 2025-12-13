@@ -71,9 +71,11 @@ public class Inventory {
     private Long totalQuantity = 0L;
     
     @Column(name = "item_count", nullable = false)
+    @Builder.Default
     private Integer itemCount = 0;
     
     @Column(name = "min_expiry_days_alert")
+    @Builder.Default
     private Integer minExpiryDaysAlert = 3;
     
     @Column(name = "min_stock")

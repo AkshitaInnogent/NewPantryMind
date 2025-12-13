@@ -29,6 +29,7 @@ public class ShoppingList {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private ListStatus status = ListStatus.ACTIVE;
     
     @ManyToOne(fetch = FetchType.LAZY)

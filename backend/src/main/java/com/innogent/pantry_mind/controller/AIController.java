@@ -3,7 +3,6 @@ package com.innogent.pantry_mind.controller;
 import com.innogent.pantry_mind.dto.response.ShoppingListItemResponseDTO;
 import com.innogent.pantry_mind.dto.response.RecipeResponseDTO;
 import com.innogent.pantry_mind.service.AIService;
-import com.innogent.pantry_mind.service.impl.AIServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +36,7 @@ public class AIController {
             log.info("Generating AI suggestions for kitchen {} with list type {}", kitchenId, listType);
             
             List<ShoppingListItemResponseDTO> suggestions = 
-                ((AIServiceImpl) aiService).generateAISuggestionsForListType(kitchenId, listType, existingItems);
+                aiService.generateAISuggestionsForListType(kitchenId, listType, existingItems);
             
             log.info("Generated {} suggestions for kitchen {}", suggestions.size(), kitchenId);
             return ResponseEntity.ok(suggestions);

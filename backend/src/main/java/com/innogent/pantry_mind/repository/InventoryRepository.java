@@ -52,4 +52,11 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     @Query("SELECT i FROM Inventory i WHERE i.kitchenId = :kitchenId AND i.totalQuantity <= COALESCE(i.minStock, 5)")
     List<Inventory> findLowStockItems(@Param("kitchenId") Long kitchenId);
+    
+    @Query("SELECT c.name, COUNT(i), COALESCE(SUM((SELECT SUM(ii.price) FROM InventoryItem ii WHERE ii.inventory.id = i.id)), 0) " +
+           "FROM Inventory i JOIN i.category c " +
+           "WHERE i.kitchenId = :kitchenId " +
+           "GROUP BY c.name " +
+           "ORDER BY COUNT(i) DESC")
+    List<Object[]> findCategoryBreakdownByKitchen(@Param("kitchenId") Long kitchenId);
 }

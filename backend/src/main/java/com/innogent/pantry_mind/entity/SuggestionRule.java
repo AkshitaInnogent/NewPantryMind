@@ -34,5 +34,6 @@ public class SuggestionRule {
     private Unit unit;
     
     @Column(name = "is_active")
+    @Builder.Default
     private Boolean isActive = true;
 }

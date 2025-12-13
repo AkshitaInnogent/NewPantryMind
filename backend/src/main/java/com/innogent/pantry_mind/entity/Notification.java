@@ -36,11 +36,13 @@ public class Notification {
     private String message;
     
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private NotificationSeverity severity = NotificationSeverity.INFO;
     
     private Long relatedItemId;
     
     @Column(nullable = false)
+    @Builder.Default
     private boolean isRead = false;
     
     @ElementCollection

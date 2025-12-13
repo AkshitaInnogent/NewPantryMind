@@ -357,12 +357,18 @@ export default function SmartRecipes() {
                 ← New Search
               </Button>
               <Button
-                onClick={handleSearchRecipe}
-                disabled={generating || !recipeName.trim()}
+                onClick={() => {
+                  if (recipeName.trim()) {
+                    handleSearchRecipe();
+                  } else {
+                    handleGenerateRecipes();
+                  }
+                }}
+                disabled={generating || !user?.kitchenId}
                 loading={generating}
                 className="flex items-center gap-2"
               >
-                {generating ? "Regenerating..." : "Regenerate Recipe"}
+                {generating ? "Regenerating..." : recipeName.trim() ? "Search Again" : "Generate New Recipes"}
               </Button>
             </div>
           </div>

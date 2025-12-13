@@ -64,7 +64,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-20">
           
           {/* Logo */}
-          <div className="flex items-center cursor-pointer" onClick={() => navigate("/")}>
+          <div className="flex items-center cursor-pointer -ml-8" onClick={() => navigate("/")}>
             <img 
               src="/image/logo.png" 
               alt="PantryMind" 

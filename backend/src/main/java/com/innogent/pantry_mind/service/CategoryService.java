@@ -7,6 +7,8 @@ import java.util.List;
 
 public interface CategoryService {
     CategoryResponseDTO create(CategoryRequestDTO categoryRequestDTO);
+    CategoryResponseDTO getById(Long id);
     CategoryResponseDTO findById(Long id);
+    List<CategoryResponseDTO> getAll();
     List<CategoryResponseDTO> findAll();
 }

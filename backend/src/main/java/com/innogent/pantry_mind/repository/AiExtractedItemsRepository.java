@@ -8,6 +8,10 @@ import java.util.List;
 
 @Repository
 public interface AiExtractedItemsRepository extends JpaRepository<AiExtractedItems, Long> {
+    
     List<AiExtractedItems> findByOcrUploadId(Long ocrUploadId);
-    List<AiExtractedItems> findByIsConfirmed(Boolean isConfirmed);
+    
+    List<AiExtractedItems> findByOcrUploadIdAndIsConfirmedFalse(Long ocrUploadId);
+    
+    List<AiExtractedItems> findByIsConfirmedTrue();
 }

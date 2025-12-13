@@ -39,6 +39,7 @@ public class ShoppingListItem {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "suggested_by")
+    @Builder.Default
     private SuggestionSource suggestedBy = SuggestionSource.MANUAL;
     
     @Column(name = "price_hint")
@@ -46,6 +47,7 @@ public class ShoppingListItem {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private ItemStatus status = ItemStatus.PENDING;
     
     @Column(name = "purchased_at")

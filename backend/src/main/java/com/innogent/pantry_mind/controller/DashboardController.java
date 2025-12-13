@@ -64,4 +64,121 @@ public class DashboardController {
         kitchenRepository.save(kitchen);
         return ResponseEntity.ok().build();
     }
+    
+    @GetMapping("/expired-products")
+    public ResponseEntity<Map<String, Object>> getExpiredProducts() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        Map<String, Object> stats = dashboardService.getDashboardStats(email);
+        
+        Map<String, Object> expiredData = Map.of(
+            "totalProducts", stats.getOrDefault("expiredProductsCount", 0L),
+            "totalWastage", stats.getOrDefault("expiredWasteValue", 0.0)
+        );
+        
+        return ResponseEntity.ok(expiredData);
+    }
+    
+    @GetMapping("/debug-waste-logs")
+    public ResponseEntity<Map<String, Object>> debugWasteLogs() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        Map<String, Object> stats = dashboardService.getDashboardStats(email);
+        
+        Map<String, Object> debug = Map.of(
+            "allStats", stats,
+            "expiredProductsCount", stats.getOrDefault("expiredProductsCount", "NOT_FOUND"),
+            "expiredWasteValue", stats.getOrDefault("expiredWasteValue", "NOT_FOUND")
+        );
+        
+        return ResponseEntity.ok(debug);
+    }
+    
+    @GetMapping("/financial-summary")
+    public ResponseEntity<?> getFinancialSummary() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        return ResponseEntity.ok(dashboardService.getFinancialSummary(email));
+    }
+    
+    @GetMapping("/most-used-ingredients")
+    public ResponseEntity<?> getMostUsedIngredients() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        return ResponseEntity.ok(dashboardService.getMostUsedIngredients(email));
+    }
+    
+    @GetMapping("/category-breakdown")
+    public ResponseEntity<?> getCategoryBreakdown() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        return ResponseEntity.ok(dashboardService.getCategoryBreakdown(email));
+    }
+    
+    @GetMapping("/money-flow")
+    public ResponseEntity<?> getMoneyFlow() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        return ResponseEntity.ok(dashboardService.getMoneyFlow(email));
+    }
+    
+    @GetMapping("/expiry-alert-success")
+    public ResponseEntity<?> getExpiryAlertSuccess() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        return ResponseEntity.ok(dashboardService.getExpiryAlertSuccess(email));
+    }
+    
+    @GetMapping("/waste-streak")
+    public ResponseEntity<?> getWasteStreak() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        return ResponseEntity.ok(dashboardService.getWasteStreak(email));
+    }
+    
+    @GetMapping("/monthly-progress")
+    public ResponseEntity<?> getMonthlyProgress() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        return ResponseEntity.ok(dashboardService.getMonthlyProgress(email));
+    }
+}
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "*")
+class ExpiredProductsController {
+    
+    @Autowired
+    private DashboardService dashboardService;
+    
+    @GetMapping("/expired-products")
+    public ResponseEntity<Map<String, Object>> getExpiredProductsData() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        
+        System.out.println("=== EXPIRED PRODUCTS ENDPOINT CALLED ===");
+        System.out.println("User email: " + email);
+        
+        Map<String, Object> stats = dashboardService.getDashboardStats(email);
+        System.out.println("Dashboard stats: " + stats);
+        
+        Map<String, Object> result = Map.of(
+            "totalProducts", stats.getOrDefault("expiredProductsCount", 0L),
+            "totalWastage", stats.getOrDefault("expiredWasteValue", 0.0),
+            "items", java.util.Collections.emptyList()
+        );
+        
+        System.out.println("Returning result: " + result);
+        return ResponseEntity.ok(result);
+    }
 }

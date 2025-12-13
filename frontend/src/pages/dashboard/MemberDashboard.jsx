@@ -2,6 +2,8 @@ import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import PageLayout from "../../components/layout/PageLayout";
 import MemberInventoryStats from "../../components/dashboard/MemberInventoryStats";
+import ExpiredItems from "../../components/dashboard/ExpiredItems";
+import { Button } from "../../components/ui";
 import { RxDashboard } from "react-icons/rx";
 import { notificationApi } from "../../services/notificationApi";
 import websocketService from "../../services/websocketService";
@@ -57,6 +59,8 @@ export default function MemberDashboard() {
       icon={<RxDashboard className="w-6 h-6" />}
     >
       <MemberInventoryStats />
+      
+
       
       {/* Notifications */}
       <div className="mt-8">
