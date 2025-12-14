@@ -8,6 +8,7 @@ import { fetchUnits } from '../../features/units/unitThunks';
 import PageLayout from '../../components/layout/PageLayout';
 import SuggestionsModal from '../../components/shopping/SuggestionsModel';
 import { config } from '../../config/env';
+import { Calendar, BarChart3, CalendarDays, AlertTriangle, ShoppingCart, Bot, Plus, Check, X, Trash2 } from 'lucide-react';
 import './ShoppingList.css';
 
 const ShoppingList = () => {
@@ -148,12 +149,12 @@ const ShoppingList = () => {
 
     const getListIcon = (type) => {
         const icons = {
-            DAILY: '📅',
-            WEEKLY: '📊',
-            MONTHLY: '🗓️',
-            RANDOM: '🎲'
+            DAILY: <Calendar className="w-5 h-5" />,
+            WEEKLY: <BarChart3 className="w-5 h-5" />,
+            MONTHLY: <CalendarDays className="w-5 h-5" />,
+            RANDOM: <AlertTriangle className="w-5 h-5" />
         };
-        return icons[type] || '📝';
+        return icons[type] || <ShoppingCart className="w-5 h-5" />;
     };
 
     const getListDescription = (type) => {
@@ -161,7 +162,7 @@ const ShoppingList = () => {
             DAILY: 'Fresh items and immediate needs',
             WEEKLY: 'Regular groceries and planned meals',
             MONTHLY: 'Bulk items and non-perishables',
-            RANDOM: 'Mixed suggestions based on patterns'
+            RANDOM: 'Items running low in your pantry'
         };
         return descriptions[type] || '';
     };
@@ -189,7 +190,7 @@ const ShoppingList = () => {
                             onClick={() => setActiveTab(type)}
                         >
                             <span className="tab-icon">{getListIcon(type)}</span>
-                            <span className="tab-text">{type}</span>
+                            <span className="tab-text">{type === 'RANDOM' ? 'LOW STOCK' : type}</span>
                         </button>
                     ))}
                 </div>
@@ -197,7 +198,7 @@ const ShoppingList = () => {
                 {lists.length === 0 ? (
                     <Card className="shopping-list-card">
                         <div className="empty-list">
-                            <div className="empty-icon">🛒</div>
+                            <div className="empty-icon"><ShoppingCart className="w-12 h-12 text-gray-400" /></div>
                             <h3>No shopping lists found</h3>
                             <p>Lists will be created automatically when you join a kitchen</p>
                         </div>
@@ -205,7 +206,7 @@ const ShoppingList = () => {
                 ) : !activeList ? (
                     <Card className="shopping-list-card">
                         <div className="empty-list">
-                            <div className="empty-icon">🛒</div>
+                            <div className="empty-icon"><ShoppingCart className="w-12 h-12 text-gray-400" /></div>
                             <h3>{activeTab} list not found</h3>
                             <p>This list type is not available yet</p>
                         </div>
@@ -214,16 +215,16 @@ const ShoppingList = () => {
                     <Card className="shopping-list-card">
                         <div className="list-header">
                             <div className="list-title">
-                                <h2>{getListIcon(activeTab)} {activeTab} Shopping List</h2>
+                                <h2 className="flex items-center gap-2">{getListIcon(activeTab)} {activeTab === 'RANDOM' ? 'LOW STOCK' : activeTab} Shopping List</h2>
                                 <p className="list-description">{getListDescription(activeTab)}</p>
                             </div>
                             <div className="list-actions">
                                 <Button 
                                     onClick={handleGenerateAI}
-                                    className="ai-button"
+                                    className="ai-button flex items-center gap-2"
                                     disabled={loading}
                                 >
-                                    🤖 AI Suggestions
+                                    <Bot className="w-4 h-4" /> AI Suggestions
                                 </Button>
                             </div>
                         </div>
@@ -256,8 +257,8 @@ const ShoppingList = () => {
                                         </option>
                                     ))}
                                 </select>
-                                <Button onClick={handleAddItem} className="add-button">
-                                    ➕ Add
+                                <Button onClick={handleAddItem} className="add-button flex items-center gap-2">
+                                    <Plus className="w-4 h-4" /> Add
                                 </Button>
                             </div>
                         </div>
@@ -265,11 +266,11 @@ const ShoppingList = () => {
                         <div className="shopping-items">
                             {!activeList.items || activeList.items.length === 0 ? (
                                 <div className="empty-list">
-                                    <div className="empty-icon">🛒</div>
+                                    <div className="empty-icon"><ShoppingCart className="w-12 h-12 text-gray-400" /></div>
                                     <h3>No items in this list</h3>
                                     <p>Add items manually or generate AI suggestions</p>
-                                    <Button onClick={handleGenerateAI} className="ai-button">
-                                        🤖 Generate AI Suggestions for {activeTab}
+                                    <Button onClick={handleGenerateAI} className="ai-button flex items-center gap-2">
+                                        <Bot className="w-4 h-4" /> Generate AI Suggestions for {activeTab === 'RANDOM' ? 'LOW STOCK' : activeTab}
                                     </Button>
                                 </div>
                             ) : (
@@ -278,7 +279,7 @@ const ShoppingList = () => {
                                         <div className="item-info">
                                             <div className="item-name">
                                                 {item.canonicalName}
-                                                {item.suggestedBy === 'AI' && <span className="ai-badge">🤖 AI</span>}
+                                                {item.suggestedBy === 'AI' && <span className="ai-badge flex items-center gap-1"><Bot className="w-3 h-3" /> AI</span>}
                                             </div>
                                             <div className="item-details">
                                                 {editingItem === item.id ? (
@@ -295,7 +296,7 @@ const ShoppingList = () => {
                                                             onClick={() => handleUpdateItem(item.id)}
                                                             className="save-button"
                                                         >
-                                                            ✓
+                                                            <Check className="w-4 h-4" />
                                                         </Button>
                                                         <Button 
                                                             onClick={() => {
@@ -304,7 +305,7 @@ const ShoppingList = () => {
                                                             }}
                                                             className="cancel-button"
                                                         >
-                                                            ✕
+                                                            <X className="w-4 h-4" />
                                                         </Button>
                                                     </div>
                                                 ) : (
@@ -330,7 +331,7 @@ const ShoppingList = () => {
                                                 onClick={() => handleDeleteItem(item.id)}
                                                 className="delete-button"
                                             >
-                                                🗑️
+                                                <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </div>
                                     </div>

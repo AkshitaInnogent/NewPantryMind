@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RxDashboard } from "react-icons/rx";
+import { FiShoppingCart, FiUsers, FiCoffee } from "react-icons/fi";
 
 export default function RightSidebar() {
   const navigate = useNavigate();
@@ -34,11 +35,7 @@ export default function RightSidebar() {
       title: "Shopping List",
       description: "Manage shopping items",
       path: "/shopping",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 01-2 2H9a2 2 0 01-2-2v-4m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-        </svg>
-      ),
+      icon: <FiShoppingCart className="w-6 h-6" />,
       color: "rose",
       roles: ["ADMIN", "MEMBER"],
       onClick: () => navigate("/shopping")
@@ -47,11 +44,7 @@ export default function RightSidebar() {
       title: "Smart Recipes",
       description: "Cook with what I have",
       path: "/recipes",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      ),
+      icon: <FiCoffee className="w-6 h-6" />,
       color: "violet",
       roles: ["ADMIN", "MEMBER"],
       onClick: () => navigate("/recipes")
@@ -60,11 +53,7 @@ export default function RightSidebar() {
       title: "Members",
       description: "Manage kitchen members",
       path: "/members",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-        </svg>
-      ),
+      icon: <FiUsers className="w-6 h-6" />,
       color: "amber",
       roles: ["ADMIN"],
       onClick: () => navigate("/members")

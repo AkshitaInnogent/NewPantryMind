@@ -1,4 +1,5 @@
 import RightSidebar from "./RightSidebar";
+import { BackButton } from "../ui";
 
 export default function PageLayout({ 
   children, 
@@ -6,12 +7,21 @@ export default function PageLayout({
   subtitle, 
   icon, 
   headerActions,
+  showBackButton = true,
+  backButtonFallback = null,
   className = ""
 }) {
   return (
     <div className="min-h-screen bg-gray-50 flex font-inter antialiased">
       <div className="flex-1 p-6">
         <div className={`bg-white rounded-xl shadow-sm p-6 md:p-8 h-full ${className}`}>
+          {/* Back Button */}
+          {showBackButton && (
+            <div className="mb-4">
+              <BackButton fallbackPath={backButtonFallback} />
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">

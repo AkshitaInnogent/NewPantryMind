@@ -65,29 +65,18 @@ export default function QuickRecipes() {
     });
   };
 
-  const handleBack = () => {
-    dispatch(clearRecipe());
-    navigate('/recipes');
-  };
+
 
   return (
     <PageLayout
       title="Quick Recipes"
       subtitle="Fast and delicious meals in minutes"
       icon={<Zap className="w-6 h-6" />}
-      headerActions={
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={handleBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Recipes
-          </Button>
-          {recipe && (
-            <Button variant="secondary" onClick={handleNewRecipes}>
-              New Recipes
-            </Button>
-          )}
-        </div>
-      }
+      headerActions={recipe && (
+        <Button variant="secondary" onClick={handleNewRecipes}>
+          New Recipes
+        </Button>
+      )}
     >
       {!recipe && !loading && (
         <div className="text-center py-16">

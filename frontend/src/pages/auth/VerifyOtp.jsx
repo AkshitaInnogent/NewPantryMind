@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
-import { verifyRegistrationOtp, sendRegistrationOtp } from "../../features/auth/authThunks";
+import { verifyRegistrationOtp, sendRegistrationOtp, registerUser } from "../../features/auth/authThunks";
 import { clearError } from "../../features/auth/authSlice";
 
 export default function VerifyOtp() {
@@ -14,18 +14,43 @@ export default function VerifyOtp() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [registrationAttempted, setRegistrationAttempted] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   
   const email = location.state?.email || "";
+  const registrationData = location.state?.registrationData;
+  const fromRegistration = location.state?.fromRegistration;
 
   useEffect(() => {
-    if (!email) {
-      navigate("/register");
-      return;
-    }
     if (isAuthenticated) {
       navigate("/kitchen-setup");
     }
-  }, [email, isAuthenticated, user, navigate]);
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    // Send registration OTP automatically when coming from registration (only once)
+    if (fromRegistration && registrationData && !registrationAttempted) {
+      setRegistrationAttempted(true);
+      handleInitialRegistration();
+    }
+  }, [fromRegistration, registrationData, registrationAttempted]);
+
+  const handleInitialRegistration = async () => {
+    if (initialLoading) return; // Prevent duplicate calls
+    
+    setInitialLoading(true);
+    try {
+      // First register the user
+      await dispatch(registerUser(registrationData)).unwrap();
+      // Then send OTP
+      await dispatch(sendRegistrationOtp(email)).unwrap();
+    } catch (err) {
+      // Don't navigate back, just show error - user can try resend or go back manually
+      console.error('Registration/OTP sending failed:', err);
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (countdown > 0) {
@@ -48,9 +73,16 @@ export default function VerifyOtp() {
   };
 
   const handleResendOtp = async () => {
+    if (resendLoading || initialLoading) return; // Prevent duplicate calls
+    
     setResendLoading(true);
     setResendMessage("");
+    dispatch(clearError());
     try {
+      // If we have registration data, register first then send OTP
+      if (fromRegistration && registrationData) {
+        await dispatch(registerUser(registrationData)).unwrap();
+      }
       await dispatch(sendRegistrationOtp(email)).unwrap();
       setResendMessage("OTP sent successfully!");
       setCountdown(60);
@@ -73,10 +105,30 @@ export default function VerifyOtp() {
         </h2>
 
         <p className="text-center text-gray-600 mb-6 text-sm">
-          We've sent a 6-digit code to <strong>{email}</strong>
+          {initialLoading ? "Setting up your account..." : `We've sent a 6-digit code to `}<strong>{email}</strong>
         </p>
 
+        {initialLoading && (
+          <div className="bg-blue-100 text-blue-700 p-3 rounded-lg mb-4 text-sm text-center">
+            📧 Registering your account and sending OTP...
+          </div>
+        )}
 
+        {error && (
+          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm">
+            {typeof error === 'string' ? error : error.error || error.message || "An error occurred"}
+          </div>
+        )}
+
+        {resendMessage && (
+          <div className={`p-3 rounded-lg mb-4 text-sm ${
+            resendMessage.includes('successfully') 
+              ? 'bg-green-100 text-green-700' 
+              : 'bg-red-100 text-red-700'
+          }`}>
+            {resendMessage}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
@@ -122,13 +174,14 @@ export default function VerifyOtp() {
 
         <div className="text-center mt-4">
           <button
+            type="button"
             onClick={() => {
-              dispatch(clearError());
-              navigate("/register");
+              console.log('Back button clicked');
+              window.location.href = '/register';
             }}
-            className="text-gray-500 hover:underline text-sm"
+            className="text-gray-500 hover:underline text-sm cursor-pointer"
           >
-            Back to Registration
+            ← Back to Registration
           </button>
         </div>
       </div>

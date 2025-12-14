@@ -18,6 +18,7 @@ import { Bar, Doughnut, Line, Pie, PolarArea, Radar } from 'react-chartjs-2';
 import WaveChart from '../../components/charts/WaveChart';
 import { getFinancialSummary, getMostUsedIngredients, getCategoryBreakdown, getMoneyFlow, getExpiryAlertSuccess, getWasteStreak, getMonthlyProgress } from '../../services/dashboardApi';
 import RightSidebar from '../../components/layout/RightSidebar';
+import { BackButton } from '../../components/ui';
 import { FaTrash, FaExclamationTriangle, FaChartBar, FaUtensils, FaChartPie } from 'react-icons/fa';
 import './Reports.css';
 
@@ -154,6 +155,9 @@ export default function Reports() {
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <div className="flex-1 p-6">
+          <div className="mb-4">
+            <BackButton />
+          </div>
           <div className="mb-8 bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
@@ -166,7 +170,7 @@ export default function Reports() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-green-200 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -197,23 +201,6 @@ export default function Reports() {
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                   <span className="text-green-600 text-xl font-bold">₹</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-green-200 hover:shadow-xl transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-orange-600">
-                    {dashboardData.expiryAlertSuccess?.totalAlerts || 0}
-                  </div>
-                  <div className="text-gray-700 font-medium">Active Alerts</div>
-                  <div className="text-xs text-orange-600 mt-1 font-semibold">
-                    {dashboardData.expiryAlertSuccess?.totalAlerts > 0 ? 'Action Required' : 'All Clear'}
-                  </div>
-                </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                  <FaExclamationTriangle className="text-orange-600 text-xl" />
                 </div>
               </div>
             </div>

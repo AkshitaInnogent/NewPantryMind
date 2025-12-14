@@ -6,6 +6,7 @@ import { ChevronLeft, Pencil, Trash2, Package2, Layers3, Scale, Boxes } from "lu
 import { formatDate } from "../../utils/dateUtils";
 import { showToast } from "../../utils/toast";
 import { showAlert } from "../../utils/sweetAlert";
+import ManualConsumeModal from "../../components/inventory/ManualConsumeModal";
 
 export default function InventoryDetails() {
   const { id } = useParams();
@@ -14,6 +15,10 @@ export default function InventoryDetails() {
   const [inventory, setInventory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [consumeModal, setConsumeModal] = useState({
+    isOpen: false,
+    item: null,
+  });
 
   useEffect(() => {
     loadInventoryDetails();
@@ -30,6 +35,27 @@ export default function InventoryDetails() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openConsumeModal = () => {
+    setConsumeModal({ 
+      isOpen: true, 
+      item: {
+        id: inventory.id,
+        name: inventory.name,
+        unitName: inventory.unitName,
+        quantity: inventory.totalQuantity,
+        totalQuantity: inventory.totalQuantity
+      }
+    });
+  };
+
+  const closeConsumeModal = () => {
+    setConsumeModal({ isOpen: false, item: null });
+  };
+
+  const handleConsumeSuccess = () => {
+    loadInventoryDetails();
   };
 
   const handleDeleteItem = async (itemId) => {
@@ -133,19 +159,27 @@ export default function InventoryDetails() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate("/inventory")} className="text-green-600 hover:text-green-700 inline-flex items-center justify-center transition-all duration-300">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center ring-1 ring-green-100">
-            <span className="text-2xl">{getCategoryIcon(inventory.categoryName)}</span>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Inventory / {inventory.name}</div>
-            <h1 className="text-2xl font-bold text-gray-900">{inventory.name}</h1>
+          <button onClick={() => navigate("/inventory")} className="text-green-600 hover:text-green-700 inline-flex items-center justify-center transition-all duration-300">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center ring-1 ring-green-100">
+              <span className="text-2xl">{getCategoryIcon(inventory.categoryName)}</span>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Inventory / {inventory.name}</div>
+              <h1 className="text-2xl font-bold text-gray-900">{inventory.name}</h1>
+            </div>
           </div>
         </div>
+        <button
+          onClick={openConsumeModal}
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
+        >
+          Use
+        </button>
       </div>
 
       {/* Stat cards */}
@@ -252,6 +286,13 @@ export default function InventoryDetails() {
           No individual items found for this inventory.
         </div>
       )}
+
+      <ManualConsumeModal
+        item={consumeModal.item}
+        isOpen={consumeModal.isOpen}
+        onClose={closeConsumeModal}
+        onSuccess={handleConsumeSuccess}
+      />
     </div>
   );
 }

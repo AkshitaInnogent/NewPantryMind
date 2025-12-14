@@ -70,12 +70,7 @@ export default function SpecificRecipes() {
       title="Specific Recipes"
       subtitle="Browse recipes by category and preference"
       icon={<ChefHat className="w-6 h-6" />}
-      headerActions={
-        <Button variant="outline" onClick={() => navigate('/recipes')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Recipes
-        </Button>
-      }
+
     >
       {!recipe && !loading && (
         <div className="space-y-8">

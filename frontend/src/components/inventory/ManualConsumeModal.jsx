@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { X, Minus, Clock, User } from 'lucide-react';
+import { X, Clock, User } from 'lucide-react';
 import { manualConsumeItem, getConsumptionInfo } from '../../features/inventory/inventoryThunks';
 import { showToast } from '../../utils/toast';
 import { showAlert } from '../../utils/sweetAlert';
 
-export default function ManualConsumeModal({ item, isOpen, onClose }) {
+export default function ManualConsumeModal({ item, isOpen, onClose, onSuccess }) {
   const dispatch = useDispatch();
   const [quantity, setQuantity] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -99,6 +99,9 @@ export default function ManualConsumeModal({ item, isOpen, onClose }) {
         showToast.success(`Successfully consumed ${quantity} ${item.unitName} of ${item.name}`);
         onClose();
         setQuantity(1);
+        if (onSuccess) {
+          onSuccess();
+        }
       } catch (error) {
         showToast.error('Failed to consume item. Please try again.');
         console.error('Failed to consume item:', error);
@@ -121,13 +124,13 @@ export default function ManualConsumeModal({ item, isOpen, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] border border-gray-200 p-6 w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Consume Item</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
           >
             <X className="w-5 h-5" />
           </button>
@@ -252,8 +255,7 @@ export default function ManualConsumeModal({ item, isOpen, onClose }) {
               disabled={isLoading || Number(quantity) <= 0 || (consumptionInfo && Number(quantity) > consumptionInfo.totalAvailable)}
               className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 flex items-center justify-center gap-2"
             >
-              <Minus className="w-4 h-4" />
-              {isLoading ? 'Consuming...' : 'Consume'}
+              {isLoading ? 'Using...' : 'Use'}
             </button>
           )}
         </div>

@@ -163,7 +163,7 @@ export default function AddInventoryOCR() {
         
         const editableItems = items.map((item, index) => ({
           id: Date.now() + Math.random() + index,
-          name: item.canonicalName || item.raw_name || item.name || `Item ${index + 1}`,
+          name : item.canonicalName || item.rawName || item.raw_name || item.name || item.productName || item.itemName || item.text || `Item ${index + 1}`,
           description: item.brand !== 'N/A' ? item.brand : '',
           categoryId: getCategoryIdByName(item.categoryName || item.category),
           unitId: getUnitIdByName(item.unitName || item.unit),
@@ -228,6 +228,35 @@ export default function AddInventoryOCR() {
   };
 
   const saveAllItems = async () => {
+    // Validate required fields
+    for (let i = 0; i < editingItems.length; i++) {
+      const item = editingItems[i];
+      if (!item.name.trim()) {
+        showToast.error('Please enter item name for all items');
+        document.querySelector(`[data-item-index="${i}"] input[placeholder*="Item Name"]`)?.focus();
+        document.querySelector(`[data-item-index="${i}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (!item.categoryId) {
+        showToast.error('Please select category for all items');
+        document.querySelector(`[data-item-index="${i}"] select[data-field="category"]`)?.focus();
+        document.querySelector(`[data-item-index="${i}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (!item.quantity || item.quantity <= 0) {
+        showToast.error('Please enter valid quantity for all items');
+        document.querySelector(`[data-item-index="${i}"] input[placeholder*="Quantity"]`)?.focus();
+        document.querySelector(`[data-item-index="${i}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (!item.unitId) {
+        showToast.error('Please select unit for all items');
+        document.querySelector(`[data-item-index="${i}"] select[data-field="unit"]`)?.focus();
+        document.querySelector(`[data-item-index="${i}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+    
     // Validate dates
     for (const item of editingItems) {
       if (item.expiryDate && !validateDate(item.expiryDate)) {
@@ -543,20 +572,11 @@ export default function AddInventoryOCR() {
               <button onClick={() => setActiveMode(null)} className="text-gray-600">← Back</button>
             </div>
             
-            <div className="flex gap-4 mb-6">
-              <button
-                onClick={saveAllItems}
-                disabled={ocrLoading || editingItems.length === 0}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium disabled:bg-gray-400"
-              >
-                {ocrLoading ? "Saving..." : `Save All ${editingItems.length} Items`}
-              </button>
-            </div>
           </div>
 
           <div className="space-y-4">
             {editingItems.map((item, index) => (
-              <div key={item.id} className="bg-white rounded-lg shadow p-6">
+              <div key={item.id} data-item-index={index} className="bg-white rounded-lg shadow p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-lg font-semibold">Item {index + 1}</h3>
                   <button
@@ -570,18 +590,21 @@ export default function AddInventoryOCR() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <input
                     type="text"
-                    placeholder="Item Name"
+                    placeholder="Item Name *"
                     value={item.name}
                     onChange={(e) => updateEditingItem(index, 'name', e.target.value)}
+                    required
                     className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   />
 
                   <select
                     value={item.categoryId}
                     onChange={(e) => updateEditingItem(index, 'categoryId', e.target.value)}
+                    data-field="category"
+                    required
                     className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="">Select Category</option>
+                    <option value="">Select Category *</option>
                     {categories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
@@ -589,18 +612,22 @@ export default function AddInventoryOCR() {
 
                   <input
                     type="number"
-                    placeholder="Quantity"
+                    placeholder="Quantity *"
                     value={item.quantity}
                     onChange={(e) => updateEditingItem(index, 'quantity', e.target.value)}
+                    required
+                    min="1"
                     className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   />
 
                   <select
                     value={item.unitId}
                     onChange={(e) => updateEditingItem(index, 'unitId', e.target.value)}
+                    data-field="unit"
+                    required
                     className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="">Select Unit</option>
+                    <option value="">Select Unit *</option>
                     {units.map(unit => (
                       <option key={unit.id} value={unit.id}>{unit.name}</option>
                     ))}
@@ -610,6 +637,7 @@ export default function AddInventoryOCR() {
                     type="date"
                     value={item.expiryDate}
                     onChange={(e) => updateEditingItem(index, 'expiryDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
                     className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                   />
 
@@ -644,6 +672,16 @@ export default function AddInventoryOCR() {
                 />
               </div>
             ))}
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6 mt-6">
+            <button
+              onClick={saveAllItems}
+              disabled={ocrLoading || editingItems.length === 0}
+              className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium disabled:bg-gray-400"
+            >
+              {ocrLoading ? "Saving..." : `Save All ${editingItems.length} Items`}
+            </button>
           </div>
         </div>
       </div>

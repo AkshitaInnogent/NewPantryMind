@@ -7,7 +7,59 @@ import PageLayout from "../../components/layout/PageLayout";
 import ManualConsumeModal from "../../components/inventory/ManualConsumeModal";
 import { Package, Minus } from "lucide-react";
 
+// Add CSS for stacked card effect
+const stackedCardStyles = `
+  .stacked-card::before,
+  .stacked-card::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: -12px;
+    bottom: -3px;
+    background: #f8fafc;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.25);
+    z-index: 1;
+  }
+  .stacked-card::after {
+    top: 16px;
+    left: 16px;
+    right: -24px;
+    bottom: -11px;
+    background: #f1f5f9;
+    border: 3px solid #e2e8f0;
+    box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.2);
+    z-index: 0;
+  }
+  .stacked-card {
+    margin: -5px 24px 21px 12px;
+  }
+  .stacked-card .card {
+    border: 2px solid #16a34a !important;
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15) !important;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined' && !document.getElementById('stacked-card-styles')) {
+  const style = document.createElement('style');
+  style.id = 'stacked-card-styles';
+  style.textContent = stackedCardStyles;
+  document.head.appendChild(style);
+}
+
 export default function InventoryList() {
+  // Inject styles on component mount
+  useEffect(() => {
+    if (!document.getElementById('stacked-card-styles')) {
+      const style = document.createElement('style');
+      style.id = 'stacked-card-styles';
+      style.textContent = stackedCardStyles;
+      document.head.appendChild(style);
+    }
+  }, []);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items, loading, error } = useSelector((state) => state.inventory);
@@ -50,7 +102,7 @@ export default function InventoryList() {
   };
 
   const formatExpiryDate = (expiryDate) => {
-    if (!expiryDate) return "No upcoming expiry";
+    if (!expiryDate) return "NONE";
     const date = new Date(expiryDate);
     const today = new Date();
     const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
@@ -295,28 +347,33 @@ export default function InventoryList() {
             const isLowStock = (item.quantity || item.totalQuantity) <= (item.minStock || 0);
             const isExpiringSoon = item.expiryDate ? 
               Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24)) <= 3 : false;
+            const hasMultipleItems = item.itemCount > 1 || (item.batches && item.batches.length > 1) || (item.entries && item.entries.length > 1);
 
             return (
-              <Card key={item.id} className="hover:shadow-lg transition-all duration-300 ease-out hover:-translate-y-1">
+              <div key={item.id} className={`relative ${hasMultipleItems ? 'stacked-card' : ''}`}>
+                <Card className="hover:shadow-lg transition-all duration-300 ease-out hover:-translate-y-1 relative z-10 h-80">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     {getCategoryIcon(item.categoryName)}
+                    {isLowStock && (
+                      <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">
+                        Low Stock
+                      </span>
+                    )}
                   </div>
 
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{item.name}</h3>
 
                   {/* Quantity Display */}
                   <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-600">Quantity</span>
-                      <span className={`text-2xl font-bold ${
-                        isLowStock ? 'text-orange-600' : 'text-gray-900'
-                      }`}>
-                        {item.quantity || item.totalQuantity}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm text-gray-500 font-medium">{item.unitName}</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-bold text-gray-900">
+                          {item.quantity || item.totalQuantity}
+                        </span>
+                        <span className="text-sm text-gray-500 font-medium">{item.unitName}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -333,7 +390,7 @@ export default function InventoryList() {
                   {/* Expiry Date */}
                   <div className="mb-6">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-600">Expires</span>
+                      <span className="text-sm font-medium text-gray-600">Early Expiry</span>
                       <span className={`text-sm font-bold px-2 py-1 rounded-full ${
                         isExpiringSoon
                           ? 'bg-red-100 text-red-700'
@@ -353,7 +410,7 @@ export default function InventoryList() {
                       }}
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
                     >
-                      View Details
+                      View
                     </button>
                     <button
                       onClick={(e) => {
@@ -367,6 +424,7 @@ export default function InventoryList() {
                   </div>
                 </div>
               </Card>
+              </div>
             );
           })}
         </div>

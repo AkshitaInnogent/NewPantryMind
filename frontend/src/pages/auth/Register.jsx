@@ -19,6 +19,7 @@ export default function Register() {
   });
 
   const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,10 +32,26 @@ export default function Register() {
     return "";
   };
 
+  const validatePassword = (password) => {
+    if (!password) {
+      return "Password is required";
+    }
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long";
+    }
+    return "";
+  };
+
   const handleEmailChange = (e) => {
     const email = e.target.value;
     setForm({ ...form, email });
     setEmailError(validateEmail(email));
+  };
+
+  const handlePasswordChange = (e) => {
+    const password = e.target.value;
+    setForm({ ...form, password });
+    setPasswordError(validatePassword(password));
   };
 
   useEffect(() => {
@@ -69,6 +86,12 @@ export default function Register() {
     const emailValidationError = validateEmail(form.email);
     if (emailValidationError) {
       setEmailError(emailValidationError);
+      return;
+    }
+    
+    const passwordValidationError = validatePassword(form.password);
+    if (passwordValidationError) {
+      setPasswordError(passwordValidationError);
       return;
     }
     
@@ -127,17 +150,23 @@ export default function Register() {
             )}
           </div>
 
-          <Input
-            label="Password"
-            type="password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            disabled={isAuthenticated}
-          />
+          <div>
+            <Input
+              label="Password"
+              type="password"
+              value={form.password}
+              onChange={handlePasswordChange}
+              disabled={isAuthenticated}
+              className={passwordError ? "border-red-500" : ""}
+            />
+            {passwordError && (
+              <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+            )}
+          </div>
         </div>
 
         <button
-          disabled={loading || isAuthenticated || emailError}
+          disabled={loading || isAuthenticated || emailError || passwordError}
           className={`w-full mt-6 py-3 rounded-xl text-white font-semibold transition-all ${
             loading || isAuthenticated || emailError
               ? "bg-[#1fa74a]/40 cursor-not-allowed"

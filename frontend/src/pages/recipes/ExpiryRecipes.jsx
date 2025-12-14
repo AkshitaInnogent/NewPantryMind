@@ -52,29 +52,18 @@ export default function ExpiryRecipes() {
     });
   };
 
-  const handleBack = () => {
-    dispatch(clearRecipe());
-    navigate('/recipes');
-  };
+
 
   return (
     <PageLayout
       title="Expiry-Based Recipes"
       subtitle="Prevent food waste with smart recipe suggestions"
       icon={<Clock className="w-6 h-6" />}
-      headerActions={
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={handleBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Recipes
-          </Button>
-          {recipe && (
-            <Button variant="secondary" onClick={handleNewRecipes}>
-              New Recipes
-            </Button>
-          )}
-        </div>
-      }
+      headerActions={recipe && (
+        <Button variant="secondary" onClick={handleNewRecipes}>
+          New Recipes
+        </Button>
+      )}
     >
       {!recipe && !loading && (
         <div className="text-center py-16">
