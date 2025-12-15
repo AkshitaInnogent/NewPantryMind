@@ -152,9 +152,8 @@ export default function Reports() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        <div className="flex-1 p-6">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-6">
           <div className="mb-4">
             <BackButton />
           </div>
@@ -395,8 +394,9 @@ export default function Reports() {
           </div>
         </div>
         
-        <RightSidebar />
-      </div>
+        <div className="hidden xl:block flex-shrink-0">
+          <RightSidebar />
+        </div>
     </div>
   );
 }

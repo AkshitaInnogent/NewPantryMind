@@ -5,6 +5,7 @@ import { FaRegBell } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { notificationApi } from "../../services/notificationApi";
 import websocketService from "../../services/websocketService";
+import MobileNav from "./MobileNav";
 
 
 export default function Header() {
@@ -61,14 +62,14 @@ export default function Header() {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex justify-between items-center h-16 sm:h-20">
           
           {/* Logo */}
-          <div className="flex items-center cursor-pointer -ml-16" onClick={() => navigate("/")}>
+          <div className="flex items-center cursor-pointer -ml-4 sm:-ml-16" onClick={() => navigate("/")}>
             <img 
               src="/image/logo.png" 
               alt="PantryMind" 
-              className="h-32"
+              className="h-20 sm:h-32"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'block';
@@ -78,10 +79,10 @@ export default function Header() {
           </div>
 
           {/* Auth Buttons */}
-          <div className="flex items-center gap-4 mr-8">
+          <div className="flex items-center gap-2 sm:gap-4 mr-2 sm:mr-8">
             {isAuthenticated ? (
               <>
-                <div className="text-sm">
+                <div className="hidden sm:block text-sm">
                   <span className="text-gray-600">Welcome, </span>
                   <span className="font-medium text-gray-900">{user?.name || user?.email}</span>
                   {user?.role && (
@@ -112,10 +113,13 @@ export default function Header() {
                 
                 <button
                   onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl"
                 >
                   Logout
                 </button>
+                
+                {/* Mobile Navigation */}
+                {(user?.role === "ADMIN" || user?.role === "MEMBER") && <MobileNav />}
               </>
             ) : (
               <>

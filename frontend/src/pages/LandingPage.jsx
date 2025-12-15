@@ -18,8 +18,8 @@ export default function LandingPage() {
   return (
     <div className="font-inter antialiased text-gray-900 bg-gray-50">
       {/* ================= HERO SECTION ================= */}
-      <header className="max-w-7xl mx-auto px-6 md:px-12 py-28 md:py-40">
-        <div className="flex flex-col md:flex-row items-center gap-12">
+      <header className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-28 md:py-40">
+        <div className="flex flex-col md:flex-row items-center gap-8 sm:gap-12">
           {/* Left Illustration */}
           <div className="flex-1 flex justify-center">
             <img
@@ -35,23 +35,23 @@ export default function LandingPage() {
               Smart Kitchen Management
             </span>
 
-            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">
               Never Waste Food <span className="text-green-600">Again</span>
             </h1>
 
-            <p className="mt-4 text-gray-600">
+            <p className="mt-4 text-gray-600 text-sm sm:text-base">
               Track your pantry, monitor expiry dates, and get AI-powered recipe
               suggestions based on what you already have at home.
             </p>
 
-            <div className="mt-6 flex gap-4">
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Link to="/register">
-                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold shadow transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl">
+                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold shadow transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl w-full sm:w-auto">
                   Get Started Free
                 </button>
               </Link>
               <Link to="/login">
-                <button className="border border-green-600 text-green-700 px-6 py-3 rounded-lg font-semibold hover:bg-green-50 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl">
+                <button className="border border-green-600 text-green-700 px-6 py-3 rounded-lg font-semibold hover:bg-green-50 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl w-full sm:w-auto">
                   Log-In
                 </button>
               </Link>
@@ -65,20 +65,20 @@ export default function LandingPage() {
       </header>
 
       {/* ================= FEATURES SECTION ================= */}
-      <section className="max-w-6xl mx-auto px-6 md:px-12 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-extrabold">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 md:px-12 py-12 sm:py-16">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold">
             Everything You Need to{" "}
             <span className="text-green-600">Manage Your Kitchen</span>
           </h2>
-          <p className="mt-3 text-gray-500 max-w-2xl mx-auto">
+          <p className="mt-3 text-gray-500 max-w-2xl mx-auto text-sm sm:text-base">
             A complete pantry management system designed to reduce waste and
             simplify meal planning.
           </p>
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
           <Feature icon={<PhotoCamera />} title="Smart Photo Scanning">
             Upload grocery bills or labels. AI detects items, quantities &
             expiries automatically.
@@ -108,14 +108,14 @@ export default function LandingPage() {
       </section>
 
       {/* ================= HOW IT WORKS ================= */}
-      <section className="bg-green-50 py-16">
-        <div className="max-w-5xl mx-auto px-6 md:px-12 text-center">
-          <h3 className="text-3xl font-extrabold">How PantryMind Works</h3>
-          <p className="mt-2 text-gray-600">
+      <section className="bg-green-50 py-12 sm:py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-12 text-center">
+          <h3 className="text-2xl sm:text-3xl font-extrabold">How PantryMind Works</h3>
+          <p className="mt-2 text-gray-600 text-sm sm:text-base">
             From scanning to cooking in four simple steps
           </p>
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="mt-8 sm:mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             <TimelineStep
               index="01"
               icon={<Inventory2 />}
@@ -152,24 +152,24 @@ export default function LandingPage() {
       </section>
 
       {/* ================= CTA FOOTER ================= */}
-      <footer className="bg-green-900 text-white py-20 text-center px-6">
+      <footer className="bg-green-900 text-white py-12 sm:py-20 text-center px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
-          <span className="inline-block px-4 py-1 mb-4 rounded-full bg-green-700/50 text-sm">
+          <span className="inline-block px-4 py-1 mb-4 rounded-full bg-green-700/50 text-xs sm:text-sm">
             Start Waste-Free Journey
           </span>
 
-          <h4 className="text-3xl md:text-4xl font-extrabold">
+          <h4 className="text-2xl sm:text-3xl md:text-4xl font-extrabold">
             Ready to Transform Your Kitchen?
           </h4>
 
-          <p className="mt-3 text-green-200">
+          <p className="mt-3 text-green-200 text-sm sm:text-base">
             Start reducing food waste, saving money, and cooking smarter with
             AI-powered pantry management.
           </p>
 
           <div className="mt-8">
             <Link to="/register">
-              <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold shadow transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl">
+              <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold shadow transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl w-full sm:w-auto">
                 Get Started Free
               </button>
             </Link>

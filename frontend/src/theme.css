@@ -100,6 +100,39 @@
   @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl;
 }
 
+/* Mobile responsive utilities */
+.mobile-container {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+.mobile-text {
+  @apply text-sm sm:text-base;
+}
+
+.mobile-heading {
+  @apply text-xl sm:text-2xl md:text-3xl;
+}
+
+.mobile-button {
+  @apply px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base;
+}
+
+.mobile-card {
+  @apply p-4 sm:p-6;
+}
+
+.mobile-grid {
+  @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.mobile-flex {
+  @apply flex-col sm:flex-row;
+}
+
+.mobile-gap {
+  @apply gap-3 sm:gap-4 md:gap-6;
+}
+
 /* Status indicators */
 .status-success {
   @apply bg-green-50 text-green-700 border-green-200;
@@ -146,4 +179,21 @@
 
 .nav-item-inactive {
   @apply bg-green-50 hover:bg-green-100 text-green-800 border-green-200 hover:border-green-300;
+}
+
+/* Mobile navigation */
+.mobile-nav-overlay {
+  @apply fixed inset-0 bg-black/50 z-40;
+}
+
+.mobile-nav-panel {
+  @apply fixed top-0 right-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 z-50;
+}
+
+.mobile-nav-open {
+  @apply translate-x-0;
+}
+
+.mobile-nav-closed {
+  @apply translate-x-full;
 }

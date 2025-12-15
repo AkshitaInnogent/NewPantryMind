@@ -109,7 +109,7 @@ const AlertSettings = () => {
 
       <div className="space-y-6">
         {/* Enable/Disable Toggle */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg gap-3">
           <div className="flex items-center gap-3">
             <Bell className={`w-4 h-4 ${settings.alertsEnabled ? 'text-green-600' : 'text-gray-400'}`} />
             <div>
@@ -129,13 +129,13 @@ const AlertSettings = () => {
         </div>
 
         {/* Time Setting */}
-        <div className="p-4 border border-gray-200 rounded-lg">
+        <div className="p-3 sm:p-4 border border-gray-200 rounded-lg">
           <div className="flex items-center gap-2 mb-4">
             <Clock className="w-4 h-4 text-green-600" />
-            <h3 className="font-medium text-gray-900">Alert Time</h3>
+            <h3 className="font-medium text-gray-900 text-sm sm:text-base">Alert Time</h3>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-gray-700">Hour:</label>
               <select
@@ -145,7 +145,7 @@ const AlertSettings = () => {
                   setDisplayHour(newHour);
                   handleTimeChange(newHour, ampm);
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="px-2 sm:px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
               >
                 {Array.from({length: 12}, (_, i) => {
                   const hour = i + 1;
@@ -154,14 +154,14 @@ const AlertSettings = () => {
               </select>
             </div>
             
-            <span className="text-gray-500 font-medium">:</span>
+            <span className="text-gray-500 font-medium hidden sm:block">:</span>
             
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-gray-700">Minute:</label>
               <select
                 value={settings.alertTimeMinute}
                 onChange={(e) => setSettings({...settings, alertTimeMinute: parseInt(e.target.value)})}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="px-2 sm:px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
               >
                 <option value={0}>00</option>
                 <option value={15}>15</option>
@@ -178,14 +178,14 @@ const AlertSettings = () => {
                   setAmpm(newAmpm);
                   handleTimeChange(displayHour, newAmpm);
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="px-2 sm:px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
               >
                 <option value="AM">AM</option>
                 <option value="PM">PM</option>
               </select>
             </div>
             
-            <div className="ml-4 px-3 py-2 bg-green-50 text-green-700 rounded-md font-mono text-sm">
+            <div className="mt-2 sm:mt-0 sm:ml-4 px-3 py-2 bg-green-50 text-green-700 rounded-md font-mono text-sm">
               {formatTime()}
             </div>
           </div>

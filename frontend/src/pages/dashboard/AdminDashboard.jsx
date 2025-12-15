@@ -106,10 +106,10 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex font-inter antialiased">
+    <div className="h-screen bg-gray-50 flex font-inter antialiased overflow-hidden">
       {/* Main Content */}
-      <div className="flex-1 p-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 md:p-8 h-full">
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
@@ -264,7 +264,9 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <RightSidebar />
+      <div className="hidden xl:block flex-shrink-0">
+        <RightSidebar />
+      </div>
     </div>
   );
 }

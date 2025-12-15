@@ -1,0 +1,155 @@
+/* Mobile Responsive Styles for PantryMind */
+
+/* Base responsive utilities */
+@media (max-width: 640px) {
+  /* Container adjustments */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Text scaling */
+  .mobile-text-scale h1 {
+    font-size: 1.875rem; /* 30px */
+    line-height: 2.25rem; /* 36px */
+  }
+
+  .mobile-text-scale h2 {
+    font-size: 1.5rem; /* 24px */
+    line-height: 2rem; /* 32px */
+  }
+
+  .mobile-text-scale h3 {
+    font-size: 1.25rem; /* 20px */
+    line-height: 1.75rem; /* 28px */
+  }
+
+  /* Button adjustments */
+  .mobile-btn {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Card adjustments */
+  .mobile-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Form adjustments */
+  .mobile-form input,
+  .mobile-form select,
+  .mobile-form textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem;
+  }
+
+  /* Table adjustments */
+  .mobile-table {
+    font-size: 0.875rem;
+  }
+
+  .mobile-table th,
+  .mobile-table td {
+    padding: 0.5rem;
+  }
+
+  /* Navigation adjustments */
+  .mobile-nav-item {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  /* Grid adjustments */
+  .mobile-grid-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  /* Spacing adjustments */
+  .mobile-spacing {
+    margin: 0.5rem 0;
+  }
+
+  .mobile-spacing-lg {
+    margin: 1rem 0;
+  }
+}
+
+/* Tablet responsive utilities */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tablet-text-scale h1 {
+    font-size: 2.25rem; /* 36px */
+    line-height: 2.5rem; /* 40px */
+  }
+
+  .tablet-spacing {
+    margin: 1rem 0;
+  }
+}
+
+/* Touch-friendly adjustments */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .hover-lift:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Adjust button sizes for touch */
+  button {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Landscape phone adjustments */
+@media (max-width: 896px) and (orientation: landscape) {
+  .landscape-adjust {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .landscape-header {
+    height: 3rem;
+  }
+}
+
+/* High DPI display adjustments */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .high-dpi-text {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .motion-reduce {
+    animation: none;
+    transition: none;
+  }
+
+  .hover-lift {
+    transition: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .dark-mode-support {
+    background-color: #1f2937;
+    color: #f9fafb;
+  }
+}
