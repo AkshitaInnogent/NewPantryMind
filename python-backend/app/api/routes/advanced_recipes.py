@@ -49,7 +49,18 @@ async def generate_advanced_recipes(request: AdvancedRecipeRequest):
 async def generate_expiry_recipes(request: AdvancedRecipeRequest):
     print("🚨 [PYTHON] /ai/expiry-recipes endpoint called!")
     print(f"⏰ [PYTHON] DEDICATED EXPIRY RECIPES ENDPOINT")
+    
+    # DETAILED DEBUG LOGS
+    print(f"🔍 [PYTHON] EXPIRING ITEMS RECEIVED:")
+    if request.expiring_items:
+        for item in request.expiring_items:
+            print(f"   🔴 {item.name}: {item.quantity} {item.unit} (expiring: {item.is_expiring})")
+    else:
+        print("   ❌ NO EXPIRING ITEMS RECEIVED!")
+    
+    print(f"📦 [PYTHON] Total items: {len(request.items) if request.items else 0}")
     print(f"⏰ [PYTHON] Expiring items count: {len(request.expiring_items) if request.expiring_items else 0}")
+    
     try:
         print(f"⏰ [PYTHON] Expiry-based recipe generation")
         

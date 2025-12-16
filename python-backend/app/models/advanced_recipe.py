@@ -26,7 +26,9 @@ class AdvancedInventoryItem(BaseModel):
     unit: str
     expiry_date: Optional[str] = None
     is_expiring: Optional[bool] = False
+    isExpiring: Optional[bool] = False  # Java compatibility
     is_low_stock: Optional[bool] = False
+    isLowStock: Optional[bool] = False  # Java compatibility
 
 class UserPreferences(BaseModel):
     dietary_restrictions: Optional[List[str]] = []
@@ -44,7 +46,9 @@ class AdvancedRecipeRequest(BaseModel):
     maxCookingTime: Optional[int] = None
     preferences: Optional[UserPreferences] = None
     expiring_items: Optional[List[AdvancedInventoryItem]] = []
+    expiringItems: Optional[List[AdvancedInventoryItem]] = []  # Java compatibility
     low_stock_items: Optional[List[AdvancedInventoryItem]] = []
+    lowStockItems: Optional[List[AdvancedInventoryItem]] = []  # Java compatibility
 
 class AdvancedRecipe(BaseModel):
     name: str

@@ -149,9 +149,11 @@ class AdvancedRecipeService:
         for item in items:
             unit_data = self._standardize_unit(item.unit, item.quantity)
             status = ""
-            if getattr(item, 'is_expiring', False):
-                status = " (EXPIRING SOON!)"
-            elif getattr(item, 'is_low_stock', False):
+            # Check both field names for Java compatibility
+            is_expiring = getattr(item, 'is_expiring', False) or getattr(item, 'isExpiring', False)
+            if is_expiring:
+                status = " 🔴 EXPIRING SOON!"
+            elif getattr(item, 'is_low_stock', False) or getattr(item, 'isLowStock', False):
                 status = " (LOW STOCK)"
             summary.append(f"- {item.name}: {unit_data['quantity']} {unit_data['unit']}{status}")
         return summary
@@ -199,7 +201,9 @@ class AdvancedRecipeService:
         recipe_type_str = str(request.recipe_type)
         print(f"🔍 [PYTHON] Comparing recipe_type_str: '{recipe_type_str}'")
         if recipe_type_str == "EXPIRY_BASED":
-            expiring_items = [item.name for item in request.expiring_items] if request.expiring_items else []
+            # Check both field names for Java compatibility
+            expiring_items_list = request.expiring_items or request.expiringItems or []
+            expiring_items = [item.name for item in expiring_items_list] if expiring_items_list else []
             print(f"⚠️ [PYTHON] 🔴 EXPIRY MODE: Prioritizing {len(expiring_items)} expiring items: {expiring_items}")
             return AdvancedRecipePrompts.expiry_based_prompt(
                 inventory_text, expiring_items, request.servings, preferences
@@ -216,8 +220,10 @@ class AdvancedRecipeService:
                 inventory_text, max_time, request.servings, preferences
             )
         elif recipe_type_str == "WASTAGE_PREVENTION":
-            expiring_items = [item.name for item in request.expiring_items] if request.expiring_items else []
-            low_stock_items = [item.name for item in request.low_stock_items] if request.low_stock_items else []
+            expiring_items_list = request.expiring_items or request.expiringItems or []
+            expiring_items = [item.name for item in expiring_items_list] if expiring_items_list else []
+            low_stock_items_list = request.low_stock_items or request.lowStockItems or []
+            low_stock_items = [item.name for item in low_stock_items_list] if low_stock_items_list else []
             return AdvancedRecipePrompts.wastage_prevention_prompt(
                 inventory_text, low_stock_items, expiring_items, request.servings
             )
@@ -512,7 +518,11 @@ class AdvancedRecipeService:
         return tips
     
     def _get_expiring_items_used(self, request: AdvancedRecipeRequest) -> List[str]:
-        return [item.name for item in request.expiring_items] if request.expiring_items else []
+        # Check both field names for Java compatibility
+        expiring_items_list = request.expiring_items or request.expiringItems or []
+        expiring_items = [item.name for item in expiring_items_list] if expiring_items_list else []
+        print(f"⚠️ [PYTHON] Expiring items to prioritize: {expiring_items}")
+        return expiring_items
     
     def _standardize_unit(self, unit: str, quantity: int) -> Dict[str, Any]:
         unit_lower = unit.lower().strip()

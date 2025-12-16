@@ -9,24 +9,55 @@ class AdvancedRecipePrompts:
         dietary_restrictions = preferences.get('dietary_restrictions', [])
         avoid_ingredients = preferences.get('avoid_ingredients', [])
         
-        return f"""URGENT: Generate 4 Indian recipes to prevent food wastage using expiring ingredients.
+        if not expiring_items:
+            return f"""🚨 No expiring items found. Generate regular Indian recipes using available ingredients.
+
+📦 Available Items: {inventory_text}
+👥 Servings: {servings}
+
+Generate 4 Indian recipes using available ingredients.
+
+Return ONLY valid JSON:
+{{
+  "recipes": [
+    {{
+      "recipe_name": "Recipe Name",
+      "inventory_items_used": [
+        {{"name": "Item Name", "quantity": "250", "unit": "gm"}}
+      ],
+      "missing_items": [
+        {{"name": "Salt", "quantity": "5", "unit": "gm"}}
+      ],
+      "steps": ["Step 1", "Step 2", "Step 3"]
+    }}
+  ]
+}}
+
+Units: gm, ml, pcs only."""
+        
+        return f"""🚨 URGENT FOOD WASTE PREVENTION: Generate recipes using EXPIRING ingredients FIRST!
 
 ========================================
-EXPIRING INGREDIENTS (USE FIRST): {', '.join(expiring_items)}
-AVAILABLE INVENTORY: {inventory_text}
-SERVINGS: {servings}
-SKILL LEVEL: {skill_level}
-MAX COOKING TIME: {max_time} minutes
-DIETARY RESTRICTIONS: {dietary_restrictions}
-AVOID INGREDIENTS: {avoid_ingredients}
+🔴 EXPIRING ITEMS (USE IMMEDIATELY): {', '.join(expiring_items)}
+📦 ALL AVAILABLE ITEMS: {inventory_text}
+👥 SERVINGS: {servings}
 ========================================
 
-### CRITICAL RULES:
-1. **PRIORITY**: Use ALL expiring ingredients: {', '.join(expiring_items)}
-2. **SKILL LEVEL**: Adjust complexity for {skill_level} cook
-3. **TIME LIMIT**: All recipes must be under {max_time} minutes
-4. **DIETARY**: Respect restrictions: {dietary_restrictions}
-5. **AVOID**: Never use: {avoid_ingredients}
+### CRITICAL RULES - MUST FOLLOW:
+1. 🔴 **TOP PRIORITY**: Every recipe MUST use at least 2-3 expiring items: {', '.join(expiring_items)}
+2. 🥘 **CREATIVE USAGE**: For each expiring item, suggest multiple ways to use it in Indian cuisine
+3. 🍛 **INGREDIENT FOCUS**: Build recipes around the specific expiring ingredients
+4. ⚡ **QUICK METHODS**: Use fast cooking techniques to use items immediately
+5. 🔄 **VERSATILE RECIPES**: Show different cooking styles for same ingredients
+
+### RECIPE REQUIREMENTS:
+- Each recipe must use AT LEAST 2 expiring items from the list
+- Create recipes specifically designed around the expiring ingredients
+- Focus on Indian cuisine that maximizes ingredient usage
+- Provide quick cooking methods (under 30 minutes)
+- Be creative with ingredient combinations
+
+IMPORTANT: Generate recipes that specifically highlight and use the expiring items as main ingredients!
 
 ### RECIPE COMPLEXITY BY SKILL:
 - BEGINNER: 3-4 steps, basic techniques, simple spices

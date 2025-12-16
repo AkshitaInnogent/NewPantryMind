@@ -205,7 +205,7 @@ public class RecipeServiceImpl implements RecipeService {
     public RecipeResponseDTO generateExpiryBasedRecipes(Long kitchenId, Integer servings, Long userId) {
         System.out.println("⏰ [BACKEND] Expiry-based recipe generation for kitchenId: " + kitchenId);
         
-        // Get expiring items (within 3 days)
+        // Get items expiring in next 3 days
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, 3);
         Date threeDaysFromNow = cal.getTime();
@@ -213,14 +213,36 @@ public class RecipeServiceImpl implements RecipeService {
         List<Inventory> expiringInventory = inventoryRepository.findExpiringInventoryByKitchenId(kitchenId, threeDaysFromNow);
         List<Inventory> allInventory = inventoryRepository.findByKitchenIdAndTotalQuantityGreaterThan(kitchenId, 0L);
         
-        System.out.println("⚠️ [BACKEND] Found " + expiringInventory.size() + " expiring items");
+        System.out.println("⚠️ [BACKEND] Found " + expiringInventory.size() + " expiring items:");
+        expiringInventory.forEach(item -> 
+            System.out.println("   - " + item.getName() + " (expires soon)")
+        );
         
         AdvancedRecipeRequestDTO request = new AdvancedRecipeRequestDTO();
         request.setItems(allInventory.stream().map(this::mapToAdvancedInventoryItemDTO).collect(Collectors.toList()));
-        request.setExpiringItems(expiringInventory.stream().map(this::mapToAdvancedInventoryItemDTO).collect(Collectors.toList()));
+        
+        // CRITICAL: Properly mark expiring items
+        List<AdvancedRecipeRequestDTO.InventoryItemDTO> expiringItemDTOs = expiringInventory.stream()
+            .map(item -> {
+                AdvancedRecipeRequestDTO.InventoryItemDTO dto = mapToAdvancedInventoryItemDTO(item);
+                dto.setIsExpiring(true); // MARK AS EXPIRING
+                return dto;
+            })
+            .collect(Collectors.toList());
+        
+        request.setExpiringItems(expiringItemDTOs);
         request.setServings(servings);
         request.setRecipeType("EXPIRY_BASED");
         request.setUserId(userId);
+        
+        // DEBUG LOGS
+        System.out.println("🔍 [BACKEND] DEBUG - Request expiring items size: " + request.getExpiringItems().size());
+        if (!request.getExpiringItems().isEmpty()) {
+            System.out.println("🔍 [BACKEND] First expiring item: " + request.getExpiringItems().get(0).getName());
+            System.out.println("🔍 [BACKEND] First expiring item isExpiring: " + request.getExpiringItems().get(0).getIsExpiring());
+        }
+        
+        System.out.println("📤 [BACKEND] Sending " + expiringItemDTOs.size() + " expiring items to AI");
         
         // Add user preferences if available
         if (userId != null) {
@@ -244,6 +266,7 @@ public class RecipeServiceImpl implements RecipeService {
         System.out.println("🔍 [BACKEND] generateQuickRecipes method called - this should be QUICK type");
         
         List<Inventory> inventory = inventoryRepository.findByKitchenIdAndTotalQuantityGreaterThan(kitchenId, 0L);
+        System.out.println("📦 [BACKEND] Found " + inventory.size() + " inventory items for quick recipes");
         
         AdvancedRecipeRequestDTO request = new AdvancedRecipeRequestDTO();
         request.setItems(inventory.stream().map(this::mapToAdvancedInventoryItemDTO).collect(Collectors.toList()));
@@ -255,6 +278,19 @@ public class RecipeServiceImpl implements RecipeService {
         System.out.println("📋 [BACKEND] Setting recipe type to: QUICK");
         System.out.println("⏱️ [BACKEND] Setting max cooking time to: " + maxTime);
         System.out.println("🍽️ [BACKEND] Setting servings to: " + servings);
+        System.out.println("📤 [BACKEND] QUICK RECIPE REQUEST DATA:");
+        System.out.println("   Total Items: " + request.getItems().size());
+        System.out.println("   Recipe Type: " + request.getRecipeType());
+        System.out.println("   Max Time: " + request.getMaxCookingTime());
+        
+        System.out.println("🔍 [BACKEND] INVENTORY ITEMS BEING SENT:");
+        for (int i = 0; i < Math.min(5, request.getItems().size()); i++) {
+            AdvancedRecipeRequestDTO.InventoryItemDTO item = request.getItems().get(i);
+            System.out.println("   " + (i+1) + ". " + item.getName() + ": " + item.getQuantity() + " " + item.getUnit());
+        }
+        if (request.getItems().size() > 5) {
+            System.out.println("   ... and " + (request.getItems().size() - 5) + " more items");
+        }
         
         // Add user preferences if available
         if (userId != null) {

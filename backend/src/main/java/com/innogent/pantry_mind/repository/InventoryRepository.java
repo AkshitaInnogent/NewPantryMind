@@ -27,7 +27,14 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     List<Inventory> findByKitchenIdAndTotalQuantityGreaterThan(Long kitchenId, Long quantity);
     
     // Enhanced recipe queries
-    @Query("SELECT i FROM Inventory i WHERE i.kitchenId = :kitchenId AND EXISTS (SELECT 1 FROM InventoryItem ii WHERE ii.inventory.id = i.id AND ii.expiryDate BETWEEN CURRENT_DATE AND :expiryDate)")
+    @Query("""
+        SELECT DISTINCT i FROM Inventory i 
+        JOIN i.items ii 
+        WHERE i.kitchenId = :kitchenId 
+        AND ii.expiryDate BETWEEN CURRENT_DATE AND :expiryDate 
+        AND ii.currentQuantity > 0 
+        AND ii.isActive = true
+        """)
     List<Inventory> findExpiringInventoryByKitchenId(@Param("kitchenId") Long kitchenId, @Param("expiryDate") java.util.Date expiryDate);
     
     @Query("SELECT i FROM Inventory i WHERE i.kitchenId = :kitchenId AND i.totalQuantity <= i.minStock")

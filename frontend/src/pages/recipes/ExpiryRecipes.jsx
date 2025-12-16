@@ -19,13 +19,20 @@ export default function ExpiryRecipes() {
   const handleGenerateRecipes = async () => {
     if (!user?.kitchenId) return;
     
+    console.log("🔍 [FRONTEND] Generating expiry recipes for kitchen:", user?.kitchenId);
+    
     setGenerating(true);
     dispatch(clearError());
     
     try {
-      await dispatch(generateExpiryRecipes(user.kitchenId, servings, user.id));
+      const result = await dispatch(generateExpiryRecipes(user.kitchenId, servings, user.id));
+      console.log("✅ [FRONTEND] Expiry recipes result:", result);
+      
+      if (result?.expiring_items_used) {
+        console.log("🎯 [FRONTEND] Expiring items used:", result.expiring_items_used);
+      }
     } catch (err) {
-      console.error("Expiry recipe generation failed:", err);
+      console.error("❌ [FRONTEND] Expiry recipe generation failed:", err);
     } finally {
       setGenerating(false);
     }

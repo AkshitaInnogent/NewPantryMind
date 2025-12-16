@@ -17,6 +17,8 @@ export default function RecipeDetail() {
   const [checkedSteps, setCheckedSteps] = useState({});
   const [isCooked, setIsCooked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAddingToShoppingList, setIsAddingToShoppingList] = useState(false);
+  const [itemsAddedToShoppingList, setItemsAddedToShoppingList] = useState(false);
 
   if (!recipe) {
     return (
@@ -40,7 +42,7 @@ export default function RecipeDetail() {
       await dispatch(cookRecipe(recipe));
       setIsCooked(true);
       // Show success message
-      alert('Recipe cooked! Ingredients consumed and meal logged.');
+      showToast.success('Recipe cooked! Ingredients consumed and meal logged.');
     } catch (error) {
       console.error('Failed to cook recipe:', error);
       showToast.error(error.message || 'Failed to cook recipe');
@@ -180,21 +182,19 @@ export default function RecipeDetail() {
                 <button 
                   onClick={async () => {
                     if (!user?.id) {
-                      alert('Please log in to add items to shopping list');
+                      showToast.error('Please log in to add items to shopping list');
                       return;
                     }
+                    
+                    setIsAddingToShoppingList(true);
                     
                     try {
                       // First get the shopping lists for the kitchen
                       const listsResponse = await fetch(`http://localhost:8080/api/shopping-lists/kitchen/${user.kitchenId}`);
                       const lists = await listsResponse.json();
-                      console.log('Shopping lists:', lists);
                       
-                      // Use a random shopping list
-                      const randomList = lists[Math.floor(Math.random() * lists.length)];
-                      
-                      if (!randomList) {
-                        alert('No shopping list found');
+                      if (!lists || lists.length === 0) {
+                        showToast.warning('No shopping list found. Please create one first.');
                         return;
                       }
                       
@@ -223,21 +223,30 @@ export default function RecipeDetail() {
                         
                         if (response.ok) {
                           addedCount++;
-                          console.log(`Added ${name.trim()} to ${randomListForItem.listType}`);
-                        } else {
-                          console.error(`Failed to add ${name.trim()}:`, response.status, await response.text());
                         }
                       }
                       
-                      alert(`${addedCount} items added to shopping list!`);
+                      if (addedCount > 0) {
+                        showToast.success(`${addedCount} items added to shopping list successfully!`);
+                        setItemsAddedToShoppingList(true);
+                      } else {
+                        showToast.error('Failed to add items to shopping list');
+                      }
                     } catch (error) {
                       console.error('Failed to add items to shopping list:', error);
-                      alert('Failed to add items to shopping list');
+                      showToast.error('Failed to add items to shopping list. Please try again.');
+                    } finally {
+                      setIsAddingToShoppingList(false);
                     }
                   }}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
+                  disabled={isAddingToShoppingList || itemsAddedToShoppingList}
+                  className={`w-full px-4 py-3 rounded-lg font-semibold transition-all duration-300 ease-out ${
+                    isAddingToShoppingList || itemsAddedToShoppingList
+                      ? 'bg-gray-400 cursor-not-allowed text-gray-600'
+                      : 'bg-orange-500 hover:bg-orange-600 text-white hover:-translate-y-1 hover:scale-[1.02]'
+                  }`}
                 >
-                  Add All to Shopping List
+                  {isAddingToShoppingList ? 'Adding...' : itemsAddedToShoppingList ? 'Items Added' : 'Add All to Shopping List'}
                 </button>
               </div>
             )}
@@ -326,20 +335,6 @@ export default function RecipeDetail() {
             className="border border-green-600 text-green-700 px-6 py-3 rounded-lg font-semibold hover:bg-green-50 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
           >
             Back to Recipes
-          </button>
-          
-          <button 
-            onClick={handleCookRecipe}
-            disabled={isCooked || isLoading}
-            className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] ${
-              isCooked
-                ? 'bg-green-600 text-white cursor-not-allowed' 
-                : isLoading
-                ? 'bg-gray-400 text-white cursor-not-allowed'
-                : 'bg-orange-600 hover:bg-orange-700 text-white'
-            }`}
-          >
-            {isLoading ? 'Cooking...' : isCooked ? 'Cooked ✓' : 'Cook Recipe'}
           </button>
           
           {/* Save Recipe - akshitadidthisfor now */}
