@@ -81,8 +81,8 @@ const ShoppingList = () => {
         try {
             const token = localStorage.getItem('token');
             
-            // Call the new prediction API endpoint
-            const response = await fetch(`${config.apiBaseUrl}/shopping-lists/${activeList.id}/generate-suggestions?kitchenId=${user.kitchenId}`, {
+            // Call the AI suggestions API endpoint (only returns suggestions, doesn't add to list)
+            const response = await fetch(`${config.apiBaseUrl}/shopping-lists/${activeList.id}/ai-suggestions?kitchenId=${user.kitchenId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -96,11 +96,11 @@ const ShoppingList = () => {
                 
                 // Convert backend response to frontend format
                 const formattedSuggestions = suggestionsData.map(item => ({
-                    itemName: item.canonicalName || item.rawName,
+                    itemName: item.itemName || item.canonicalName || item.rawName,
                     suggestedQuantity: item.suggestedQuantity,
-                    unitName: item.unit?.name || 'grams',
-                    unitId: item.unit?.id,
-                    reason: item.suggestionReason || `Based on ${activeTab.toLowerCase()} consumption pattern`,
+                    unitName: item.unitName || item.unit?.name || 'grams',
+                    unitId: item.unitId || item.unit?.id,
+                    reason: item.reason || item.suggestionReason || `Based on ${activeTab.toLowerCase()} consumption pattern`,
                     confidenceScore: item.confidenceScore || 0.8
                 }));
                 

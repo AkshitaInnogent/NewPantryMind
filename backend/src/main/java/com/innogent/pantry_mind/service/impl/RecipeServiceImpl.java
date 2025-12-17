@@ -1,5 +1,15 @@
 package com.innogent.pantry_mind.service.impl;
 
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.innogent.pantry_mind.dto.request.AdvancedRecipeRequestDTO;
 import com.innogent.pantry_mind.dto.request.RecipeRequestDTO;
@@ -9,18 +19,8 @@ import com.innogent.pantry_mind.entity.Inventory;
 import com.innogent.pantry_mind.repository.InventoryRepository;
 import com.innogent.pantry_mind.service.RecipeService;
 import com.innogent.pantry_mind.service.UserPreferencesService;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.*;
-import java.util.stream.Collectors;
-import com.innogent.pantry_mind.entity.*;
-import com.innogent.pantry_mind.repository.*;
-import com.innogent.pantry_mind.util.NameNormalizationUtil;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 
 
 @Service
@@ -171,8 +171,8 @@ public class RecipeServiceImpl implements RecipeService {
     
     @Override
     public RecipeResponseDTO generateAdvancedRecipes(Long kitchenId, AdvancedRecipeRequestDTO request) {
-        System.out.println("🚀 [BACKEND] Advanced recipe generation started for kitchenId: " + kitchenId);
-        System.out.println("📋 [BACKEND] Recipe type: " + request.getRecipeType());
+        // System.out.println("🚀 [BACKEND] Advanced recipe generation started for kitchenId: " + kitchenId);
+        // System.out.println("📋 [BACKEND] Recipe type: " + request.getRecipeType());
         
         try {
             // Call specific endpoint based on recipe type
@@ -185,13 +185,13 @@ public class RecipeServiceImpl implements RecipeService {
                 url = "http://localhost:8001/ai/advanced-recipes";
             }
             
-            System.out.println("🎯 [BACKEND] Calling Python service at: " + url);
-            System.out.println("📎 [BACKEND] Request data: recipeType=" + request.getRecipeType() + ", maxTime=" + request.getMaxCookingTime());
+            // System.out.println("🎯 [BACKEND] Calling Python service at: " + url);
+            // System.out.println("📎 [BACKEND] Request data: recipeType=" + request.getRecipeType() + ", maxTime=" + request.getMaxCookingTime());
             RecipeResponseDTO response = restTemplate.postForObject(url, request, RecipeResponseDTO.class);
             
             if (response != null && response.getRecipes() != null) {
-                System.out.println("✅ [BACKEND] Advanced recipes generated successfully!");
-                System.out.println("📊 [BACKEND] Generated " + response.getRecipes().size() + " recipes");
+                // System.out.println("✅ [BACKEND] Advanced recipes generated successfully!");
+                // System.out.println("📊 [BACKEND] Generated " + response.getRecipes().size() + " recipes");
             }
             
             return response;
@@ -203,7 +203,7 @@ public class RecipeServiceImpl implements RecipeService {
     
     @Override
     public RecipeResponseDTO generateExpiryBasedRecipes(Long kitchenId, Integer servings, Long userId) {
-        System.out.println("⏰ [BACKEND] Expiry-based recipe generation for kitchenId: " + kitchenId);
+        // System.out.println("⏰ [BACKEND] Expiry-based recipe generation for kitchenId: " + kitchenId);
         
         // Get items expiring in next 3 days
         Calendar cal = Calendar.getInstance();
@@ -213,10 +213,10 @@ public class RecipeServiceImpl implements RecipeService {
         List<Inventory> expiringInventory = inventoryRepository.findExpiringInventoryByKitchenId(kitchenId, threeDaysFromNow);
         List<Inventory> allInventory = inventoryRepository.findByKitchenIdAndTotalQuantityGreaterThan(kitchenId, 0L);
         
-        System.out.println("⚠️ [BACKEND] Found " + expiringInventory.size() + " expiring items:");
-        expiringInventory.forEach(item -> 
-            System.out.println("   - " + item.getName() + " (expires soon)")
-        );
+        // System.out.println("⚠️ [BACKEND] Found " + expiringInventory.size() + " expiring items:");
+        // expiringInventory.forEach(item -> 
+        //     System.out.println("   - " + item.getName() + " (expires soon)")
+        // );
         
         AdvancedRecipeRequestDTO request = new AdvancedRecipeRequestDTO();
         request.setItems(allInventory.stream().map(this::mapToAdvancedInventoryItemDTO).collect(Collectors.toList()));
@@ -236,11 +236,11 @@ public class RecipeServiceImpl implements RecipeService {
         request.setUserId(userId);
         
         // DEBUG LOGS
-        System.out.println("🔍 [BACKEND] DEBUG - Request expiring items size: " + request.getExpiringItems().size());
-        if (!request.getExpiringItems().isEmpty()) {
-            System.out.println("🔍 [BACKEND] First expiring item: " + request.getExpiringItems().get(0).getName());
-            System.out.println("🔍 [BACKEND] First expiring item isExpiring: " + request.getExpiringItems().get(0).getIsExpiring());
-        }
+        // System.out.println("🔍 [BACKEND] DEBUG - Request expiring items size: " + request.getExpiringItems().size());
+        // if (!request.getExpiringItems().isEmpty()) {
+        //     System.out.println("🔍 [BACKEND] First expiring item: " + request.getExpiringItems().get(0).getName());
+        //     System.out.println("🔍 [BACKEND] First expiring item isExpiring: " + request.getExpiringItems().get(0).getIsExpiring());
+        // }
         
         System.out.println("📤 [BACKEND] Sending " + expiringItemDTOs.size() + " expiring items to AI");
         
